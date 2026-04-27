@@ -1,8 +1,10 @@
-# Lore
+# Lore 📜
 
 Your personal AI second brain and executive assistant. A markdown-based system that turns Claude (or any agent that supports CLAUDE.md and a folder of workflow files) into a long-running, context-aware partner for managing your role, your team, your stakeholders, and your work.
 
 Lore stays out of your way until you need it, remembers what matters across sessions, and adapts to how you like to work.
+
+Lore's signet is the scroll: 📜. You'll see it on the agent's signed outputs (briefs, talk tracks, weekly reviews, signed-off meeting notes). It marks work that came from Lore.
 
 ---
 
