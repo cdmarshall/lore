@@ -1,0 +1,10 @@
+# Document Inbox
+
+Drop documents here for processing with `/ingest`
+
+Supported formats:
+- PDF
+- Text/Markdown
+- Images
+- CSV/Excel
+- Code files
