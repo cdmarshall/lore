@@ -1,0 +1,64 @@
+# ============================================================
+# Lore .gitignore
+# Personal user data is gitignored. The repo only commits the
+# agent logic, workflows, playbooks, and templates.
+# ============================================================
+
+# --- Personal context (the master user profile) ---
+/context.md
+
+# --- Personal team & stakeholder profiles ---
+/team/*.md
+/stakeholders/*.md
+
+# --- Inbox: action items, working documents ---
+/inbox/*.md
+/inbox/documents/*
+!/inbox/documents/.gitkeep
+
+# --- Outbox: generated outputs (talk tracks, prep docs, exports) ---
+/outbox/*
+!/outbox/.gitkeep
+
+# --- Decision log (personal decisions) ---
+/decisions/log.md
+
+# --- Weekly reviews (personal reflections) ---
+/weekly-reviews/*.md
+
+# --- Personal meeting history ---
+/meetings/notes/*
+!/meetings/notes/.gitkeep
+/meetings/transcripts/*
+!/meetings/transcripts/.gitkeep
+
+# --- Strategy docs (user-specific) ---
+/strategy/*.md
+
+# --- Personal artifacts ---
+*.xlsx
+*.xls
+*.docx
+*.pdf
+*.csv
+.~lock*
+
+# --- Secrets ---
+.secrets/
+*.token
+*.key
+
+# --- Machine-local agent settings ---
+.claude/settings.local.json
+
+# --- Generated artifacts (HTML widgets created by the agent) ---
+/workflows/*.html
+/inbox/*.html
+/outbox/*.html
+
+# --- System ---
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc
+node_modules/

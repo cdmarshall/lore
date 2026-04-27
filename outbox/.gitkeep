@@ -1,0 +1,7 @@
+# Outbox
+
+Generated files, exports, reports, and other outputs.
+
+Current files:
+- career-matrix.csv - PM career ladder with competency expectations
+- pm-scorecard.csv - Expected scores (1-10) by role and competency
