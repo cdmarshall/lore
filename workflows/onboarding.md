@@ -172,15 +172,14 @@ Capture the choice (and any custom description) under **Lore's tone** in the **W
 
 2. Copy `templates/action-items.template.md` to `inbox/action-items.md` if it doesn't already exist. This gives the user an empty action items tracker.
 
-3. **Create the live action items artifact.** This gives the user a sidebar widget that shows their action items in real time and lets them add, edit, and refresh items without leaving the agent.
+3. **Create the live action items artifact.** This gives the user a sidebar widget that shows their action items in real time and lets them add, edit, and complete items without leaving the agent.
 
    Steps:
-   - Read `templates/action-items-artifact.template.html` as the HTML template.
-   - In the template, substitute:
-     - `const TODAY = new Date('YYYY-MM-DD');` with today's actual date.
-     - `const RECENTLY_COMPLETED = 0;` with `0` (a brand-new install has no completed items yet).
-     - The `const raw = [...]` array with `[]` (empty, since `inbox/action-items.md` has no items yet on a fresh install).
-   - Call `mcp__cowork__create_artifact` with id `action-items` and the substituted HTML.
+   - Call `mcp__cowork__create_artifact` with:
+     - `id`: `action-items`
+     - `html_path`: absolute path to `templates/action-items-artifact.template.html`
+     - `mcp_tools`: `["mcp__workspace__bash"]`
+   - No template substitution is needed. The artifact is self-loading: it discovers the lore folder at runtime by globbing `/sessions/*/mnt/lore/inbox/action-items.md` and reads/writes the file directly via `window.cowork.callMcpTool('mcp__workspace__bash', ...)`.
    - If the create call fails (e.g., the artifact tool isn't available in the current environment), don't block onboarding — just note that the artifact wasn't created and the user can ask for it later by saying "create my action items artifact."
 
 4. Tell the user the workspace is ready. Suggest a few first actions based on what they shared:
