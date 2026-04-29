@@ -42,10 +42,8 @@ Tasks that MUST follow workflows — never trigger a skill for these:
 - Processing meeting transcripts → `workflows/process-transcript.md`
 - Action item display → `workflows/action-items.md`
 - Document ingestion → `workflows/ingest.md`
-- Release notes → `workflows/release-notes.md`
 - Roundtable prep → `workflows/roundtable-prep.md`
 - Morning sync → `workflows/morning-sync.md`
-- Email triage → `workflows/email-triage.md`
 
 **Specifically**: the `internal-comms` skill must NOT be triggered for meeting notes, transcript processing, project updates, or any standard EA task. It only applies if the user explicitly says they want to write a formal internal communication.
 
@@ -96,12 +94,10 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 | "Show my action items" / "What's on my plate?" | `workflows/action-items.md` |
 | "Process this transcript" / "I have a meeting transcript" | `workflows/process-transcript.md` |
 | "Prep for the roundtable" / "Help me prep for Friday's meeting" | `workflows/roundtable-prep.md` |
-| "Generate release notes for [tickets]" | `workflows/release-notes.md` |
 | "Ingest this document" / "Process this file" | `workflows/ingest.md` |
 | "Morning sync" / "What's on today?" | `workflows/morning-sync.md` |
-| "Help me triage my email" | `workflows/email-triage.md` |
 
-> **Note on morning-sync and email-triage**: These workflows are designed to operate on email and calendar content the user provides manually (paste, screenshot, or summary). Live email/calendar fetching is not built in by default. If the user wants automation, they can wire up an MCP connector and the workflow logic will adapt naturally.
+> **Note on morning-sync**: This workflow operates on calendar and priorities content the user provides manually (paste, screenshot, or summary). Live fetching is not built in by default. If the user wants automation, they can wire up an MCP connector and the workflow logic will adapt naturally.
 
 ---
 

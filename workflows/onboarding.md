@@ -172,15 +172,26 @@ Capture the choice (and any custom description) under **Lore's tone** in the **W
 
 2. Copy `templates/action-items.template.md` to `inbox/action-items.md` if it doesn't already exist. This gives the user an empty action items tracker.
 
-3. Tell the user the workspace is ready. Suggest a few first actions based on what they shared:
+3. **Create the live action items artifact.** This gives the user a sidebar widget that shows their action items in real time and lets them add, edit, and refresh items without leaving the agent.
+
+   Steps:
+   - Read `templates/action-items-artifact.template.html` as the HTML template.
+   - In the template, substitute:
+     - `const TODAY = new Date('YYYY-MM-DD');` with today's actual date.
+     - `const RECENTLY_COMPLETED = 0;` with `0` (a brand-new install has no completed items yet).
+     - The `const raw = [...]` array with `[]` (empty, since `inbox/action-items.md` has no items yet on a fresh install).
+   - Call `mcp__cowork__create_artifact` with id `action-items` and the substituted HTML.
+   - If the create call fails (e.g., the artifact tool isn't available in the current environment), don't block onboarding — just note that the artifact wasn't created and the user can ask for it later by saying "create my action items artifact."
+
+4. Tell the user the workspace is ready. Suggest a few first actions based on what they shared:
    - "Try saying: 'Show my action items' to see your tracked items."
    - "When you have a meeting transcript, drop it in `meetings/transcripts/` or paste it here, and I'll process it."
    - "Say 'morning sync' to start your day with a briefing."
    - If they have direct reports: "Before your next 1:1, say 'help me prep for my 1:1 with [name]' and I'll pull their profile."
 
-4. Remind them they can edit `context.md` anytime, and that workflows live in `workflows/` if they want to see what Lore can do.
+5. Remind them they can edit `context.md` anytime, and that workflows live in `workflows/` if they want to see what Lore can do.
 
-5. Ask if there's anything they want to handle right now, or if they'd like to come back later.
+6. Ask if there's anything they want to handle right now, or if they'd like to come back later.
 
 ---
 
@@ -194,6 +205,8 @@ inbox/action-items.md                   ← empty tracker, ready to use
 team/[firstname].md                     ← one per direct report (if any)
 stakeholders/[firstname-lastname].md    ← one per stakeholder
 ```
+
+The user should also have a live `action-items` artifact in their Cowork sidebar (created in Phase 8 step 3).
 
 All other folders (decisions/, meetings/notes/, meetings/transcripts/, weekly-reviews/, outbox/, inbox/documents/) remain empty until they're populated by normal workflows.
 
