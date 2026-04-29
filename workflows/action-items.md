@@ -48,29 +48,18 @@ Append a new row to the Active table with all 7 columns:
 
 The action items are also available as a live Cowork artifact (id: `action-items`) that renders in the Cowork sidebar. It shows all active items with priority badges, filter pills, search, inline edits, due date picker, agent toggle, notes, quick-add row, and a Refresh button.
 
-**Where it lives:** Cowork's artifact system (not in the lore folder). The canonical HTML template ships at `templates/action-items-artifact.template.html`.
+**Where it lives:** Cowork's artifact system (not in the lore folder). The canonical HTML template ships at `templates/action-items-artifact.template.html`. It is fully self-contained and self-loading.
 
-**When to recreate the artifact:**
-If the user says the artifact is missing, broken, or asks to rebuild it:
+**Architecture (important for agents):**
+The artifact is autonomous. It reads and writes `inbox/action-items.md` directly using `window.cowork.callMcpTool('mcp__workspace__bash', ...)` with a JS markdown parser/serializer. The agent is **not** in the loop for refresh, mark-complete, due date changes, notes, agent toggle, archive, rename, or add-item. The artifact's Refresh button just re-reads the file; every inline edit re-reads, mutates in memory, and writes the whole file back atomically.
 
-1. Read `inbox/action-items.md` to get the current active items.
-2. Read `templates/action-items-artifact.template.html` as the HTML template.
-3. In the template, substitute:
-   - `const TODAY = new Date('YYYY-MM-DD');` with today's actual date
-   - `const RECENTLY_COMPLETED = 0;` with the count of rows in the Completed table
-   - The `const raw = [...]` array with one object per active row, using this mapping:
-     - `from` = From column
-     - `subject` = Subject column
-     - `details` = Action Needed column (full text)
-     - `due` = Due column (ASAP / Soon / This week / TBD / YYYY-MM-DD)
-     - `agentable` = true if Agent column = "Y", false otherwise
-     - `notes` = Notes column value (empty string if blank)
-4. Call `mcp__cowork__create_artifact` with id `action-items` and the substituted HTML.
-   - If the artifact already exists, use `mcp__cowork__update_artifact` instead.
+This means:
+- You should NOT respond to prompts like "Refresh the action items artifact" — those used to come from the artifact's old sendPrompt-based architecture, which was broken and is now removed.
+- You can still freely edit `inbox/action-items.md` directly. The artifact will pick up your changes on the next Refresh.
+- If the artifact is somehow lost (manifest cleared, etc.) and the user asks to recreate it, just call `mcp__cowork__create_artifact` with id `action-items`, html_path pointing at `templates/action-items-artifact.template.html`, and `mcp_tools: ["mcp__workspace__bash"]`. No template substitution is needed — the artifact discovers everything it needs at runtime.
 
-**When to refresh the artifact (not recreate):**
-If the user clicks the Refresh button in the artifact, it fires: `Refresh the action items artifact with the latest data from inbox/action-items.md`
-In response: read `inbox/action-items.md`, rebuild the `raw` array from the current Active table, update TODAY and RECENTLY_COMPLETED, and call `mcp__cowork__update_artifact`.
+**File path discovery:**
+The artifact finds `inbox/action-items.md` at runtime by globbing `/sessions/*/mnt/lore/inbox/action-items.md`. This works regardless of which Cowork session the user is in, so the artifact survives session restarts.
 
 ---
 
