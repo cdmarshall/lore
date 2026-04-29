@@ -52,8 +52,6 @@ Once onboarding is done, try any of these:
 | See open tasks | "Show my action items" |
 | Process a meeting | "Process this transcript:" then paste, or drop a file in `meetings/transcripts/` |
 | Prep for a 1:1 | "Help me prepare for my 1:1 with [name]" |
-| Generate release notes | "Generate release notes for these tickets: ..." |
-| Triage emails | "Help me triage my email" then paste the inbox content |
 | Start the day | "Morning sync" |
 | End the week | "Run my weekly review" |
 | Make a decision | "Help me think through a decision about [topic]" |
