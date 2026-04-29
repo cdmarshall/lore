@@ -296,62 +296,130 @@ const agentState = {}, notesState = {};
 let activeFilter = 'all', searchQuery = '';
 let backupHandle = null;
 
-// ── IndexedDB ──────────────────────────────────────────────────────────────
-const IDB_DB = 'lore-action-items';
-const IDB_STORE = 'data';
-function openIdb() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(IDB_DB, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+// ── Storage layer ──────────────────────────────────────────────────────────
+// Try IndexedDB first. If it's unavailable (Cowork's sandboxed iframe may
+// block it) fall back to localStorage. If THAT's blocked, fall back to an
+// in-memory store and warn the user that changes won't persist.
+const STORAGE_NAMESPACE = 'lore-action-items';
+let storage = null; // { kind: 'idb'|'ls'|'mem', getItem, setItem }
+
+function memStorage() {
+  const m = {};
+  return {
+    kind: 'mem',
+    async getItem(k) { return m[k]; },
+    async setItem(k, v) { m[k] = v; }
+  };
 }
-async function idbSet(key, value) {
-  const db = await openIdb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).put(value, key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+function lsStorage() {
+  return {
+    kind: 'ls',
+    async getItem(k) { try { const v = localStorage.getItem(STORAGE_NAMESPACE + ':' + k); return v ? JSON.parse(v) : undefined; } catch (_) { return undefined; } },
+    async setItem(k, v) { localStorage.setItem(STORAGE_NAMESPACE + ':' + k, JSON.stringify(v)); }
+  };
 }
-async function idbGet(key) {
-  const db = await openIdb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, 'readonly');
-    const req = tx.objectStore(IDB_STORE).get(key);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+function idbStorage() {
+  const DB = STORAGE_NAMESPACE;
+  const STORE = 'data';
+  function open() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error('idb open failed'));
+      req.onblocked = () => reject(new Error('idb open blocked'));
+    });
+  }
+  return {
+    kind: 'idb',
+    async getItem(k) {
+      const db = await open();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readonly');
+        const r = tx.objectStore(STORE).get(k);
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      });
+    },
+    async setItem(k, v) {
+      const db = await open();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put(v, k);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+  };
 }
 
-async function loadFromIdb() {
-  const stored = await idbGet('items');
-  if (!stored || !stored.activeItems) return false;
-  activeItems = stored.activeItems || [];
-  completedItems = stored.completedItems || [];
-  archivedItems = stored.archivedItems || [];
-  return true;
+async function pickStorage() {
+  // Try IDB with a timeout (it can hang in some sandboxed contexts).
+  if (typeof indexedDB !== 'undefined') {
+    try {
+      const candidate = idbStorage();
+      // Smoke test: write+read a tiny key with a 2-second timeout.
+      await Promise.race([
+        (async () => {
+          await candidate.setItem('_probe', 1);
+          const v = await candidate.getItem('_probe');
+          if (v !== 1) throw new Error('idb probe mismatch');
+        })(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('idb probe timeout')), 2000))
+      ]);
+      return candidate;
+    } catch (_) { /* fall through to localStorage */ }
+  }
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const candidate = lsStorage();
+      await candidate.setItem('_probe', 1);
+      if ((await candidate.getItem('_probe')) === 1) return candidate;
+    } catch (_) { /* fall through */ }
+  }
+  return memStorage();
 }
-async function saveToIdb() {
-  await idbSet('items', { activeItems, completedItems, archivedItems, savedAt: new Date().toISOString() });
+
+async function loadStored() {
+  if (!storage) return false;
+  try {
+    const stored = await storage.getItem('items');
+    if (!stored || !stored.activeItems) return false;
+    activeItems    = stored.activeItems    || [];
+    completedItems = stored.completedItems || [];
+    archivedItems  = stored.archivedItems  || [];
+    return true;
+  } catch (_) { return false; }
+}
+async function saveStored() {
+  if (!storage) return;
+  try {
+    await storage.setItem('items', { activeItems, completedItems, archivedItems, savedAt: new Date().toISOString() });
+  } catch (e) {
+    showToast('warn', `Local save failed (${storage.kind}): ${e.message}. Changes are in memory only — use Export to back up.`, null, null);
+  }
+}
+
+// Backup-handle stash uses a small IDB if available, otherwise nothing
+// (localStorage can't store FileSystemFileHandle objects).
+async function stashHandle(key, handle) {
+  if (storage && storage.kind === 'idb') { try { await storage.setItem(key, handle); } catch (_) {} }
+}
+async function loadStashedHandle(key) {
+  if (storage && storage.kind === 'idb') { try { return await storage.getItem(key); } catch (_) {} }
+  return undefined;
 }
 
 async function seedFromEmbedded() {
-  try {
-    const tag = document.getElementById('seed-data');
-    const txt = tag ? tag.textContent.trim() : '';
-    if (!txt || txt === '__SEED__') return false;
-    const seed = JSON.parse(txt);
-    activeItems    = seed.active    || [];
-    completedItems = seed.completed || [];
-    archivedItems  = seed.archived  || [];
-    await saveToIdb();
-    return true;
-  } catch (e) {
-    return false;
-  }
+  const tag = document.getElementById('seed-data');
+  const txt = tag ? tag.textContent.trim() : '';
+  if (!txt || txt === '__SEED__') return false;
+  const seed = JSON.parse(txt);
+  activeItems    = seed.active    || [];
+  completedItems = seed.completed || [];
+  archivedItems  = seed.archived  || [];
+  await saveStored();
+  return true;
 }
 
 // ── Toast helpers ──────────────────────────────────────────────────────────
@@ -412,7 +480,7 @@ async function setupBackupFile() {
       return;
     }
     backupHandle = handle;
-    await idbSet('backup-handle', handle);
+    await stashHandle('backup-handle', handle);
     document.getElementById('backup-btn').textContent = 'Backup file: on';
     showToast('info', 'Backup file connected. Every change will save to it automatically.', null, null, 4000);
   } catch (e) {
@@ -423,7 +491,7 @@ async function setupBackupFile() {
 
 async function tryRestoreBackupHandle() {
   try {
-    const stored = await idbGet('backup-handle');
+    const stored = await loadStashedHandle('backup-handle');
     if (!stored) return;
     // Check permission silently. If granted, use it. If not, leave the user
     // a non-blocking "reconnect backup file" hint.
@@ -746,9 +814,9 @@ function apply(op) {
   rebuildItems(); renderStats(); applyFilters();
   saveQueue = saveQueue.then(async () => {
     try {
-      await saveToIdb();
+      await saveStored();
       if (backupHandle) await writeBackup();
-      setSync(backupHandle ? '' : 'local', backupHandle ? 'Synced' : 'Saved locally');
+      setSync(backupHandle ? '' : 'local', backupHandle ? 'Synced' : (storage && storage.kind !== 'mem' ? 'Saved locally' : 'In memory only'));
     } catch (err) {
       setSync('error', 'Save failed');
       showToast('error', `Save failed: ${err.message}`, null, null);
@@ -782,24 +850,60 @@ document.getElementById('qa-add-btn').addEventListener('click', () => {
 document.getElementById('qa-subject').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('qa-add-btn').click(); });
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
-(async function init() {
+async function init() {
   setSync('stale', 'Loading...');
-
-  // Load from IDB if it has data; otherwise seed from embedded data.
-  const hasIdb = await loadFromIdb();
-  if (!hasIdb) {
-    const seeded = await seedFromEmbedded();
-    if (!seeded) {
-      // No IDB and no embedded seed — start with an empty list.
-      activeItems = []; completedItems = []; archivedItems = [];
-      await saveToIdb();
+  try {
+    storage = await pickStorage();
+    if (storage.kind === 'mem') {
+      showToast('warn',
+        'This view doesn\'t allow persistent storage (IndexedDB and localStorage both unavailable). Items will work for this session but won\'t be saved when you close the artifact. Use <strong>Export</strong> to download a backup before closing.',
+        null, null);
     }
-  }
 
-  rebuildItems(); renderStats(); applyFilters();
-  await tryRestoreBackupHandle();
-  setSync(backupHandle ? '' : 'local', backupHandle ? 'Synced' : 'Stored locally');
-})();
+    const hasStored = await loadStored();
+    if (!hasStored) {
+      const seeded = await seedFromEmbedded();
+      if (!seeded) {
+        activeItems = []; completedItems = []; archivedItems = [];
+        try { await saveStored(); } catch (_) {}
+      }
+    }
+
+    rebuildItems(); renderStats(); applyFilters();
+    await tryRestoreBackupHandle();
+
+    const label = backupHandle
+      ? 'Synced'
+      : (storage.kind === 'mem' ? 'In memory only' : 'Saved locally');
+    setSync(backupHandle ? '' : (storage.kind === 'mem' ? 'error' : 'local'), label);
+  } catch (err) {
+    setSync('error', 'Init failed');
+    showToast('error',
+      `Initialization failed: ${(err && err.message) || err}. ` +
+      `Diagnostics: indexedDB=${typeof indexedDB !== 'undefined'}, localStorage=${typeof localStorage !== 'undefined'}, ` +
+      `seedDataPresent=${!!document.getElementById('seed-data')}, ` +
+      `seedLength=${(document.getElementById('seed-data')||{}).textContent?.length || 0}.`,
+      null, null);
+    // Last-resort: try to render the seed data anyway, even without storage.
+    try {
+      storage = memStorage();
+      const seeded = await seedFromEmbedded();
+      if (seeded) {
+        rebuildItems(); renderStats(); applyFilters();
+      }
+    } catch (_) {}
+  }
+}
+
+// Surface uncaught async errors so they don't disappear into nowhere.
+window.addEventListener('error', e => {
+  showToast('error', `Script error: ${e.message} (${e.filename}:${e.lineno})`, null, null);
+});
+window.addEventListener('unhandledrejection', e => {
+  showToast('error', `Unhandled async error: ${(e.reason && e.reason.message) || e.reason}`, null, null);
+});
+
+init();
 </script>
 </body>
 </html>
