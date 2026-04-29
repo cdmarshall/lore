@@ -378,32 +378,71 @@ function fsaSupported() {
   return typeof window.showOpenFilePicker === 'function';
 }
 
-async function pickFile() {
+function hideLoadingOverlay() {
+  document.getElementById('loading-overlay').classList.add('hidden');
+}
+
+// Pick a file AND upgrade to readwrite in the same user gesture. Browsers
+// (Chromium especially) typically allow chained permission requests within
+// a single click handler. Doing this in one go avoids the case where the
+// gesture is consumed by the picker and a follow-up requestPermission won't
+// show a dialog.
+async function pickAndAuthorize() {
   if (!fsaSupported()) {
-    setBanner('error', 'This browser doesn\'t support the File System Access API. Update Chrome/Edge or open this artifact in a context that supports it.', null);
+    setBanner('error', 'This view does not expose the File System Access API. The artifact can\'t edit your file directly here.', null);
+    setSyncDot('error', 'API unavailable');
+    hideLoadingOverlay();
     return false;
   }
+  let handle;
   try {
-    const [handle] = await window.showOpenFilePicker({
+    [handle] = await window.showOpenFilePicker({
       types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }],
       multiple: false,
       excludeAcceptAllOption: false
     });
-    fileHandle = handle;
-    await idbSet('action-items-handle', handle);
-    return true;
   } catch (e) {
-    if (e.name === 'AbortError') return false;
-    setBanner('error', `Picker failed: ${e.message}`, 'Try again', () => pickFile().then(ok => ok && reload()));
+    if (e.name === 'AbortError') {
+      // User canceled the picker — leave the connect banner up.
+      hideLoadingOverlay();
+      return false;
+    }
+    setBanner('error', `Picker failed: ${e.message}`, 'Try again', pickAndAuthorize);
+    hideLoadingOverlay();
     return false;
   }
+
+  // Upgrade to readwrite. Wrap with a 30s timeout so a stalled permission
+  // prompt can't leave the UI spinning forever.
+  const grant = await Promise.race([
+    handle.requestPermission({ mode: 'readwrite' }),
+    new Promise(res => setTimeout(() => res('timeout'), 30000))
+  ]);
+
+  if (grant !== 'granted') {
+    setSyncDot('error', grant === 'timeout' ? 'Permission prompt timed out' : 'Write permission denied');
+    setBanner('error',
+      grant === 'timeout'
+        ? 'The permission prompt timed out. This can happen if Cowork\'s webview suppresses the browser permission dialog. Try clicking Reconnect to pick the file again.'
+        : 'Write permission was denied. The artifact needs read AND write access to save changes. Click Reconnect to pick the file again and grant access.',
+      'Reconnect',
+      pickAndAuthorize);
+    hideLoadingOverlay();
+    return false;
+  }
+
+  fileHandle = handle;
+  try { await idbSet('action-items-handle', handle); } catch (_) { /* not fatal */ }
+  return true;
 }
 
-async function ensurePermission(handle, mode = 'readwrite') {
-  if (!handle || !handle.queryPermission) return false;
-  const opts = { mode };
-  if ((await handle.queryPermission(opts)) === 'granted') return true;
-  if ((await handle.requestPermission(opts)) === 'granted') return true;
+// For restored handles only — reuse without picking, but still verify perm.
+async function authorizeRestored(handle) {
+  // Try query first (no UI). If already granted, we're set.
+  try {
+    if ((await handle.queryPermission({ mode: 'readwrite' })) === 'granted') return true;
+  } catch (_) { /* fall through */ }
+  // Need a user gesture to call requestPermission.
   return false;
 }
 
@@ -827,7 +866,7 @@ document.getElementById('qa-add-btn').addEventListener('click', () => {
 });
 document.getElementById('qa-subject').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('qa-add-btn').click(); });
 
-// ── Reload ─────────────────────────────────────────────────────────────────
+// ── Reload (assumes fileHandle exists and is authorized) ───────────────────
 async function reload() {
   if (!fileHandle) { showConnectBanner(); return; }
   const btn = document.getElementById('refresh-btn');
@@ -835,12 +874,11 @@ async function reload() {
   setSyncDot('stale', 'Loading...');
   setLoadingText('Reading file...');
   try {
-    const ok = await ensurePermission(fileHandle, 'readwrite');
-    if (!ok) {
-      setSyncDot('disconnected', 'Permission denied');
-      setBanner('connect', 'Permission to read your file was denied. Click to grant access.', 'Grant access', async () => {
-        if (await ensurePermission(fileHandle, 'readwrite')) { hideBanner(); reload(); }
-      });
+    // Verify we still have permission (in case it was revoked)
+    if ((await fileHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') {
+      setSyncDot('error', 'Permission expired');
+      setBanner('connect', 'Permission to your file was lost. Click to reconnect.', 'Reconnect', pickAndAuthorize);
+      hideLoadingOverlay();
       return;
     }
     const content = await readFile();
@@ -850,11 +888,24 @@ async function reload() {
     setSyncDot('', 'Synced ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }));
     hideBanner();
   } catch (err) {
+    hideLoadingOverlay();
     setSyncDot('error', 'Load failed');
-    setBanner('error', `Failed to load file: ${err.message}`, 'Reconnect', async () => { if (await pickFile()) reload(); });
+    setBanner('error', `Failed to load file: ${err.message}`, 'Reconnect', pickAndAuthorize);
   } finally {
     btn.classList.remove('spinning'); btn.disabled = false;
   }
+}
+
+// Connect-then-load: combines authorize + load in one user-gesture chain.
+async function connectAndLoad() {
+  setSyncDot('stale', 'Connecting...');
+  setLoadingText('Waiting for file access...');
+  if (await pickAndAuthorize()) {
+    document.getElementById('refresh-btn').disabled = false;
+    hideBanner();
+    await reload();
+  }
+  // pickAndAuthorize already surfaced any error and hid the overlay on failure.
 }
 
 document.getElementById('refresh-btn').addEventListener('click', reload);
@@ -863,21 +914,16 @@ document.getElementById('refresh-btn').addEventListener('click', reload);
 function showConnectBanner() {
   if (!fsaSupported()) {
     setBanner('error',
-      'This artifact needs the File System Access API to read and write your action-items.md file. The current view doesn\'t expose it. Edit the file directly in your editor for now.',
+      'This view does not expose the File System Access API, so the artifact can\'t edit your file directly here. Open the file in your editor and edit manually.',
       null);
     setSyncDot('error', 'API unavailable');
     setLoadingText('File System Access API not available in this view');
     return;
   }
   setBanner('connect',
-    'Connect to your <code>action-items.md</code> file to enable live editing. The file picker will open; choose <code>inbox/action-items.md</code> in your lore folder. You\'ll only need to do this once per session.',
+    'Connect to your <code>action-items.md</code> file. The picker will open: navigate to your <code>lore</code> folder, select <code>inbox/action-items.md</code>, then grant read/write when prompted. You only need to do this once per browser session.',
     'Connect file',
-    async () => {
-      if (await pickFile()) {
-        document.getElementById('refresh-btn').disabled = false;
-        await reload();
-      }
-    });
+    connectAndLoad);
   setSyncDot('disconnected', 'Not connected');
   setLoadingText('Click "Connect file" above to load action items');
 }
@@ -887,26 +933,20 @@ function showConnectBanner() {
   const restored = await tryRestoreHandle();
   if (restored) {
     fileHandle = restored;
-    // Try non-prompting permission check first; if not granted, surface the connect button.
-    const granted = (await fileHandle.queryPermission({ mode: 'readwrite' })) === 'granted';
-    if (granted) {
+    // Try non-prompting permission check first.
+    if (await authorizeRestored(fileHandle)) {
       document.getElementById('refresh-btn').disabled = false;
       reload();
       return;
     }
     // Permission needs to be re-requested with a user gesture.
+    // Re-picking is the most reliable path (Chromium remembers prior denials).
     setBanner('connect',
-      'Reconnecting to your <code>action-items.md</code> file. Click to grant access for this session.',
-      'Grant access',
-      async () => {
-        if (await ensurePermission(fileHandle, 'readwrite')) {
-          document.getElementById('refresh-btn').disabled = false;
-          hideBanner();
-          reload();
-        }
-      });
+      'Reconnect to your <code>action-items.md</code> file. The picker will open again — re-grant read/write when prompted.',
+      'Reconnect file',
+      connectAndLoad);
     setSyncDot('disconnected', 'Awaiting permission');
-    setLoadingText('Click "Grant access" above to load action items');
+    setLoadingText('Click "Reconnect file" above to load action items');
     return;
   }
   showConnectBanner();
