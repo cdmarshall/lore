@@ -1,19 +1,17 @@
 #!/usr/bin/env node
-// Build a substituted action-items artifact HTML by reading inbox/action-items.md,
-// extracting the Active and Completed tables, and inserting the data into the
-// canonical template at templates/action-items-artifact.template.html.
+// Build the action-items artifact HTML by reading inbox/action-items.md and
+// embedding it as a JSON seed in the template. The artifact uses this seed
+// only on first run (when its IndexedDB is empty); thereafter the artifact's
+// IDB is the source of truth.
 //
 // Usage:
 //   node scripts/build-action-items-artifact.js [output-path]
 //
 // If output-path is omitted, writes to outbox/action-items-artifact-built.html.
-// The agent should then pass the output path to mcp__cowork__create_artifact or
-// mcp__cowork__update_artifact (id: "action-items", mcp_tools: []).
 
 const fs = require('fs');
 const path = require('path');
 
-// Resolve the lore folder by walking up from this script's directory.
 const SCRIPT_DIR = __dirname;
 const LORE_DIR = path.resolve(SCRIPT_DIR, '..');
 const MARKDOWN_PATH = path.join(LORE_DIR, 'inbox', 'action-items.md');
@@ -26,7 +24,7 @@ function parseMarkdown(content) {
   const lines = content.split('\n');
   let section = 'preamble';
   let inTable = false;
-  const active = [], completed = [];
+  const active = [], completed = [], archived = [];
 
   for (const line of lines) {
     const m = line.match(/^##\s+(\w+)/);
@@ -34,6 +32,7 @@ function parseMarkdown(content) {
       const name = m[1].toLowerCase();
       if (name === 'active')   { section = 'active';   inTable = false; continue; }
       if (name === 'completed'){ section = 'completed'; inTable = false; continue; }
+      if (name === 'archived') { section = 'archived'; inTable = false; continue; }
       section = 'other'; inTable = false;
       continue;
     }
@@ -46,52 +45,57 @@ function parseMarkdown(content) {
 
     if (section === 'active' && cells.length >= 4) {
       active.push({
-        from:      cells[1] || '',
-        subject:   cells[2] || '',
-        details:   cells[3] || '',
-        due:       cells[4] || 'TBD',
-        agentable: (cells[5] === 'Y' || cells[5] === 'y'),
-        notes:     cells[6] || ''
+        date: cells[0] || '',
+        from: cells[1] || '',
+        subject: cells[2] || '',
+        actionNeeded: cells[3] || '',
+        due: cells[4] || 'TBD',
+        agent: cells[5] || '',
+        notes: cells[6] || ''
       });
-    } else if (section === 'completed' && cells.length >= 5) {
-      completed.push({ completed: cells[4] });
+    } else if (section === 'completed' && cells.length >= 3) {
+      completed.push({
+        date: cells[0] || '',
+        from: cells[1] || '',
+        subject: cells[2] || '',
+        resolution: cells[3] || '',
+        completed: cells[4] || ''
+      });
+    } else if (section === 'archived' && cells.length >= 3) {
+      archived.push({
+        date: cells[0] || '',
+        from: cells[1] || '',
+        subject: cells[2] || '',
+        actionNeeded: cells[3] || '',
+        archived: cells[4] || ''
+      });
     }
   }
-  return { active, completed };
+  return { active, completed, archived };
 }
 
-if (!fs.existsSync(MARKDOWN_PATH)) {
-  console.error(`Action items file not found: ${MARKDOWN_PATH}`);
-  process.exit(1);
-}
 if (!fs.existsSync(TEMPLATE_PATH)) {
   console.error(`Template not found: ${TEMPLATE_PATH}`);
   process.exit(1);
 }
 
-const md = fs.readFileSync(MARKDOWN_PATH, 'utf8');
+let parsed = { active: [], completed: [], archived: [] };
+if (fs.existsSync(MARKDOWN_PATH)) {
+  parsed = parseMarkdown(fs.readFileSync(MARKDOWN_PATH, 'utf8'));
+} else {
+  console.warn(`No ${MARKDOWN_PATH} found — building artifact with empty seed.`);
+}
+
 const tpl = fs.readFileSync(TEMPLATE_PATH, 'utf8');
-const { active, completed } = parseMarkdown(md);
 
-const today = new Date();
-const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+// Substitute __SEED__ with the JSON-encoded parsed data. The placeholder
+// lives inside a <script type="application/json"> tag in the template, so
+// we just inject the JSON text. Escape "</script>" if it appears in any value.
+const seedJson = JSON.stringify(parsed).replace(/<\/script>/gi, '<\\/script>');
+const out = tpl.replace(/__SEED__/g, seedJson);
 
-const thirtyDaysAgo = new Date(today.getTime() - 30 * 86400000);
-const recentlyCompleted = completed.filter(c => {
-  if (!c.completed) return false;
-  const d = new Date(c.completed + 'T12:00:00');
-  return !isNaN(d) && d >= thirtyDaysAgo;
-}).length;
-
-const rawJson = JSON.stringify(active, null, 2);
-
-const out = tpl
-  .replace(/__TODAY__/g, todayStr)
-  .replace(/__RECENTLY_COMPLETED__/g, String(recentlyCompleted))
-  .replace(/__RAW__/g, rawJson);
-
-if (out.includes('__TODAY__') || out.includes('__RAW__') || out.includes('__RECENTLY_COMPLETED__')) {
-  console.error('ERROR: substitution incomplete');
+if (out.includes('__SEED__')) {
+  console.error('ERROR: __SEED__ substitution did not occur');
   process.exit(1);
 }
 
@@ -99,7 +103,7 @@ fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, out);
 
 console.log(`Built: ${outPath}`);
-console.log(`  Active items: ${active.length}`);
-console.log(`  Completed in last 30 days: ${recentlyCompleted}`);
-console.log(`  Today: ${todayStr}`);
+console.log(`  Active items:    ${parsed.active.length}`);
+console.log(`  Completed items: ${parsed.completed.length}`);
+console.log(`  Archived items:  ${parsed.archived.length}`);
 console.log(`  Size: ${out.length} bytes`);
