@@ -375,18 +375,63 @@ function setLoadingText(text) {
 
 // ── File System Access API ─────────────────────────────────────────────────
 function fsaSupported() {
-  return typeof window.showOpenFilePicker === 'function';
+  return typeof window.showDirectoryPicker === 'function' || typeof window.showOpenFilePicker === 'function';
 }
 
 function hideLoadingOverlay() {
   document.getElementById('loading-overlay').classList.add('hidden');
 }
 
-// Pick a file AND upgrade to readwrite in the same user gesture. Browsers
-// (Chromium especially) typically allow chained permission requests within
-// a single click handler. Doing this in one go avoids the case where the
-// gesture is consumed by the picker and a follow-up requestPermission won't
-// show a dialog.
+// Pick the lore folder (or its inbox/ subfolder) with readwrite mode. This
+// grants read AND write in a single permission dialog, which works more
+// reliably in sandboxed webviews than picking a file and then upgrading
+// permission. We then navigate to inbox/action-items.md within the folder.
+async function pickDirectoryAndAuthorize() {
+  if (typeof window.showDirectoryPicker !== 'function') return null;
+
+  let dirHandle;
+  try {
+    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'lore-action-items' });
+  } catch (e) {
+    if (e.name === 'AbortError') { hideLoadingOverlay(); return null; }
+    throw e;
+  }
+
+  // Try to locate inbox/action-items.md. The user might have picked:
+  //  - the lore root        → look for inbox/action-items.md
+  //  - the inbox/ folder    → look for action-items.md
+  //  - some other folder    → look for action-items.md, then inbox/action-items.md
+  let fileH = null;
+  try {
+    const inbox = await dirHandle.getDirectoryHandle('inbox', { create: false });
+    fileH = await inbox.getFileHandle('action-items.md', { create: false });
+  } catch (_) {
+    try {
+      fileH = await dirHandle.getFileHandle('action-items.md', { create: false });
+    } catch (_) {
+      throw new Error(`Couldn't find action-items.md in the picked folder. Pick your lore folder (the one with CLAUDE.md), or its inbox/ subfolder.`);
+    }
+  }
+  return fileH;
+}
+
+// Fallback: file picker. Returns the picked handle without trying to
+// upgrade permission, since Cowork's webview may suppress the upgrade dialog.
+async function pickFileFallback() {
+  if (typeof window.showOpenFilePicker !== 'function') return null;
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }],
+      multiple: false,
+      excludeAcceptAllOption: false
+    });
+    return handle;
+  } catch (e) {
+    if (e.name === 'AbortError') { hideLoadingOverlay(); return null; }
+    throw e;
+  }
+}
+
 async function pickAndAuthorize() {
   if (!fsaSupported()) {
     setBanner('error', 'This view does not expose the File System Access API. The artifact can\'t edit your file directly here.', null);
@@ -394,41 +439,56 @@ async function pickAndAuthorize() {
     hideLoadingOverlay();
     return false;
   }
-  let handle;
+
+  let handle = null;
   try {
-    [handle] = await window.showOpenFilePicker({
-      types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }],
-      multiple: false,
-      excludeAcceptAllOption: false
-    });
-  } catch (e) {
-    if (e.name === 'AbortError') {
-      // User canceled the picker — leave the connect banner up.
-      hideLoadingOverlay();
-      return false;
+    // Prefer directory picker — it requests readwrite in one dialog.
+    handle = await pickDirectoryAndAuthorize();
+    if (!handle && typeof window.showOpenFilePicker === 'function') {
+      // Directory picker not available (or user canceled cleanly). Try file picker.
+      handle = await pickFileFallback();
     }
+  } catch (e) {
     setBanner('error', `Picker failed: ${e.message}`, 'Try again', pickAndAuthorize);
     hideLoadingOverlay();
     return false;
   }
 
-  // Upgrade to readwrite. Wrap with a 30s timeout so a stalled permission
-  // prompt can't leave the UI spinning forever.
-  const grant = await Promise.race([
-    handle.requestPermission({ mode: 'readwrite' }),
-    new Promise(res => setTimeout(() => res('timeout'), 30000))
-  ]);
+  if (!handle) { hideLoadingOverlay(); return false; }
+
+  // Verify we actually have readwrite permission. If the directory-picker
+  // path was used, it should already be granted. If we fell back to the
+  // file picker, try one upgrade with a timeout.
+  let grant = await handle.queryPermission({ mode: 'readwrite' });
+  if (grant !== 'granted') {
+    grant = await Promise.race([
+      handle.requestPermission({ mode: 'readwrite' }),
+      new Promise(res => setTimeout(() => res('timeout'), 15000))
+    ]);
+  }
 
   if (grant !== 'granted') {
-    setSyncDot('error', grant === 'timeout' ? 'Permission prompt timed out' : 'Write permission denied');
-    setBanner('error',
-      grant === 'timeout'
-        ? 'The permission prompt timed out. This can happen if Cowork\'s webview suppresses the browser permission dialog. Try clicking Reconnect to pick the file again.'
-        : 'Write permission was denied. The artifact needs read AND write access to save changes. Click Reconnect to pick the file again and grant access.',
-      'Reconnect',
-      pickAndAuthorize);
-    hideLoadingOverlay();
-    return false;
+    // Last-ditch: try writing a tiny test to see if the API actually blocks.
+    // Some webviews report 'denied' but allow writes. We probe by reading +
+    // re-writing the same content, which is a no-op if it succeeds.
+    let writeWorks = false;
+    try {
+      const file = await handle.getFile();
+      const text = await file.text();
+      const w = await handle.createWritable();
+      await w.write(text);
+      await w.close();
+      writeWorks = true;
+    } catch (_) { /* genuinely blocked */ }
+
+    if (!writeWorks) {
+      setSyncDot('error', 'Write blocked');
+      setBanner('error',
+        'Cowork\'s webview is blocking write access to local files from this artifact. The legacy Next.js implementation worked because it ran outside this sandbox; in Cowork, an artifact can\'t persist changes back to a local markdown file. We need a different architecture for this — see chat for options.',
+        null);
+      hideLoadingOverlay();
+      return false;
+    }
   }
 
   fileHandle = handle;
@@ -436,13 +496,10 @@ async function pickAndAuthorize() {
   return true;
 }
 
-// For restored handles only — reuse without picking, but still verify perm.
 async function authorizeRestored(handle) {
-  // Try query first (no UI). If already granted, we're set.
   try {
     if ((await handle.queryPermission({ mode: 'readwrite' })) === 'granted') return true;
   } catch (_) { /* fall through */ }
-  // Need a user gesture to call requestPermission.
   return false;
 }
 
@@ -921,8 +978,8 @@ function showConnectBanner() {
     return;
   }
   setBanner('connect',
-    'Connect to your <code>action-items.md</code> file. The picker will open: navigate to your <code>lore</code> folder, select <code>inbox/action-items.md</code>, then grant read/write when prompted. You only need to do this once per browser session.',
-    'Connect file',
+    'Connect to your action items file. A folder picker will open: pick your <code>lore</code> folder (or its <code>inbox/</code> subfolder). When the read/write permission dialog appears, click <strong>Allow</strong>. You only need to do this once per browser session.',
+    'Connect',
     connectAndLoad);
   setSyncDot('disconnected', 'Not connected');
   setLoadingText('Click "Connect file" above to load action items');
