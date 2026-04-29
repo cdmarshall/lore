@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Action Items",
+  "schemaVersion": 1,
+  "description": "Live action items tracker, sourced from inbox/action-items.md. Shows active items sorted by priority with filter pills, search, and stats bar."
+}
+</script>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1a2e; min-height: 100vh; }
+
+.header { background: linear-gradient(135deg, #1a3254 0%, #2a5298 100%); color: white; padding: 18px 24px 16px; }
+.header-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; flex: 1; }
+.sync-wrap { display: flex; align-items: center; gap: 7px; }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; flex-shrink: 0; transition: background 0.3s; }
+.sync-dot.stale { background: #fbbf24; }
+.sync-label { font-size: 11px; opacity: 0.75; white-space: nowrap; }
+.refresh-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.12); color: white; font-size: 12px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
+.refresh-btn:hover:not(:disabled) { background: rgba(255,255,255,0.22); }
+.refresh-btn:disabled { cursor: default; opacity: 0.7; }
+.refresh-btn .btn-spinner { display: none; }
+.refresh-btn.spinning .btn-spinner { display: inline-block; }
+.refresh-btn.spinning .btn-label { opacity: 0.75; }
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spinner { display: inline-block; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.65s linear infinite; flex-shrink: 0; }
+.spinner-sm { width: 10px; height: 10px; border-width: 1.5px; }
+.spinner-xs { width: 8px; height: 8px; border-width: 1.5px; }
+
+.stats { display: flex; gap: 10px; }
+.stat { background: rgba(255,255,255,0.13); border-radius: 8px; padding: 7px 14px; text-align: center; min-width: 70px; }
+.stat.danger  { background: rgba(220,53,69,0.4); }
+.stat.warning { background: rgba(255,152,0,0.38); }
+.stat.agent   { background: rgba(16,185,129,0.35); }
+.stat-n { font-size: 20px; font-weight: 700; line-height: 1.15; }
+.stat-l { font-size: 10px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Pending panel */
+.pending-panel { background: #fffbeb; border-bottom: 1.5px solid #fcd34d; overflow: hidden; transition: max-height 0.25s ease; max-height: 0; }
+.pending-panel.visible { max-height: 400px; }
+.pending-header { display: flex; align-items: center; gap: 9px; padding: 9px 24px; cursor: pointer; user-select: none; border-bottom: 1px solid transparent; }
+.pending-panel.expanded .pending-header { border-color: #fde68a; }
+.pending-header-text { font-size: 12.5px; font-weight: 600; color: #92400e; flex: 1; }
+.pending-chevron { font-size: 10px; color: #b45309; transition: transform 0.2s; }
+.pending-panel.expanded .pending-chevron { transform: rotate(180deg); }
+.pending-list { padding: 0 24px 10px; display: none; }
+.pending-panel.expanded .pending-list { display: block; }
+.pending-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; border-bottom: 1px solid #fef3c7; font-size: 12px; color: #78350f; }
+.pending-item:last-child { border-bottom: none; }
+.pending-item-desc { flex: 1; line-height: 1.4; }
+.pending-item-time { font-size: 10.5px; color: #b45309; white-space: nowrap; margin-top: 1px; }
+
+/* Controls */
+.controls { background: white; border-bottom: 1px solid #e9ecef; padding: 11px 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.pill { padding: 4px 12px; border-radius: 20px; border: 1.5px solid #dee2e6; background: white; color: #6c757d; font-size: 12px; cursor: pointer; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
+.pill:hover { border-color: #2a5298; color: #2a5298; }
+.pill.active { background: #1a3254; color: white; border-color: #1a3254; }
+.pill.agent-pill.active { background: #059669; border-color: #059669; }
+.search-wrap input { padding: 6px 14px; border: 1.5px solid #dee2e6; border-radius: 20px; font-size: 13px; outline: none; width: 200px; transition: border-color 0.15s; color: #1a1a2e; }
+.search-wrap input:focus { border-color: #2a5298; }
+.search-wrap input::placeholder { color: #adb5bd; }
+
+/* Table */
+.table-outer { padding: 16px 24px 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+thead { background: #f8f9fa; }
+th { text-align: left; padding: 9px 14px; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: #6c757d; font-weight: 600; border-bottom: 2px solid #e9ecef; }
+th.agent-th { text-align: center; color: #059669; }
+td { padding: 10px 14px; border-bottom: 1px solid #f2f2f2; vertical-align: top; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #fafbfc; }
+tbody tr:hover .archive-btn { opacity: 1; }
+tbody tr:hover .add-note-btn { opacity: 1; }
+tbody tr.agent-row td { background: #f0fdf4; }
+tbody tr.agent-row:hover td { background: #dcfce7; }
+
+.row-pending-dot { display: none; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid #f59e0b; border-top-color: transparent; animation: spin 0.65s linear infinite; margin-left: 6px; vertical-align: middle; flex-shrink: 0; }
+.row-pending-dot.show { display: inline-block; }
+
+/* Badges */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+.b-overdue  { background: #fff0f0; color: #b91c1c; border: 1px solid #fca5a5; }
+.b-upcoming { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; }
+.b-asap     { background: #fce4ec; color: #9d174d; border: 1px solid #f9a8d4; }
+.b-soon     { background: #f3e8ff; color: #6d28d9; border: 1px solid #c4b5fd; }
+.b-thisweek { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+.b-tbd      { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+
+/* Relative due date */
+.due-display { cursor: pointer; border-radius: 4px; padding: 2px 5px; margin: -2px -5px; display: inline-block; transition: background 0.12s; font-size: 12.5px; }
+.due-display:hover { background: #eef2ff; }
+.due-display.overdue  { color: #b91c1c; font-weight: 600; }
+.due-display.upcoming { color: #c2410c; font-weight: 600; }
+.due-actual { font-size: 10.5px; color: #9ca3af; margin-top: 1px; }
+
+/* Due popover */
+.due-cell-wrap { position: relative; }
+.due-popover { display: none; position: absolute; z-index: 200; top: calc(100% + 4px); left: 0; background: white; border: 1.5px solid #c7d2fe; border-radius: 10px; padding: 14px; width: 240px; box-shadow: 0 6px 24px rgba(0,0,0,0.13); }
+.due-popover.open { display: block; }
+.pop-label { font-size: 10.5px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 7px; }
+.pop-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.pop-preset { padding: 3px 10px; border-radius: 5px; border: 1.5px solid #dee2e6; background: white; color: #495057; font-size: 12px; cursor: pointer; font-weight: 500; }
+.pop-preset:hover { border-color: #2a5298; color: #2a5298; background: #eef2ff; }
+.pop-date-input { width: 100%; padding: 6px 10px; border: 1.5px solid #dee2e6; border-radius: 6px; font-size: 13px; color: #1a1a2e; outline: none; margin-bottom: 10px; }
+.pop-date-input:focus { border-color: #2a5298; }
+.pop-custom-row { display: flex; gap: 6px; }
+.pop-custom-input { flex: 1; padding: 5px 9px; border: 1.5px solid #dee2e6; border-radius: 6px; font-size: 12px; color: #1a1a2e; outline: none; }
+.pop-set-btn { padding: 5px 11px; border-radius: 6px; border: none; background: #1a3254; color: white; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+/* Editable cells */
+.editable { cursor: text; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; transition: background 0.12s; display: inline-block; min-width: 40px; line-height: 1.35; }
+.editable:hover { background: #eef2ff; }
+.editable.editing { display: none; }
+.edit-input { display: none; border: 1.5px solid #2a5298; border-radius: 5px; padding: 3px 7px; font-size: 13px; font-family: inherit; color: #1a1a2e; background: white; outline: none; width: 100%; }
+.edit-input.visible { display: block; }
+.subject-row { display: flex; align-items: center; margin-bottom: 2px; }
+.subject-text { font-weight: 500; color: #1a1a2e; line-height: 1.35; }
+.details-text { color: #6c757d; font-size: 12px; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; cursor: pointer; margin-bottom: 3px; }
+.details-text.expanded { display: block; }
+
+/* Notes */
+.notes-area { margin-top: 4px; }
+.notes-display { font-size: 11.5px; color: #6b7280; font-style: italic; line-height: 1.4; cursor: text; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; display: inline-block; }
+.notes-display:hover { background: #f3f4f6; }
+.notes-display.empty { color: #c9ccd1; font-style: normal; }
+.add-note-btn { font-size: 11px; color: #9ca3af; cursor: pointer; opacity: 0; transition: opacity 0.15s; background: none; border: none; padding: 1px 4px; }
+.add-note-btn:hover { color: #2a5298; }
+.notes-edit-wrap { display: none; margin-top: 4px; }
+.notes-edit-wrap.open { display: block; }
+.notes-textarea { width: 100%; padding: 5px 8px; border: 1.5px solid #2a5298; border-radius: 5px; font-size: 12px; font-family: inherit; color: #1a1a2e; background: white; outline: none; resize: vertical; min-height: 48px; line-height: 1.45; }
+.notes-actions { display: flex; gap: 6px; margin-top: 5px; }
+.notes-save { padding: 3px 11px; border-radius: 5px; border: none; background: #1a3254; color: white; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.notes-save:hover { background: #2a5298; }
+.notes-cancel { padding: 3px 11px; border-radius: 5px; border: 1px solid #dee2e6; background: white; color: #6c757d; font-size: 11.5px; cursor: pointer; }
+
+/* Agent toggle */
+.agent-toggle { display: flex; align-items: center; justify-content: center; }
+.agent-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1.5px solid; transition: all 0.15s; white-space: nowrap; user-select: none; }
+.agent-chip.on  { background: #ecfdf5; color: #059669; border-color: #6ee7b7; }
+.agent-chip.off { background: #f9fafb; color: #d1d5db; border-color: #e5e7eb; }
+.agent-chip.on:hover  { background: #d1fae5; border-color: #34d399; }
+.agent-chip.off:hover { background: #f3f4f6; border-color: #9ca3af; color: #6b7280; }
+.agent-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* Confirm + Archive */
+.cb { width: 15px; height: 15px; cursor: pointer; accent-color: #1a3254; display: block; margin-top: 2px; }
+.confirm-strip { display: none; margin-top: 6px; padding: 5px 10px; background: #f0f4ff; border-radius: 6px; border: 1px solid #c7d2fe; align-items: center; gap: 8px; font-size: 12px; color: #374151; flex-wrap: wrap; }
+.confirm-strip.show { display: flex; }
+.btn-yes { padding: 3px 12px; border-radius: 5px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; background: #1a3254; color: white; }
+.btn-yes:hover { background: #2a5298; }
+.btn-no { padding: 3px 12px; border-radius: 5px; border: 1px solid #dee2e6; cursor: pointer; font-size: 12px; color: #6c757d; background: white; }
+.archive-btn { opacity: 0; transition: opacity 0.15s; padding: 2px 9px; border-radius: 5px; border: 1px solid #dee2e6; cursor: pointer; font-size: 11px; color: #6c757d; background: white; font-weight: 500; }
+.archive-btn:hover { border-color: #adb5bd; color: #374151; }
+tr.pending-row td { opacity: 0.35; pointer-events: none; }
+tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
+
+/* Quick-add section */
+.quick-add-outer { padding: 12px 24px 20px; }
+.quick-add-box {
+  background: white; border-radius: 10px; border: 2px dashed #c7d2fe;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05); overflow: hidden;
+  transition: border-color 0.15s;
+}
+.quick-add-box:focus-within { border-color: #2a5298; }
+.quick-add-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px 0; font-size: 11.5px; font-weight: 600; color: #6b7280;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.quick-add-plus { font-size: 16px; color: #2a5298; line-height: 1; }
+.quick-add-fields { display: flex; gap: 10px; padding: 10px 14px; flex-wrap: wrap; align-items: flex-end; }
+.qa-field { display: flex; flex-direction: column; gap: 4px; }
+.qa-label { font-size: 10.5px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.4px; }
+.qa-input {
+  padding: 6px 10px; border: 1.5px solid #dee2e6; border-radius: 6px;
+  font-size: 13px; color: #1a1a2e; outline: none; font-family: inherit;
+  background: white; transition: border-color 0.15s;
+}
+.qa-input:focus { border-color: #2a5298; }
+.qa-input::placeholder { color: #c9ccd1; }
+.qa-subject { flex: 1; min-width: 220px; }
+.qa-from { width: 130px; }
+.qa-due { width: 110px; }
+.qa-notes { width: 200px; }
+.qa-agent-wrap { display: flex; flex-direction: column; gap: 4px; }
+.qa-agent-toggle { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1.5px solid #dee2e6; border-radius: 6px; cursor: pointer; user-select: none; background: white; }
+.qa-agent-toggle.on { border-color: #6ee7b7; background: #ecfdf5; }
+.qa-dot { width: 8px; height: 8px; border-radius: 50%; background: #d1d5db; }
+.qa-agent-toggle.on .qa-dot { background: #059669; }
+.qa-agent-text { font-size: 12.5px; color: #6c757d; }
+.qa-agent-toggle.on .qa-agent-text { color: #059669; font-weight: 600; }
+.qa-add-btn {
+  padding: 7px 18px; border-radius: 6px; border: none;
+  background: #1a3254; color: white; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: background 0.15s; align-self: flex-end;
+}
+.qa-add-btn:hover { background: #2a5298; }
+.qa-add-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* Footer */
+.footer { padding: 6px 24px 16px; font-size: 12px; color: #9ca3af; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.tip { font-size: 11.5px; color: #6b7280; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 5px 12px; }
+.no-results { background: white; border-radius: 10px; text-align: center; padding: 48px; color: #9ca3af; font-style: italic; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-row">
+    <h1>Action Items</h1>
+    <div class="sync-wrap">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span class="sync-label" id="sync-label"></span>
+    </div>
+    <button class="refresh-btn" id="refresh-btn">
+      <span class="spinner spinner-sm btn-spinner" style="color:white"></span>
+      <span class="btn-label">Refresh</span>
+    </button>
+  </div>
+  <div class="stats" id="stats"></div>
+</div>
+
+<div class="pending-panel" id="pending-panel">
+  <div class="pending-header" id="pending-header">
+    <span class="spinner spinner-xs" style="color:#b45309"></span>
+    <span class="pending-header-text" id="pending-header-text"></span>
+    <span class="pending-chevron">▼</span>
+  </div>
+  <div class="pending-list" id="pending-list"></div>
+</div>
+
+<div class="controls">
+  <div class="pills">
+    <button class="pill active" data-filter="all">All</button>
+    <button class="pill" data-filter="OVERDUE">Overdue</button>
+    <button class="pill" data-filter="UPCOMING">Due Soon</button>
+    <button class="pill" data-filter="ASAP">ASAP</button>
+    <button class="pill" data-filter="Soon">Soon</button>
+    <button class="pill" data-filter="This week">This Week</button>
+    <button class="pill" data-filter="TBD">TBD</button>
+    <button class="pill agent-pill" data-filter="agent">Agent-Ready</button>
+  </div>
+  <div class="search-wrap">
+    <input type="text" id="search" placeholder="Search items...">
+  </div>
+</div>
+
+<div class="table-outer">
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th style="width:30px"></th>
+        <th style="width:88px">Priority</th>
+        <th>Action Item</th>
+        <th style="width:140px">From</th>
+        <th style="width:108px">Due</th>
+        <th class="agent-th" style="width:80px">Agent?</th>
+        <th style="width:68px"></th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="no-results" class="no-results hidden">No items match your filter or search.</div>
+</div>
+
+<!-- Quick-add -->
+<div class="quick-add-outer">
+  <div class="quick-add-box" id="quick-add-box">
+    <div class="quick-add-header"><span class="quick-add-plus">＋</span> Add Action Item</div>
+    <div class="quick-add-fields">
+      <div class="qa-field" style="flex:1;min-width:220px">
+        <div class="qa-label">Subject <span style="color:#ef4444">*</span></div>
+        <input id="qa-subject" class="qa-input" placeholder="What needs to happen?">
+      </div>
+      <div class="qa-field">
+        <div class="qa-label">From</div>
+        <input id="qa-from" class="qa-input qa-from" placeholder="Self" value="Self">
+      </div>
+      <div class="qa-field">
+        <div class="qa-label">Due</div>
+        <input id="qa-due" class="qa-input qa-due" placeholder="TBD" value="TBD">
+      </div>
+      <div class="qa-field" style="min-width:180px;flex:1">
+        <div class="qa-label">Notes</div>
+        <input id="qa-notes" class="qa-input" placeholder="Optional context...">
+      </div>
+      <div class="qa-field qa-agent-wrap">
+        <div class="qa-label">Agent?</div>
+        <div class="qa-agent-toggle" id="qa-agent-toggle">
+          <span class="qa-dot"></span>
+          <span class="qa-agent-text">No</span>
+        </div>
+      </div>
+      <button class="qa-add-btn" id="qa-add-btn">Add Item</button>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span id="showing"></span>
+  <span class="tip">Click any cell to edit &nbsp;·&nbsp; All changes update your file via Claude</span>
+</div>
+
+<script>
+// ── TEMPLATE NOTE ──────────────────────────────────────────────────────────────
+// This file is the canonical template for the Action Items Cowork artifact.
+// When recreating the artifact, read inbox/action-items.md, build the `raw` array
+// from the Active table rows, set RECENTLY_COMPLETED from the Completed table row count,
+// set TODAY to today's date, then call mcp__cowork__create_artifact (id: "action-items")
+// or mcp__cowork__update_artifact with this HTML (data substituted).
+// File schema: | Date | From | Subject | Action Needed | Due | Agent | Notes |
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Timestamp ──────────────────────────────────────────────────────────────
+function fmtTimestamp(d) {
+  return 'Synced ' + d.toLocaleString('en-US', {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true});
+}
+let syncTime = new Date();
+function updateSyncLabel() { document.getElementById('sync-label').textContent = fmtTimestamp(syncTime); }
+updateSyncLabel();
+
+// ── Pending tracker ────────────────────────────────────────────────────────
+const pending = [];
+let panelExpanded = true;
+
+function addPending(description, rowId) {
+  pending.push({description, rowId, time: new Date()});
+  document.getElementById('sync-dot').classList.add('stale');
+  if (rowId != null) { const d = document.getElementById('pendot-'+rowId); if (d) d.classList.add('show'); }
+  renderPendingPanel();
+}
+function clearPending() {
+  pending.length = 0;
+  document.querySelectorAll('.row-pending-dot').forEach(d => d.classList.remove('show'));
+  document.getElementById('sync-dot').classList.remove('stale');
+  syncTime = new Date(); updateSyncLabel();
+  renderPendingPanel();
+}
+function renderPendingPanel() {
+  const panel=document.getElementById('pending-panel'), list=document.getElementById('pending-list'), hdr=document.getElementById('pending-header-text');
+  if (pending.length===0) { panel.classList.remove('visible','expanded'); return; }
+  panel.classList.add('visible'); if (panelExpanded) panel.classList.add('expanded');
+  const n=pending.length; hdr.textContent=`${n} update${n>1?'s':''} pending — Claude is processing`;
+  list.innerHTML='';
+  pending.forEach(e => {
+    const row=document.createElement('div'); row.className='pending-item';
+    const t=e.time.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true});
+    row.innerHTML=`<span class="spinner spinner-xs" style="color:#b45309;margin-top:2px"></span><span class="pending-item-desc">${e.description}</span><span class="pending-item-time">${t}</span>`;
+    list.appendChild(row);
+  });
+}
+document.getElementById('pending-header').addEventListener('click', () => {
+  panelExpanded=!panelExpanded; document.getElementById('pending-panel').classList.toggle('expanded',panelExpanded);
+});
+
+function sendUpdate(description, prompt, rowId) { addPending(description, rowId); sendPrompt(prompt); }
+
+// ── Refresh ────────────────────────────────────────────────────────────────
+document.getElementById('refresh-btn').addEventListener('click', () => {
+  const btn=document.getElementById('refresh-btn');
+  btn.classList.add('spinning'); btn.disabled=true;
+  clearPending();
+  sendPrompt('Refresh the action items artifact with the latest data from inbox/action-items.md');
+  setTimeout(() => { btn.classList.remove('spinning'); btn.disabled=false; }, 6000);
+});
+
+// ── Data ───────────────────────────────────────────────────────────────────
+// SUBSTITUTE: Set TODAY to today's date and RECENTLY_COMPLETED to the count of
+// completed rows in inbox/action-items.md at the time of artifact creation/refresh.
+const TODAY = new Date('YYYY-MM-DD'); // ← substitute today's date
+const RECENTLY_COMPLETED = 0; // ← substitute completed item count
+
+// SUBSTITUTE: Build this array from the Active table in inbox/action-items.md.
+// Each object maps to one row. Field mapping:
+//   from      ← From column
+//   subject   ← Subject column
+//   details   ← Action Needed column (full text)
+//   due       ← Due column (ASAP / Soon / This week / TBD / YYYY-MM-DD)
+//   agentable ← Agent column: true if "Y", false if "N" or blank
+//   notes     ← Notes column (string, may be empty)
+// File schema: | Date | From | Subject | Action Needed | Due | Agent | Notes |
+const raw = [
+  // {from:"", subject:"", due:"TBD", agentable:false, notes:"", details:""},
+];
+
+const agentState = {}, notesState = {};
+raw.forEach((r,i) => { agentState[i]=r.agentable; notesState[i]=r.notes; });
+
+function getPriority(due) {
+  if (due==='ASAP')      return {label:'ASAP',      order:3};
+  if (due==='Soon')      return {label:'Soon',      order:4};
+  if (due==='This week') return {label:'This week', order:5};
+  if (due==='TBD')       return {label:'TBD',       order:99};
+  const d=new Date(due+'T12:00:00'); if(isNaN(d)) return {label:'TBD',order:99};
+  const diff=Math.floor((d-TODAY)/86400000);
+  if (diff<0) return {label:'OVERDUE',order:1};
+  if (diff<=7) return {label:'UPCOMING',order:2};
+  return {label:'TBD',order:99};
+}
+
+function relativeDue(due) {
+  if (['ASAP','Soon','This week','TBD'].includes(due)) return {text:due, cls:'', actual:''};
+  const d=new Date(due+'T12:00:00'); if(isNaN(d)) return {text:due, cls:'', actual:''};
+  const diff=Math.floor((d-TODAY)/86400000);
+  const actual=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  if (diff<=-2) return {text:`${Math.abs(diff)}d overdue`, cls:'overdue', actual};
+  if (diff===-1) return {text:'yesterday',               cls:'overdue', actual};
+  if (diff===0)  return {text:'today',                   cls:'overdue', actual};
+  if (diff===1)  return {text:'tomorrow',                cls:'upcoming', actual};
+  if (diff<=7)   return {text:`in ${diff} days`,         cls:'upcoming', actual};
+  if (diff<=30)  return {text:`in ${diff} days`,         cls:'', actual};
+  return {text:d.toLocaleDateString('en-US',{month:'short',day:'numeric'}), cls:'', actual};
+}
+
+const items = raw.map((r,i) => {
+  const p=getPriority(r.due); return {...r,id:i,priority:p.label,order:p.order};
+}).sort((a,b)=>a.order-b.order||a.subject.localeCompare(b.subject));
+
+function renderStats() {
+  const counts={}; items.forEach(it=>{counts[it.priority]=(counts[it.priority]||0)+1;});
+  const agentCount=Object.values(agentState).filter(Boolean).length;
+  const el=document.getElementById('stats'); el.innerHTML='';
+  [{label:'Total',val:items.length,cls:''},{label:'Overdue',val:counts.OVERDUE||0,cls:'danger'},{label:'Due Soon',val:counts.UPCOMING||0,cls:'warning'},{label:'Agent-Ready',val:agentCount,cls:'agent'}]
+  .forEach(s=>{const div=document.createElement('div');div.className='stat '+s.cls;div.innerHTML=`<div class="stat-n">${s.val}</div><div class="stat-l">${s.label}</div>`;el.appendChild(div);});
+}
+renderStats();
+
+const badgeCls={OVERDUE:'b-overdue',UPCOMING:'b-upcoming',ASAP:'b-asap',Soon:'b-soon','This week':'b-thisweek',TBD:'b-tbd'};
+
+function closeAllPopovers(){document.querySelectorAll('.due-popover.open').forEach(p=>p.classList.remove('open'));}
+document.addEventListener('click',e=>{if(!e.target.closest('.due-cell-wrap'))closeAllPopovers();});
+
+function makeDuePopover(item,container){
+  const pop=document.createElement('div'); pop.className='due-popover';
+  pop.innerHTML=`<div class="pop-label">Quick select</div><div class="pop-presets">${['ASAP','Soon','This week','TBD'].map(p=>`<button class="pop-preset" data-val="${p}">${p}</button>`).join('')}</div><div class="pop-label">Pick a date</div><input type="date" class="pop-date-input"><div class="pop-label" style="margin-top:10px">Custom text</div><div class="pop-custom-row"><input class="pop-custom-input" placeholder="e.g. When [name] starts"><button class="pop-set-btn">Set</button></div>`;
+  function applyDue(val){
+    closeAllPopovers();
+    sendUpdate(`Setting due date for "${item.subject}" to "${val}"`,`Update action item in inbox/action-items.md — Subject: "${item.subject}" — set Due to "${val}"`,item.id);
+    const rel=relativeDue(val); const disp=container.querySelector('.due-display');
+    if(disp){disp.textContent=rel.text;disp.className='due-display '+(rel.cls||'');}
+    const act=container.querySelector('.due-actual'); if(act)act.textContent=rel.actual;
+  }
+  pop.querySelectorAll('.pop-preset').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();applyDue(b.dataset.val);}));
+  pop.querySelector('.pop-date-input').addEventListener('change',e=>{if(e.target.value)applyDue(e.target.value);});
+  pop.querySelector('.pop-set-btn').addEventListener('click',e=>{e.stopPropagation();const v=pop.querySelector('.pop-custom-input').value.trim();if(v)applyDue(v);});
+  pop.addEventListener('click',e=>e.stopPropagation());
+  return pop;
+}
+
+function makeEditableCell(value,onCommit){
+  const wrap=document.createElement('span'); wrap.style.display='block';
+  const display=document.createElement('span'); display.className='editable'; display.textContent=value;
+  const input=document.createElement('input'); input.className='edit-input'; input.value=value;
+  wrap.appendChild(display); wrap.appendChild(input);
+  function startEdit(){display.classList.add('editing');input.classList.add('visible');input.focus();input.select();}
+  function commit(){const nv=input.value.trim();display.classList.remove('editing');input.classList.remove('visible');if(nv&&nv!==value){display.textContent=nv;onCommit(nv);value=nv;}else{input.value=value;}}
+  display.addEventListener('click',startEdit);
+  input.addEventListener('blur',commit);
+  input.addEventListener('keydown',e=>{if(e.key==='Enter')commit();if(e.key==='Escape'){input.value=value;commit();}});
+  return wrap;
+}
+
+function makeNotesArea(item){
+  const wrap=document.createElement('div'); wrap.className='notes-area';
+  const displayRow=document.createElement('div'); displayRow.style.cssText='display:flex;align-items:flex-start;gap:4px;flex-wrap:wrap;';
+  const display=document.createElement('span');
+  const editWrap=document.createElement('div'); editWrap.className='notes-edit-wrap';
+  const textarea=document.createElement('textarea'); textarea.className='notes-textarea'; textarea.rows=2;
+  const actionsDiv=document.createElement('div'); actionsDiv.className='notes-actions';
+  const saveBtn=document.createElement('button'); saveBtn.className='notes-save'; saveBtn.textContent='Save';
+  const cancelBtn=document.createElement('button'); cancelBtn.className='notes-cancel'; cancelBtn.textContent='Cancel';
+  actionsDiv.appendChild(saveBtn); actionsDiv.appendChild(cancelBtn);
+  editWrap.appendChild(textarea); editWrap.appendChild(actionsDiv);
+
+  function renderDisplay(){
+    const notes=notesState[item.id];
+    display.className=notes?'notes-display':'notes-display empty';
+    display.textContent=notes||'Add note...';
+  }
+  renderDisplay();
+
+  function openEdit(){
+    textarea.value=notesState[item.id]||'';
+    editWrap.classList.add('open');
+    displayRow.style.display='none';
+    textarea.focus();
+  }
+  function closeEdit(){editWrap.classList.remove('open');displayRow.style.display='';}
+  function saveNotes(){
+    const nv=textarea.value.trim();
+    if(nv!==(notesState[item.id]||'')){
+      notesState[item.id]=nv;
+      renderDisplay();
+      sendUpdate(`Updating notes on "${item.subject}"`,
+        `Update notes for action item in inbox/action-items.md — Subject: "${item.subject}" — set Notes to: "${nv}"`,item.id);
+    }
+    closeEdit();
+  }
+
+  display.addEventListener('click',openEdit);
+  saveBtn.addEventListener('click',saveNotes);
+  cancelBtn.addEventListener('click',closeEdit);
+  textarea.addEventListener('keydown',e=>{if(e.key==='Escape')closeEdit();if(e.key==='Enter'&&e.metaKey)saveNotes();});
+
+  displayRow.appendChild(display);
+  wrap.appendChild(displayRow);
+  wrap.appendChild(editWrap);
+  return wrap;
+}
+
+function makeAgentToggle(item){
+  const wrap=document.createElement('div'); wrap.className='agent-toggle';
+  function render(){
+    const on=agentState[item.id]; wrap.innerHTML='';
+    const chip=document.createElement('span'); chip.className='agent-chip '+(on?'on':'off');
+    chip.innerHTML=`<span class="dot"></span>${on?'Yes':'No'}`;
+    chip.addEventListener('click',e=>{
+      e.stopPropagation(); const nv=!agentState[item.id]; agentState[item.id]=nv;
+      const tr=document.getElementById('row-'+item.id); if(tr)tr.classList.toggle('agent-row',nv);
+      render(); renderStats();
+      sendUpdate(nv?`Flagging "${item.subject}" as agent-eligible`:`Removing agent flag from "${item.subject}"`,
+        `Update action item in inbox/action-items.md — Subject: "${item.subject}" — set Agent to "${nv?'Y':'N'}"`,item.id);
+    });
+    wrap.appendChild(chip);
+  }
+  render(); return wrap;
+}
+
+function renderRows(filtered){
+  const tbody=document.getElementById('tbody'),tbl=document.getElementById('tbl'),noRes=document.getElementById('no-results');
+  tbody.innerHTML='';
+  if(filtered.length===0){tbl.classList.add('hidden');noRes.classList.remove('hidden');return;}
+  tbl.classList.remove('hidden');noRes.classList.add('hidden');
+
+  filtered.forEach(item=>{
+    const tr=document.createElement('tr'); tr.id='row-'+item.id;
+    if(agentState[item.id])tr.classList.add('agent-row');
+
+    const tdCb=document.createElement('td'); tdCb.style.cssText='width:30px;vertical-align:top;padding-top:13px';
+    const cb=document.createElement('input'); cb.type='checkbox';cb.className='cb';
+    tdCb.appendChild(cb);
+
+    const tdPri=document.createElement('td'); tdPri.style.width='88px';
+    tdPri.innerHTML=`<span class="badge ${badgeCls[item.priority]}">${item.priority}</span>`;
+
+    const tdMain=document.createElement('td');
+    const subjectRow=document.createElement('div'); subjectRow.className='subject-row';
+    const subjectEditable=makeEditableCell(item.subject,nv=>{
+      sendUpdate(`Renaming "${item.subject}" to "${nv}"`,
+        `Update action item in inbox/action-items.md — old Subject: "${item.subject}" — new Subject: "${nv}"`,item.id);
+      item.subject=nv;
+    });
+    subjectEditable.querySelector('.editable').classList.add('subject-text');
+    const pendingDot=document.createElement('span'); pendingDot.className='row-pending-dot'; pendingDot.id='pendot-'+item.id;
+    subjectRow.appendChild(subjectEditable); subjectRow.appendChild(pendingDot);
+
+    const detailsEl=document.createElement('div'); detailsEl.className='details-text'; detailsEl.textContent=item.details;
+    detailsEl.addEventListener('click',()=>detailsEl.classList.toggle('expanded'));
+
+    const confirmStrip=document.createElement('div'); confirmStrip.className='confirm-strip';
+    const shortName=item.subject.length>44?item.subject.slice(0,44)+'…':item.subject;
+    confirmStrip.innerHTML=`<span>Mark <strong>"${shortName}"</strong> as complete?</span><button class="btn-yes">Done</button><button class="btn-no">Cancel</button>`;
+    confirmStrip.querySelector('.btn-yes').addEventListener('click',()=>{
+      confirmStrip.classList.remove('show');tr.classList.add('pending-row');
+      sendUpdate(`Marking "${item.subject}" as complete`,
+        `Mark as complete in inbox/action-items.md — Subject: "${item.subject}"`,item.id);
+    });
+    confirmStrip.querySelector('.btn-no').addEventListener('click',()=>{confirmStrip.classList.remove('show');cb.checked=false;});
+
+    tdMain.appendChild(subjectRow);
+    tdMain.appendChild(detailsEl);
+    tdMain.appendChild(makeNotesArea(item));
+    tdMain.appendChild(confirmStrip);
+
+    const tdFrom=document.createElement('td'); tdFrom.style.width='140px';
+    tdFrom.appendChild(makeEditableCell(item.from,nv=>{
+      sendUpdate(`Changing "From" on "${item.subject}" to "${nv}"`,
+        `Update action item in inbox/action-items.md — Subject: "${item.subject}" — set From to "${nv}"`,item.id);
+    }));
+
+    const tdDue=document.createElement('td'); tdDue.style.cssText='width:108px;position:relative';
+    const dueWrap=document.createElement('div'); dueWrap.className='due-cell-wrap';
+    const rel=relativeDue(item.due);
+    const dueDisplay=document.createElement('span'); dueDisplay.className='due-display '+(rel.cls||''); dueDisplay.textContent=rel.text;
+    dueDisplay.title=rel.actual||item.due;
+    const dueActual=document.createElement('div'); dueActual.className='due-actual'; dueActual.textContent=rel.actual;
+    const pop=makeDuePopover(item,dueWrap);
+    dueDisplay.addEventListener('click',e=>{e.stopPropagation();const o=pop.classList.contains('open');closeAllPopovers();if(!o)pop.classList.add('open');});
+    dueWrap.appendChild(dueDisplay); if(rel.actual)dueWrap.appendChild(dueActual); dueWrap.appendChild(pop); tdDue.appendChild(dueWrap);
+
+    const tdAgent=document.createElement('td'); tdAgent.style.cssText='width:80px;text-align:center;vertical-align:top;padding-top:11px';
+    tdAgent.appendChild(makeAgentToggle(item));
+
+    const tdArc=document.createElement('td'); tdArc.style.cssText='width:68px;vertical-align:top;padding-top:11px';
+    const arcBtn=document.createElement('button'); arcBtn.className='archive-btn'; arcBtn.textContent='Archive';
+    arcBtn.addEventListener('click',()=>{tr.classList.add('pending-row');
+      sendUpdate(`Archiving "${item.subject}"`,`Archive action item in inbox/action-items.md — Subject: "${item.subject}"`,item.id);});
+    tdArc.appendChild(arcBtn);
+
+    cb.addEventListener('change',()=>{cb.checked=false;confirmStrip.classList.add('show');});
+    tr.appendChild(tdCb);tr.appendChild(tdPri);tr.appendChild(tdMain);tr.appendChild(tdFrom);tr.appendChild(tdDue);tr.appendChild(tdAgent);tr.appendChild(tdArc);
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('showing').textContent=`Showing ${filtered.length} of ${items.length} items  ·  ${RECENTLY_COMPLETED} completed in the last 30 days`;
+}
+
+// ── Quick-add ──────────────────────────────────────────────────────────────
+let qaAgentOn = false;
+document.getElementById('qa-agent-toggle').addEventListener('click', () => {
+  qaAgentOn = !qaAgentOn;
+  const tog=document.getElementById('qa-agent-toggle');
+  tog.classList.toggle('on', qaAgentOn);
+  tog.querySelector('.qa-agent-text').textContent = qaAgentOn ? 'Yes — Agent' : 'No';
+});
+
+document.getElementById('qa-add-btn').addEventListener('click', () => {
+  const subject=document.getElementById('qa-subject').value.trim();
+  if (!subject) { document.getElementById('qa-subject').focus(); return; }
+  const from=document.getElementById('qa-from').value.trim()||'Self';
+  const due=document.getElementById('qa-due').value.trim()||'TBD';
+  const notes=document.getElementById('qa-notes').value.trim();
+  const agent=qaAgentOn?'Y':'N';
+  const today=new Date().toISOString().split('T')[0];
+
+  sendUpdate(`Adding new item: "${subject}"`,
+    `Add new action item to inbox/action-items.md Active table with the following fields:\n- Date: ${today}\n- From: ${from}\n- Subject: ${subject}\n- Action Needed: ${subject}\n- Due: ${due}\n- Agent: ${agent}\n- Notes: ${notes}\n\nFile schema for Active table: | Date | From | Subject | Action Needed | Due | Agent | Notes |`);
+
+  document.getElementById('qa-subject').value='';
+  document.getElementById('qa-from').value='Self';
+  document.getElementById('qa-due').value='TBD';
+  document.getElementById('qa-notes').value='';
+  qaAgentOn=false;
+  const tog=document.getElementById('qa-agent-toggle'); tog.classList.remove('on'); tog.querySelector('.qa-agent-text').textContent='No';
+});
+
+document.getElementById('qa-subject').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('qa-add-btn').click(); });
+
+// ── Filters ────────────────────────────────────────────────────────────────
+let activeFilter='all', searchQuery='';
+function applyFilters(){
+  let f=items;
+  if(activeFilter==='agent') f=f.filter(it=>agentState[it.id]);
+  else if(activeFilter!=='all') f=f.filter(it=>it.priority===activeFilter);
+  if(searchQuery){const q=searchQuery.toLowerCase();f=f.filter(it=>it.subject.toLowerCase().includes(q)||it.from.toLowerCase().includes(q)||it.details.toLowerCase().includes(q)||(notesState[it.id]||'').toLowerCase().includes(q));}
+  renderRows(f);
+}
+document.querySelectorAll('.pill').forEach(pill=>{
+  pill.addEventListener('click',()=>{document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));pill.classList.add('active');activeFilter=pill.dataset.filter;applyFilters();});
+});
+document.getElementById('search').addEventListener('input',e=>{searchQuery=e.target.value;applyFilters();});
+applyFilters();
+</script>
+</body>
+</html>

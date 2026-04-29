@@ -48,13 +48,13 @@ Append a new row to the Active table with all 7 columns:
 
 The action items are also available as a live Cowork artifact (id: `action-items`) that renders in the Cowork sidebar. It shows all active items with priority badges, filter pills, search, inline edits, due date picker, agent toggle, notes, quick-add row, and a Refresh button.
 
-**Where it lives:** Cowork's artifact system (not in the lore folder). If a canonical HTML template exists at `workflows/action-items-artifact.html`, it can be reused; otherwise the agent generates one on demand.
+**Where it lives:** Cowork's artifact system (not in the lore folder). The canonical HTML template ships at `templates/action-items-artifact.template.html`.
 
 **When to recreate the artifact:**
 If the user says the artifact is missing, broken, or asks to rebuild it:
 
 1. Read `inbox/action-items.md` to get the current active items.
-2. If `workflows/action-items-artifact.html` exists, read it as the HTML template; otherwise, build the HTML directly.
+2. Read `templates/action-items-artifact.template.html` as the HTML template.
 3. In the template, substitute:
    - `const TODAY = new Date('YYYY-MM-DD');` with today's actual date
    - `const RECENTLY_COMPLETED = 0;` with the count of rows in the Completed table
