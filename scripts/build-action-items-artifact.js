@@ -86,6 +86,11 @@ if (fs.existsSync(MARKDOWN_PATH)) {
   console.warn(`No ${MARKDOWN_PATH} found — building artifact with empty seed.`);
 }
 
+// seedVersion is an ISO timestamp the artifact uses to decide whether the
+// agent's view is fresher than the user's local IDB edits. We bump it every
+// time we build, so any agent-driven push always gets a chance to merge.
+parsed.seedVersion = new Date().toISOString();
+
 const tpl = fs.readFileSync(TEMPLATE_PATH, 'utf8');
 
 // Substitute the seed placeholder with the JSON-encoded parsed data. The
@@ -109,4 +114,5 @@ console.log(`Built: ${outPath}`);
 console.log(`  Active items:    ${parsed.active.length}`);
 console.log(`  Completed items: ${parsed.completed.length}`);
 console.log(`  Archived items:  ${parsed.archived.length}`);
+console.log(`  Seed version:    ${parsed.seedVersion}`);
 console.log(`  Size: ${out.length} bytes`);

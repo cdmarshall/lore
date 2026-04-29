@@ -48,51 +48,51 @@ Append a new row to the Active table with all 7 columns:
 
 The action items are also available as a live Cowork artifact (id: `action-items`) that renders in the Cowork sidebar. It shows all active items with priority badges, filter pills, search, inline edits, due date picker, agent toggle, notes, quick-add row, and a Refresh button.
 
-**Where it lives:** Cowork's artifact system (not in the lore folder). The canonical HTML template ships at `templates/action-items-artifact.template.html`.
+**Where it lives:** Cowork's artifact system (HTML stored at `~/Documents/Claude/Artifacts/action-items/index.html`). The canonical template ships at `templates/action-items-artifact.template.html`.
 
-**Architecture (important for agents):**
+### Source-of-truth model (read this before doing anything)
 
-The artifact does **not** read or write the file itself. (Cowork artifacts can't call `mcp__workspace__bash` — it returns HTTP 400 from the artifact context.) Instead, the agent embeds the current data into the HTML at create/update time, and button actions in the artifact send prompts back to chat to trigger updates.
+The **artifact's IndexedDB is the live source of truth** for action items. The user makes edits in the artifact directly (mark complete, set due, etc.) — those are instant and persist across Cowork restarts. They do not write back to disk on their own (Cowork's webview blocks file writes from artifacts).
 
-The template has three placeholders the agent must substitute every time it creates or refreshes the artifact:
+The **`inbox/action-items.md` file is the agent's window** and a recoverable backup. **The agent always writes the file and the artifact in lockstep** — every agent-driven change goes to both at the same time, so the file is always in sync with whatever the artifact had when the agent last operated.
 
-- `__TODAY__` — today's date in `YYYY-MM-DD` format (e.g., `2026-04-29`)
-- `__RECENTLY_COMPLETED__` — count of rows in the Completed table whose Completed date is within the last 30 days (a plain integer like `14`)
-- `__RAW__` — a JSON array of objects, one per row of the Active table, with this shape:
-  ```json
-  [
-    { "from": "...", "subject": "...", "details": "...", "due": "TBD",
-      "agentable": false, "notes": "" }
-  ]
-  ```
-  Field mapping from the markdown columns:
-  - `from` ← From column
-  - `subject` ← Subject column
-  - `details` ← Action Needed column (full text, escape quotes for JSON)
-  - `due` ← Due column (`ASAP` / `Soon` / `This week` / `TBD` / `YYYY-MM-DD` / custom string)
-  - `agentable` ← Agent column: `true` if `Y`, `false` otherwise
-  - `notes` ← Notes column (string, may be empty)
+User-only edits (mark complete in the artifact, edit a due date, etc.) drift the file out of sync until either:
+- The user manually clicks **Download snapshot** and saves it over `inbox/action-items.md`, OR
+- The agent next operates, at which point the agent's push replaces the artifact's IDB with the new state and writes the same state to the file.
 
-**When to refresh / recreate the artifact:**
+**Important consequence**: if the user has been making changes in the artifact AND THEN asks the agent to add items via chat without first clicking Download snapshot, those user edits will be clobbered by the agent's push. To avoid this, the agent should ask the user to Download snapshot first when there's reason to suspect drift (e.g., the file timestamp is much older than the artifact was last updated, or the user mentions edits the file doesn't reflect).
 
-Whenever:
-- The user clicks Refresh in the artifact (it sends a prompt: `Refresh the action items artifact with the latest data from inbox/action-items.md`)
-- The user makes an inline edit in the artifact (the artifact sends an instruction prompt like `Update action item in inbox/action-items.md — Subject: "X" — set Due to "ASAP"`)
-- You modify `inbox/action-items.md` for any other reason and the user has the artifact open
-- The user explicitly asks to refresh, recreate, or rebuild the artifact
+### Procedure for agent-driven changes
 
-The procedure:
+Run this whenever you need to add or modify action items on the user's behalf (transcript processing, "Lore, add X to my list", "Mark X as complete", etc.):
 
-1. If the user's prompt contains an instruction (e.g., "set Due to ASAP", "Mark as complete", "Archive..."), apply that change to `inbox/action-items.md` first. Use the `Edit` or `Write` tool to update the markdown table. Be careful to preserve the file's table schema: `| Date | From | Subject | Action Needed | Due | Agent | Notes |`.
-2. Read the (now updated) `inbox/action-items.md`.
-3. Read `templates/action-items-artifact.template.html`.
-4. Substitute `__TODAY__`, `__RECENTLY_COMPLETED__`, and `__RAW__` in the template.
-5. Write the substituted HTML to a temporary file.
-6. Call `mcp__cowork__update_artifact` with `id: "action-items"`, `html_path` pointing at your written file, `mcp_tools: []` (the artifact doesn't call any MCP tools), and a brief `update_summary`.
+1. **Read** `inbox/action-items.md` for the current state. This is your baseline.
+2. **Apply** the change(s):
+   - Adding new items → append rows to the `## Active` table.
+   - Marking complete → move the row from Active to Completed, fill in the Resolution and Completed columns.
+   - Editing existing items → update the relevant cells in place. Preserve the schema `| Date | From | Subject | Action Needed | Due | Agent | Notes |`.
+3. **Write** the updated content back to `inbox/action-items.md`.
+4. **Run** the build script: `node scripts/build-action-items-artifact.js`. This reads the file, stamps a fresh `seedVersion` (ISO timestamp), and writes the substituted HTML to `outbox/action-items-artifact-built.html`.
+5. **Push** to the artifact:
+   ```
+   mcp__cowork__update_artifact(
+     id: "action-items",
+     html_path: "<absolute path to outbox/action-items-artifact-built.html>",
+     mcp_tools: [],
+     update_summary: "<short description of what changed>"
+   )
+   ```
 
-If the artifact doesn't exist yet, use `mcp__cowork__create_artifact` instead with the same arguments.
+After step 5, the file and the artifact are in sync. The artifact's bootstrap detects the new `seedVersion` and adopts the seed, replacing its IDB.
 
-**Helper script:** `outbox/build-action-items-artifact.js` (if present) automates steps 2-5 with Node. Otherwise the agent does the substitution manually.
+### When the user clicks "Download snapshot"
+
+The user is taking a manual snapshot. They'll typically save the result over `inbox/action-items.md` to bring the agent's view in sync with their current artifact state. The agent doesn't need to do anything special when this happens; just trust `inbox/action-items.md` next time you read it.
+
+### Pre-flight check before agent operations
+
+Before processing a transcript or adding items via chat, scan `inbox/action-items.md`. If you suspect it's out of date relative to what the user has been doing in the artifact (e.g., the file looks weeks old or doesn't contain items the user just mentioned), say something like: *"Before I add these, click Download snapshot in your action items artifact and save it over inbox/action-items.md so I have your latest state. Otherwise edits you've made in the artifact since the last sync will be overwritten."* Then wait for confirmation.
+
 
 ---
 

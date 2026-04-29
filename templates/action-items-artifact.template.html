@@ -194,8 +194,7 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
       <span class="sync-label" id="sync-label">Loading...</span>
     </div>
     <div class="menu-row">
-      <button class="header-btn" id="backup-btn" title="Pick a markdown file once; every edit auto-writes to it silently from then on">Auto-save: off</button>
-      <button class="header-btn" id="export-btn" title="Download a one-time snapshot of the current items as a .md file">Download snapshot</button>
+      <button class="header-btn" id="export-btn" title="Download a one-time snapshot of the current items as a .md file. Save it as inbox/action-items.md so Lore can see your latest state when you ask in chat.">Download snapshot</button>
     </div>
   </div>
   <div class="stats" id="stats"></div>
@@ -296,7 +295,10 @@ let items = [];
 let recentlyCompleted = 0;
 const agentState = {}, notesState = {};
 let activeFilter = 'all', searchQuery = '';
-let backupHandle = null;
+// lastSeenSeedVersion tracks the seedVersion we last consumed from the artifact's
+// embedded seed. On bootstrap, if the embedded seedVersion is different (newer),
+// the agent has pushed an update and we adopt it. Otherwise we keep IDB.
+let lastSeenSeedVersion = null;
 
 // ── Storage layer ──────────────────────────────────────────────────────────
 // Try IndexedDB first. If it's unavailable (Cowork's sandboxed iframe may
@@ -387,18 +389,19 @@ async function loadStored() {
   try {
     const stored = await storage.getItem('items');
     if (!stored || !stored.activeItems) return false;
-    activeItems    = stored.activeItems    || [];
-    completedItems = stored.completedItems || [];
-    archivedItems  = stored.archivedItems  || [];
+    activeItems         = stored.activeItems    || [];
+    completedItems      = stored.completedItems || [];
+    archivedItems       = stored.archivedItems  || [];
+    lastSeenSeedVersion = stored.lastSeenSeedVersion || null;
     return true;
   } catch (_) { return false; }
 }
 async function saveStored() {
   if (!storage) return;
   try {
-    await storage.setItem('items', { activeItems, completedItems, archivedItems, savedAt: new Date().toISOString() });
+    await storage.setItem('items', { activeItems, completedItems, archivedItems, lastSeenSeedVersion, savedAt: new Date().toISOString() });
   } catch (e) {
-    showToast('warn', `Local save failed (${storage.kind}): ${e.message}. Changes are in memory only — use Export to back up.`, null, null);
+    showToast('warn', `Local save failed (${storage.kind}): ${e.message}. Changes are in memory only — use Download snapshot to back up.`, null, null);
   }
 }
 
@@ -412,17 +415,24 @@ async function loadStashedHandle(key) {
   return undefined;
 }
 
-async function seedFromEmbedded() {
+// Parse the agent's embedded seed. Returns null if no seed (or unsubstituted placeholder).
+function readEmbeddedSeed() {
   const tag = document.getElementById('seed-data');
   const txt = tag ? tag.textContent.trim() : '';
-  if (!txt) return false;
-  let seed;
-  try { seed = JSON.parse(txt); } catch (_) { return false; } // unsubstituted placeholder
+  if (!txt) return null;
+  try { return JSON.parse(txt); } catch (_) { return null; }
+}
+
+// Adopt the agent's seed wholesale: replaces IDB with the seed contents.
+// Called when bootstrap detects a new seedVersion (i.e., the agent has pushed
+// an update since we last saw the artifact). The artifact is the source of
+// truth at the IDB level; agent pushes are simply the canonical way for
+// agent-driven changes to land here.
+function adoptSeed(seed) {
   activeItems    = seed.active    || [];
   completedItems = seed.completed || [];
   archivedItems  = seed.archived  || [];
-  await saveStored();
-  return true;
+  lastSeenSeedVersion = seed.seedVersion || null;
 }
 
 // ── Toast helpers ──────────────────────────────────────────────────────────
@@ -462,80 +472,25 @@ function serializeMarkdown() {
   return out;
 }
 
-// ── Backup file (showSaveFilePicker) ───────────────────────────────────────
-async function setupBackupFile() {
-  if (typeof window.showSaveFilePicker !== 'function') {
-    showToast('warn', 'Backup-to-file isn\'t available in this view (showSaveFilePicker missing). The Export button still works for manual backups.', null, null);
-    return;
-  }
-  try {
-    const handle = await window.showSaveFilePicker({
-      suggestedName: 'action-items.md',
-      types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }]
-    });
-    // Verify we can write — write the current state immediately as a smoke test.
-    try {
-      const w = await handle.createWritable();
-      await w.write(serializeMarkdown());
-      await w.close();
-    } catch (e) {
-      showToast('error', `Backup file selected, but writing failed: ${e.message}. Cowork's webview may block writes; use Export for manual backups.`, null, null);
-      return;
-    }
-    backupHandle = handle;
-    await stashHandle('backup-handle', handle);
-    document.getElementById('backup-btn').textContent = 'Auto-save: on';
-    showToast('info', 'Backup file connected. Every change will save to it automatically.', null, null, 4000);
-  } catch (e) {
-    if (e.name === 'AbortError') return;
-    showToast('error', `Couldn't set up backup file: ${e.message}`, null, null);
-  }
-}
-
-async function tryRestoreBackupHandle() {
-  try {
-    const stored = await loadStashedHandle('backup-handle');
-    if (!stored) return;
-    // Check permission silently. If granted, use it. If not, leave the user
-    // a non-blocking "reconnect backup file" hint.
-    const perm = await stored.queryPermission({ mode: 'readwrite' });
-    if (perm === 'granted') {
-      backupHandle = stored;
-      document.getElementById('backup-btn').textContent = 'Auto-save: on';
-    } else {
-      document.getElementById('backup-btn').textContent = 'Auto-save: reconnect';
-    }
-  } catch (_) { /* nothing stored */ }
-}
-
-async function writeBackup() {
-  if (!backupHandle) return;
-  try {
-    // If permission was lost, this will throw.
-    const w = await backupHandle.createWritable();
-    await w.write(serializeMarkdown());
-    await w.close();
-  } catch (e) {
-    // Don't block the UI; just tell the user backup failed once.
-    showToast('warn', `Auto-save write failed: ${e.message}. Click "Auto-save" to reconnect.`, 'Reconnect', setupBackupFile);
-    backupHandle = null;
-    document.getElementById('backup-btn').textContent = 'Auto-save: off';
-  }
-}
-
-document.getElementById('backup-btn').addEventListener('click', setupBackupFile);
-
 // ── Manual export (download) ───────────────────────────────────────────────
 function downloadCurrentAsMarkdown() {
   const blob = new Blob([serializeMarkdown()], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `action-items-${TODAY_STR}.md`;
+  a.download = `action-items.md`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 document.getElementById('export-btn').addEventListener('click', downloadCurrentAsMarkdown);
+
+// ── Sync state indicator ───────────────────────────────────────────────────
+// The artifact's IDB is the live source of truth. The only meaningful states
+// are "live and persisting" or "broken" (no storage available).
+function updateSyncState() {
+  if (storage && storage.kind === 'mem') { setSync('error', 'Not persisting'); return; }
+  setSync('', 'Live');
+}
 
 // ── Derive / render ────────────────────────────────────────────────────────
 function rebuildItems() {
@@ -812,14 +767,12 @@ function applyMutationToState(op) {
 
 let saveQueue = Promise.resolve();
 function apply(op) {
-  setSync('stale', 'Saving...');
   applyMutationToState(op);
   rebuildItems(); renderStats(); applyFilters();
   saveQueue = saveQueue.then(async () => {
     try {
       await saveStored();
-      if (backupHandle) await writeBackup();
-      setSync(backupHandle ? '' : 'local', backupHandle ? 'Synced' : (storage && storage.kind !== 'mem' ? 'Saved locally' : 'In memory only'));
+      updateSyncState();
     } catch (err) {
       setSync('error', 'Save failed');
       showToast('error', `Save failed: ${err.message}`, null, null);
@@ -859,26 +812,32 @@ async function init() {
     storage = await pickStorage();
     if (storage.kind === 'mem') {
       showToast('warn',
-        'This view doesn\'t allow persistent storage (IndexedDB and localStorage both unavailable). Items will work for this session but won\'t be saved when you close the artifact. Use <strong>Export</strong> to download a backup before closing.',
+        'This view doesn\'t allow persistent storage (IndexedDB and localStorage both unavailable). Items will work for this session but won\'t be saved when you close the artifact. Use <strong>Download snapshot</strong> to back up before closing.',
         null, null);
     }
 
     const hasStored = await loadStored();
+    const seed = readEmbeddedSeed();
+
     if (!hasStored) {
-      const seeded = await seedFromEmbedded();
-      if (!seeded) {
+      // First run: adopt the seed verbatim if present.
+      if (seed) {
+        adoptSeed(seed);
+      } else {
         activeItems = []; completedItems = []; archivedItems = [];
-        try { await saveStored(); } catch (_) {}
       }
+      try { await saveStored(); } catch (_) {}
+    } else if (seed && seed.seedVersion && seed.seedVersion !== lastSeenSeedVersion) {
+      // Returning user, and the agent has pushed a new seed since we last consumed
+      // one. Adopt it — the agent always pushes file + artifact in lockstep, so the
+      // seed is the canonical new state.
+      adoptSeed(seed);
+      try { await saveStored(); } catch (_) {}
+      showToast('info', 'Action items updated by Lore.', null, null, 4000);
     }
 
     rebuildItems(); renderStats(); applyFilters();
-    await tryRestoreBackupHandle();
-
-    const label = backupHandle
-      ? 'Synced'
-      : (storage.kind === 'mem' ? 'In memory only' : 'Saved locally');
-    setSync(backupHandle ? '' : (storage.kind === 'mem' ? 'error' : 'local'), label);
+    updateSyncState();
   } catch (err) {
     setSync('error', 'Init failed');
     showToast('error',
@@ -887,11 +846,14 @@ async function init() {
       `seedDataPresent=${!!document.getElementById('seed-data')}, ` +
       `seedLength=${(document.getElementById('seed-data')||{}).textContent?.length || 0}.`,
       null, null);
-    // Last-resort: try to render the seed data anyway, even without storage.
+    // Last-resort: try to render the seed data anyway.
     try {
       storage = memStorage();
-      const seeded = await seedFromEmbedded();
-      if (seeded) {
+      const seed = readEmbeddedSeed();
+      if (seed) {
+        activeItems    = seed.active    || [];
+        completedItems = seed.completed || [];
+        archivedItems  = seed.archived  || [];
         rebuildItems(); renderStats(); applyFilters();
       }
     } catch (_) {}
