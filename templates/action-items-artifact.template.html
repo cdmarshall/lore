@@ -3,7 +3,7 @@
 {
   "name": "Action Items",
   "schemaVersion": 1,
-  "description": "Live action items tracker, sourced from inbox/action-items.md. Shows active items sorted by priority with filter pills, search, and stats bar."
+  "description": "Live action items tracker, sourced from inbox/action-items.md. Reads and writes the file directly via window.cowork.callMcpTool('mcp__workspace__bash', ...). Shows active items sorted by priority with filter pills, search, inline edits, and stats."
 }
 </script>
 <html>
@@ -21,6 +21,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .sync-wrap { display: flex; align-items: center; gap: 7px; }
 .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; flex-shrink: 0; transition: background 0.3s; }
 .sync-dot.stale { background: #fbbf24; }
+.sync-dot.error { background: #ef4444; }
 .sync-label { font-size: 11px; opacity: 0.75; white-space: nowrap; }
 .refresh-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.12); color: white; font-size: 12px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
 .refresh-btn:hover:not(:disabled) { background: rgba(255,255,255,0.22); }
@@ -42,20 +43,29 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .stat-n { font-size: 20px; font-weight: 700; line-height: 1.15; }
 .stat-l { font-size: 10px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* Pending panel */
-.pending-panel { background: #fffbeb; border-bottom: 1.5px solid #fcd34d; overflow: hidden; transition: max-height 0.25s ease; max-height: 0; }
-.pending-panel.visible { max-height: 400px; }
-.pending-header { display: flex; align-items: center; gap: 9px; padding: 9px 24px; cursor: pointer; user-select: none; border-bottom: 1px solid transparent; }
-.pending-panel.expanded .pending-header { border-color: #fde68a; }
-.pending-header-text { font-size: 12.5px; font-weight: 600; color: #92400e; flex: 1; }
-.pending-chevron { font-size: 10px; color: #b45309; transition: transform 0.2s; }
-.pending-panel.expanded .pending-chevron { transform: rotate(180deg); }
-.pending-list { padding: 0 24px 10px; display: none; }
-.pending-panel.expanded .pending-list { display: block; }
-.pending-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; border-bottom: 1px solid #fef3c7; font-size: 12px; color: #78350f; }
-.pending-item:last-child { border-bottom: none; }
-.pending-item-desc { flex: 1; line-height: 1.4; }
-.pending-item-time { font-size: 10.5px; color: #b45309; white-space: nowrap; margin-top: 1px; }
+/* Status panel (pending writes + errors) */
+.status-panel { overflow: hidden; transition: max-height 0.25s ease; max-height: 0; }
+.status-panel.visible { max-height: 400px; }
+.status-panel.pending { background: #fffbeb; border-bottom: 1.5px solid #fcd34d; }
+.status-panel.error   { background: #fef2f2; border-bottom: 1.5px solid #fca5a5; }
+.status-header { display: flex; align-items: center; gap: 9px; padding: 9px 24px; cursor: pointer; user-select: none; }
+.status-panel.pending .status-header-text { color: #92400e; }
+.status-panel.error   .status-header-text { color: #991b1b; }
+.status-header-text { font-size: 12.5px; font-weight: 600; flex: 1; }
+.status-chevron { font-size: 10px; transition: transform 0.2s; }
+.status-panel.pending .status-chevron { color: #b45309; }
+.status-panel.error   .status-chevron { color: #b91c1c; }
+.status-panel.expanded .status-chevron { transform: rotate(180deg); }
+.status-list { padding: 0 24px 10px; display: none; }
+.status-panel.expanded .status-list { display: block; }
+.status-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; font-size: 12px; line-height: 1.4; }
+.status-panel.pending .status-item { color: #78350f; border-bottom: 1px solid #fef3c7; }
+.status-panel.error   .status-item { color: #7f1d1d; border-bottom: 1px solid #fecaca; }
+.status-item:last-child { border-bottom: none; }
+.status-item-desc { flex: 1; }
+.status-item-time { font-size: 10.5px; white-space: nowrap; margin-top: 1px; }
+.status-panel.pending .status-item-time { color: #b45309; }
+.status-panel.error   .status-item-time { color: #b91c1c; }
 
 /* Controls */
 .controls { background: white; border-bottom: 1px solid #e9ecef; padding: 11px 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
@@ -84,6 +94,10 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
 
 .row-pending-dot { display: none; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid #f59e0b; border-top-color: transparent; animation: spin 0.65s linear infinite; margin-left: 6px; vertical-align: middle; flex-shrink: 0; }
 .row-pending-dot.show { display: inline-block; }
+
+/* Loading skeleton */
+.loading-overlay { position: relative; padding: 64px 24px; text-align: center; color: #6b7280; font-size: 13px; }
+.loading-overlay .spinner { width: 22px; height: 22px; border-width: 2.5px; color: #2a5298; margin-bottom: 14px; }
 
 /* Badges */
 .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
@@ -219,7 +233,7 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
     <h1>Action Items</h1>
     <div class="sync-wrap">
       <div class="sync-dot" id="sync-dot"></div>
-      <span class="sync-label" id="sync-label"></span>
+      <span class="sync-label" id="sync-label">Loading...</span>
     </div>
     <button class="refresh-btn" id="refresh-btn">
       <span class="spinner spinner-sm btn-spinner" style="color:white"></span>
@@ -229,13 +243,13 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
   <div class="stats" id="stats"></div>
 </div>
 
-<div class="pending-panel" id="pending-panel">
-  <div class="pending-header" id="pending-header">
-    <span class="spinner spinner-xs" style="color:#b45309"></span>
-    <span class="pending-header-text" id="pending-header-text"></span>
-    <span class="pending-chevron">▼</span>
+<div class="status-panel" id="status-panel">
+  <div class="status-header" id="status-header">
+    <span class="spinner spinner-xs status-spinner" style="color:#b45309"></span>
+    <span class="status-header-text" id="status-header-text"></span>
+    <span class="status-chevron">▼</span>
   </div>
-  <div class="pending-list" id="pending-list"></div>
+  <div class="status-list" id="status-list"></div>
 </div>
 
 <div class="controls">
@@ -254,8 +268,12 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
   </div>
 </div>
 
-<div class="table-outer">
-  <table id="tbl">
+<div class="table-outer" id="table-outer">
+  <div class="loading-overlay" id="loading-overlay">
+    <span class="spinner"></span>
+    <div>Loading action items...</div>
+  </div>
+  <table id="tbl" class="hidden">
     <thead>
       <tr>
         <th style="width:30px"></th>
@@ -307,209 +325,416 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
 
 <div class="footer">
   <span id="showing"></span>
-  <span class="tip">Click any cell to edit &nbsp;·&nbsp; All changes update your file via Claude</span>
+  <span class="tip">Click any cell to edit · Changes saved directly to inbox/action-items.md</span>
 </div>
 
 <script>
-// ── TEMPLATE NOTE ──────────────────────────────────────────────────────────────
-// This file is the canonical template for the Action Items Cowork artifact.
-// When recreating the artifact, read inbox/action-items.md, build the `raw` array
-// from the Active table rows, set RECENTLY_COMPLETED from the Completed table row count,
-// set TODAY to today's date, then call mcp__cowork__create_artifact (id: "action-items")
-// or mcp__cowork__update_artifact with this HTML (data substituted).
-// File schema: | Date | From | Subject | Action Needed | Due | Agent | Notes |
+// ─────────────────────────────────────────────────────────────────────────────
+// Action Items Artifact
+// Reads and writes inbox/action-items.md directly via window.cowork.callMcpTool
+// using mcp__workspace__bash. The agent is not in the loop for any operation.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── Timestamp ──────────────────────────────────────────────────────────────
-function fmtTimestamp(d) {
-  return 'Synced ' + d.toLocaleString('en-US', {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true});
+// ── State ──────────────────────────────────────────────────────────────────
+const TODAY = (() => { const d = new Date(); d.setHours(12,0,0,0); return d; })();
+let lorePath = null;
+let actionItemsPath = null;
+let preamble = '';                 // Lines before "## Active"
+let activeItems = [];               // Active table rows
+let completedItems = [];            // Completed table rows
+let archivedItems = [];             // Archived table rows
+let items = [];                     // Active items with priority, used by render
+let recentlyCompleted = 0;          // Count of completed items in last 30 days
+const agentState = {};
+const notesState = {};
+let activeFilter = 'all';
+let searchQuery = '';
+
+// ── MCP helpers ────────────────────────────────────────────────────────────
+function extractText(result) {
+  if (result == null) return '';
+  if (typeof result === 'string') return result;
+  if (typeof result.stdout === 'string') return result.stdout;
+  if (typeof result.output === 'string') return result.output;
+  if (typeof result.text === 'string') return result.text;
+  if (Array.isArray(result.content)) {
+    return result.content.map(c => (c && c.text) ? c.text : '').join('');
+  }
+  try { return JSON.stringify(result); } catch (e) { return String(result); }
 }
-let syncTime = new Date();
-function updateSyncLabel() { document.getElementById('sync-label').textContent = fmtTimestamp(syncTime); }
-updateSyncLabel();
 
-// ── Pending tracker ────────────────────────────────────────────────────────
-const pending = [];
-let panelExpanded = true;
+async function bash(command) {
+  if (!window.cowork || !window.cowork.callMcpTool) {
+    throw new Error('window.cowork.callMcpTool unavailable');
+  }
+  const r = await window.cowork.callMcpTool('mcp__workspace__bash', { command });
+  return extractText(r);
+}
 
-function addPending(description, rowId) {
-  pending.push({description, rowId, time: new Date()});
+async function findActionItemsPath() {
+  // Discover the lore mount path dynamically — the bash session path may change
+  // across Cowork restarts, but the user's lore folder is always under /sessions/*/mnt/.
+  const out = (await bash('ls -d /sessions/*/mnt/lore 2>/dev/null | head -1')).trim();
+  if (!out) throw new Error('Could not locate the lore folder under /sessions/*/mnt/');
+  lorePath = out;
+  actionItemsPath = lorePath + '/inbox/action-items.md';
+}
+
+async function readFile() {
+  if (!actionItemsPath) await findActionItemsPath();
+  // Use cat with -- to handle any path edge cases. Quote the path.
+  const content = await bash(`cat -- "${actionItemsPath}"`);
+  return content;
+}
+
+async function writeFile(content) {
+  if (!actionItemsPath) await findActionItemsPath();
+  // Encode to base64 to bypass all shell escaping concerns.
+  const b64 = btoa(unescape(encodeURIComponent(content)));
+  await bash(`printf %s "${b64}" | base64 -d > "${actionItemsPath}"`);
+}
+
+// ── Markdown parser/serializer ─────────────────────────────────────────────
+function parseMarkdown(content) {
+  const lines = content.split('\n');
+  const preambleLines = [];
+  const active = [], completed = [], archived = [];
+  let section = 'preamble';
+  let inTable = false;
+
+  for (const line of lines) {
+    const m = line.match(/^##\s+(\w+)/);
+    if (m) {
+      const name = m[1].toLowerCase();
+      if (name === 'active')   { section = 'active';   inTable = false; continue; }
+      if (name === 'completed'){ section = 'completed'; inTable = false; continue; }
+      if (name === 'archived') { section = 'archived'; inTable = false; continue; }
+      section = 'other'; inTable = false;
+      continue;
+    }
+    if (section === 'preamble') { preambleLines.push(line); continue; }
+    if (!line.startsWith('|')) { inTable = false; continue; }
+
+    // Parse pipe-delimited row
+    const inner = line.replace(/^\|/, '').replace(/\|\s*$/, '');
+    const cells = inner.split('|').map(c => c.trim());
+    // Separator row?
+    if (cells.every(c => /^[:-\s]+$/.test(c) && c.length > 0)) { inTable = true; continue; }
+    // Header row
+    if (!inTable) { inTable = true; continue; }
+    // Empty data row
+    if (cells.every(c => c === '')) continue;
+
+    if (section === 'active' && cells.length >= 4) {
+      active.push({
+        date:         cells[0] || '',
+        from:         cells[1] || '',
+        subject:      cells[2] || '',
+        actionNeeded: cells[3] || '',
+        due:          cells[4] || 'TBD',
+        agent:        cells[5] || '',
+        notes:        cells[6] || ''
+      });
+    } else if (section === 'completed' && cells.length >= 3) {
+      completed.push({
+        date:       cells[0] || '',
+        from:       cells[1] || '',
+        subject:    cells[2] || '',
+        resolution: cells[3] || '',
+        completed:  cells[4] || ''
+      });
+    } else if (section === 'archived' && cells.length >= 3) {
+      archived.push({
+        date:         cells[0] || '',
+        from:         cells[1] || '',
+        subject:      cells[2] || '',
+        actionNeeded: cells[3] || '',
+        archived:     cells[4] || ''
+      });
+    }
+  }
+
+  // Trim trailing blank lines from preamble
+  while (preambleLines.length && preambleLines[preambleLines.length - 1].trim() === '') preambleLines.pop();
+
+  return {
+    preamble: preambleLines.join('\n'),
+    active, completed, archived
+  };
+}
+
+function serializeMarkdown() {
+  let out = preamble ? preamble + '\n\n' : '# Action Items\n\n';
+
+  out += '## Active\n\n';
+  out += '| Date | From | Subject | Action Needed | Due | Agent | Notes |\n';
+  out += '|------|------|---------|---------------|-----|-------|-------|\n';
+  for (const it of activeItems) {
+    out += `| ${it.date} | ${it.from} | ${it.subject} | ${it.actionNeeded} | ${it.due} | ${it.agent} | ${it.notes} |\n`;
+  }
+  out += '\n';
+
+  out += '## Completed\n\n';
+  out += '| Date | From | Subject | Resolution | Completed |\n';
+  out += '|------|------|---------|------------|-----------|\n';
+  for (const it of completedItems) {
+    out += `| ${it.date} | ${it.from} | ${it.subject} | ${it.resolution} | ${it.completed} |\n`;
+  }
+  out += '\n';
+
+  out += '## Archived\n\n';
+  out += '| Date | From | Subject | Action Needed | Archived |\n';
+  out += '|------|------|---------|---------------|----------|\n';
+  for (const it of archivedItems) {
+    out += `| ${it.date} | ${it.from} | ${it.subject} | ${it.actionNeeded} | ${it.archived} |\n`;
+  }
+  out += '\n';
+
+  return out;
+}
+
+// ── Status panel (pending writes + errors) ─────────────────────────────────
+const statusEntries = [];
+let statusKind = 'pending';
+let statusExpanded = true;
+
+function setStatus(kind) {
+  statusKind = kind;
+  const panel = document.getElementById('status-panel');
+  panel.classList.toggle('pending', kind === 'pending');
+  panel.classList.toggle('error',   kind === 'error');
+  document.querySelector('.status-spinner').style.display = (kind === 'pending') ? '' : 'none';
+}
+
+function showPending(description, rowId) {
+  setStatus('pending');
+  statusEntries.push({ description, rowId, time: new Date(), kind: 'pending' });
+  document.getElementById('sync-dot').classList.remove('error');
   document.getElementById('sync-dot').classList.add('stale');
-  if (rowId != null) { const d = document.getElementById('pendot-'+rowId); if (d) d.classList.add('show'); }
-  renderPendingPanel();
+  if (rowId != null) {
+    const d = document.getElementById('pendot-' + rowId); if (d) d.classList.add('show');
+  }
+  renderStatusPanel();
 }
+
 function clearPending() {
-  pending.length = 0;
+  for (let i = statusEntries.length - 1; i >= 0; i--) {
+    if (statusEntries[i].kind === 'pending') statusEntries.splice(i, 1);
+  }
   document.querySelectorAll('.row-pending-dot').forEach(d => d.classList.remove('show'));
   document.getElementById('sync-dot').classList.remove('stale');
-  syncTime = new Date(); updateSyncLabel();
-  renderPendingPanel();
+  if (!statusEntries.some(e => e.kind === 'error')) {
+    document.getElementById('sync-dot').classList.remove('error');
+  }
+  renderStatusPanel();
 }
-function renderPendingPanel() {
-  const panel=document.getElementById('pending-panel'), list=document.getElementById('pending-list'), hdr=document.getElementById('pending-header-text');
-  if (pending.length===0) { panel.classList.remove('visible','expanded'); return; }
-  panel.classList.add('visible'); if (panelExpanded) panel.classList.add('expanded');
-  const n=pending.length; hdr.textContent=`${n} update${n>1?'s':''} pending — Claude is processing`;
-  list.innerHTML='';
-  pending.forEach(e => {
-    const row=document.createElement('div'); row.className='pending-item';
-    const t=e.time.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true});
-    row.innerHTML=`<span class="spinner spinner-xs" style="color:#b45309;margin-top:2px"></span><span class="pending-item-desc">${e.description}</span><span class="pending-item-time">${t}</span>`;
+
+function showError(description) {
+  setStatus('error');
+  statusEntries.push({ description, time: new Date(), kind: 'error' });
+  document.getElementById('sync-dot').classList.remove('stale');
+  document.getElementById('sync-dot').classList.add('error');
+  renderStatusPanel();
+}
+
+function clearErrors() {
+  for (let i = statusEntries.length - 1; i >= 0; i--) {
+    if (statusEntries[i].kind === 'error') statusEntries.splice(i, 1);
+  }
+  document.getElementById('sync-dot').classList.remove('error');
+  renderStatusPanel();
+}
+
+function renderStatusPanel() {
+  const panel = document.getElementById('status-panel');
+  const list = document.getElementById('status-list');
+  const hdr = document.getElementById('status-header-text');
+  if (statusEntries.length === 0) { panel.classList.remove('visible', 'expanded'); return; }
+  panel.classList.add('visible'); if (statusExpanded) panel.classList.add('expanded');
+
+  const errorCount = statusEntries.filter(e => e.kind === 'error').length;
+  const pendingCount = statusEntries.filter(e => e.kind === 'pending').length;
+  if (errorCount > 0) {
+    setStatus('error');
+    hdr.textContent = errorCount === 1 ? '1 error' : `${errorCount} errors`;
+  } else {
+    setStatus('pending');
+    hdr.textContent = pendingCount === 1 ? '1 update in flight' : `${pendingCount} updates in flight`;
+  }
+
+  list.innerHTML = '';
+  statusEntries.forEach(e => {
+    const row = document.createElement('div'); row.className = 'status-item';
+    const t = e.time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+    const icon = e.kind === 'error' ? '⚠' : '<span class="spinner spinner-xs" style="color:#b45309;margin-top:2px"></span>';
+    row.innerHTML = `<span style="margin-top:1px">${icon}</span><span class="status-item-desc">${e.description}</span><span class="status-item-time">${t}</span>`;
     list.appendChild(row);
   });
 }
-document.getElementById('pending-header').addEventListener('click', () => {
-  panelExpanded=!panelExpanded; document.getElementById('pending-panel').classList.toggle('expanded',panelExpanded);
+
+document.getElementById('status-header').addEventListener('click', () => {
+  statusExpanded = !statusExpanded;
+  document.getElementById('status-panel').classList.toggle('expanded', statusExpanded);
 });
 
-function sendUpdate(description, prompt, rowId) { addPending(description, rowId); sendPrompt(prompt); }
+// ── Sync label ─────────────────────────────────────────────────────────────
+function fmtTimestamp(d) {
+  return 'Synced ' + d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+}
+function updateSyncLabel(ts) { document.getElementById('sync-label').textContent = ts ? fmtTimestamp(ts) : 'Loading...'; }
 
-// ── Refresh ────────────────────────────────────────────────────────────────
-document.getElementById('refresh-btn').addEventListener('click', () => {
-  const btn=document.getElementById('refresh-btn');
-  btn.classList.add('spinning'); btn.disabled=true;
-  clearPending();
-  sendPrompt('Refresh the action items artifact with the latest data from inbox/action-items.md');
-  setTimeout(() => { btn.classList.remove('spinning'); btn.disabled=false; }, 6000);
-});
-
-// ── Data ───────────────────────────────────────────────────────────────────
-// SUBSTITUTE: Set TODAY to today's date and RECENTLY_COMPLETED to the count of
-// completed rows in inbox/action-items.md at the time of artifact creation/refresh.
-const TODAY = new Date('YYYY-MM-DD'); // ← substitute today's date
-const RECENTLY_COMPLETED = 0; // ← substitute completed item count
-
-// SUBSTITUTE: Build this array from the Active table in inbox/action-items.md.
-// Each object maps to one row. Field mapping:
-//   from      ← From column
-//   subject   ← Subject column
-//   details   ← Action Needed column (full text)
-//   due       ← Due column (ASAP / Soon / This week / TBD / YYYY-MM-DD)
-//   agentable ← Agent column: true if "Y", false if "N" or blank
-//   notes     ← Notes column (string, may be empty)
-// File schema: | Date | From | Subject | Action Needed | Due | Agent | Notes |
-const raw = [
-  // {from:"", subject:"", due:"TBD", agentable:false, notes:"", details:""},
-];
-
-const agentState = {}, notesState = {};
-raw.forEach((r,i) => { agentState[i]=r.agentable; notesState[i]=r.notes; });
-
+// ── Priority + relative due ────────────────────────────────────────────────
 function getPriority(due) {
-  if (due==='ASAP')      return {label:'ASAP',      order:3};
-  if (due==='Soon')      return {label:'Soon',      order:4};
-  if (due==='This week') return {label:'This week', order:5};
-  if (due==='TBD')       return {label:'TBD',       order:99};
-  const d=new Date(due+'T12:00:00'); if(isNaN(d)) return {label:'TBD',order:99};
-  const diff=Math.floor((d-TODAY)/86400000);
-  if (diff<0) return {label:'OVERDUE',order:1};
-  if (diff<=7) return {label:'UPCOMING',order:2};
-  return {label:'TBD',order:99};
+  if (due === 'ASAP')      return { label: 'ASAP',      order: 3 };
+  if (due === 'Soon')      return { label: 'Soon',      order: 4 };
+  if (due === 'This week') return { label: 'This week', order: 5 };
+  if (due === 'TBD' || !due) return { label: 'TBD',     order: 99 };
+  const d = new Date(due + 'T12:00:00'); if (isNaN(d)) return { label: 'TBD', order: 99 };
+  const diff = Math.floor((d - TODAY) / 86400000);
+  if (diff < 0)   return { label: 'OVERDUE',  order: 1 };
+  if (diff <= 7)  return { label: 'UPCOMING', order: 2 };
+  return { label: 'TBD', order: 99 };
 }
 
 function relativeDue(due) {
-  if (['ASAP','Soon','This week','TBD'].includes(due)) return {text:due, cls:'', actual:''};
-  const d=new Date(due+'T12:00:00'); if(isNaN(d)) return {text:due, cls:'', actual:''};
-  const diff=Math.floor((d-TODAY)/86400000);
-  const actual=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-  if (diff<=-2) return {text:`${Math.abs(diff)}d overdue`, cls:'overdue', actual};
-  if (diff===-1) return {text:'yesterday',               cls:'overdue', actual};
-  if (diff===0)  return {text:'today',                   cls:'overdue', actual};
-  if (diff===1)  return {text:'tomorrow',                cls:'upcoming', actual};
-  if (diff<=7)   return {text:`in ${diff} days`,         cls:'upcoming', actual};
-  if (diff<=30)  return {text:`in ${diff} days`,         cls:'', actual};
-  return {text:d.toLocaleDateString('en-US',{month:'short',day:'numeric'}), cls:'', actual};
+  if (['ASAP','Soon','This week','TBD'].includes(due) || !due) return { text: due || 'TBD', cls: '', actual: '' };
+  const d = new Date(due + 'T12:00:00'); if (isNaN(d)) return { text: due, cls: '', actual: '' };
+  const diff = Math.floor((d - TODAY) / 86400000);
+  const actual = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (diff <= -2) return { text: `${Math.abs(diff)}d overdue`, cls: 'overdue', actual };
+  if (diff === -1) return { text: 'yesterday', cls: 'overdue', actual };
+  if (diff === 0)  return { text: 'today',     cls: 'overdue', actual };
+  if (diff === 1)  return { text: 'tomorrow',  cls: 'upcoming', actual };
+  if (diff <= 7)   return { text: `in ${diff} days`, cls: 'upcoming', actual };
+  if (diff <= 30)  return { text: `in ${diff} days`, cls: '', actual };
+  return { text: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), cls: '', actual };
 }
 
-const items = raw.map((r,i) => {
-  const p=getPriority(r.due); return {...r,id:i,priority:p.label,order:p.order};
-}).sort((a,b)=>a.order-b.order||a.subject.localeCompare(b.subject));
+// ── Build derived state from raw items ─────────────────────────────────────
+function rebuildItems() {
+  // Clear state objects in place
+  for (const k in agentState) delete agentState[k];
+  for (const k in notesState) delete notesState[k];
 
+  items = activeItems.map((r, i) => {
+    const p = getPriority(r.due);
+    return {
+      id: i,
+      date: r.date,
+      from: r.from,
+      subject: r.subject,
+      details: r.actionNeeded,
+      due: r.due,
+      agentable: r.agent === 'Y' || r.agent === 'y',
+      notes: r.notes,
+      priority: p.label,
+      order: p.order
+    };
+  }).sort((a, b) => a.order - b.order || a.subject.localeCompare(b.subject));
+
+  items.forEach(it => {
+    agentState[it.id] = it.agentable;
+    notesState[it.id] = it.notes;
+  });
+
+  // Recently completed: items completed in the last 30 days
+  const thirtyDaysAgo = new Date(TODAY.getTime() - 30 * 86400000);
+  recentlyCompleted = completedItems.filter(c => {
+    const d = new Date((c.completed || '') + 'T12:00:00');
+    return !isNaN(d) && d >= thirtyDaysAgo;
+  }).length;
+}
+
+// ── Render: stats ──────────────────────────────────────────────────────────
 function renderStats() {
-  const counts={}; items.forEach(it=>{counts[it.priority]=(counts[it.priority]||0)+1;});
-  const agentCount=Object.values(agentState).filter(Boolean).length;
-  const el=document.getElementById('stats'); el.innerHTML='';
-  [{label:'Total',val:items.length,cls:''},{label:'Overdue',val:counts.OVERDUE||0,cls:'danger'},{label:'Due Soon',val:counts.UPCOMING||0,cls:'warning'},{label:'Agent-Ready',val:agentCount,cls:'agent'}]
-  .forEach(s=>{const div=document.createElement('div');div.className='stat '+s.cls;div.innerHTML=`<div class="stat-n">${s.val}</div><div class="stat-l">${s.label}</div>`;el.appendChild(div);});
+  const counts = {};
+  items.forEach(it => { counts[it.priority] = (counts[it.priority] || 0) + 1; });
+  const agentCount = Object.values(agentState).filter(Boolean).length;
+  const el = document.getElementById('stats'); el.innerHTML = '';
+  [
+    { label: 'Total',       val: items.length,         cls: '' },
+    { label: 'Overdue',     val: counts.OVERDUE  || 0, cls: 'danger' },
+    { label: 'Due Soon',    val: counts.UPCOMING || 0, cls: 'warning' },
+    { label: 'Agent-Ready', val: agentCount,           cls: 'agent' }
+  ].forEach(s => {
+    const div = document.createElement('div'); div.className = 'stat ' + s.cls;
+    div.innerHTML = `<div class="stat-n">${s.val}</div><div class="stat-l">${s.label}</div>`;
+    el.appendChild(div);
+  });
 }
-renderStats();
 
-const badgeCls={OVERDUE:'b-overdue',UPCOMING:'b-upcoming',ASAP:'b-asap',Soon:'b-soon','This week':'b-thisweek',TBD:'b-tbd'};
+const badgeCls = { OVERDUE: 'b-overdue', UPCOMING: 'b-upcoming', ASAP: 'b-asap', Soon: 'b-soon', 'This week': 'b-thisweek', TBD: 'b-tbd' };
 
-function closeAllPopovers(){document.querySelectorAll('.due-popover.open').forEach(p=>p.classList.remove('open'));}
-document.addEventListener('click',e=>{if(!e.target.closest('.due-cell-wrap'))closeAllPopovers();});
+// ── Popovers ───────────────────────────────────────────────────────────────
+function closeAllPopovers() { document.querySelectorAll('.due-popover.open').forEach(p => p.classList.remove('open')); }
+document.addEventListener('click', e => { if (!e.target.closest('.due-cell-wrap')) closeAllPopovers(); });
 
-function makeDuePopover(item,container){
-  const pop=document.createElement('div'); pop.className='due-popover';
-  pop.innerHTML=`<div class="pop-label">Quick select</div><div class="pop-presets">${['ASAP','Soon','This week','TBD'].map(p=>`<button class="pop-preset" data-val="${p}">${p}</button>`).join('')}</div><div class="pop-label">Pick a date</div><input type="date" class="pop-date-input"><div class="pop-label" style="margin-top:10px">Custom text</div><div class="pop-custom-row"><input class="pop-custom-input" placeholder="e.g. When [name] starts"><button class="pop-set-btn">Set</button></div>`;
-  function applyDue(val){
+function makeDuePopover(item, container) {
+  const pop = document.createElement('div'); pop.className = 'due-popover';
+  pop.innerHTML = `<div class="pop-label">Quick select</div><div class="pop-presets">${['ASAP','Soon','This week','TBD'].map(p => `<button class="pop-preset" data-val="${p}">${p}</button>`).join('')}</div><div class="pop-label">Pick a date</div><input type="date" class="pop-date-input"><div class="pop-label" style="margin-top:10px">Custom text</div><div class="pop-custom-row"><input class="pop-custom-input" placeholder="e.g. When [name] starts"><button class="pop-set-btn">Set</button></div>`;
+  function applyDue(val) {
     closeAllPopovers();
-    sendUpdate(`Setting due date for "${item.subject}" to "${val}"`,`Update action item in inbox/action-items.md — Subject: "${item.subject}" — set Due to "${val}"`,item.id);
-    const rel=relativeDue(val); const disp=container.querySelector('.due-display');
-    if(disp){disp.textContent=rel.text;disp.className='due-display '+(rel.cls||'');}
-    const act=container.querySelector('.due-actual'); if(act)act.textContent=rel.actual;
+    submitMutation({ type: 'set-due', subject: item.subject, value: val }, `Setting due date for "${item.subject}" to "${val}"`, item.id);
+    const rel = relativeDue(val);
+    const disp = container.querySelector('.due-display');
+    if (disp) { disp.textContent = rel.text; disp.className = 'due-display ' + (rel.cls || ''); }
+    const act = container.querySelector('.due-actual'); if (act) act.textContent = rel.actual;
   }
-  pop.querySelectorAll('.pop-preset').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();applyDue(b.dataset.val);}));
-  pop.querySelector('.pop-date-input').addEventListener('change',e=>{if(e.target.value)applyDue(e.target.value);});
-  pop.querySelector('.pop-set-btn').addEventListener('click',e=>{e.stopPropagation();const v=pop.querySelector('.pop-custom-input').value.trim();if(v)applyDue(v);});
-  pop.addEventListener('click',e=>e.stopPropagation());
+  pop.querySelectorAll('.pop-preset').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); applyDue(b.dataset.val); }));
+  pop.querySelector('.pop-date-input').addEventListener('change', e => { if (e.target.value) applyDue(e.target.value); });
+  pop.querySelector('.pop-set-btn').addEventListener('click', e => { e.stopPropagation(); const v = pop.querySelector('.pop-custom-input').value.trim(); if (v) applyDue(v); });
+  pop.addEventListener('click', e => e.stopPropagation());
   return pop;
 }
 
-function makeEditableCell(value,onCommit){
-  const wrap=document.createElement('span'); wrap.style.display='block';
-  const display=document.createElement('span'); display.className='editable'; display.textContent=value;
-  const input=document.createElement('input'); input.className='edit-input'; input.value=value;
+function makeEditableCell(value, onCommit) {
+  const wrap = document.createElement('span'); wrap.style.display = 'block';
+  const display = document.createElement('span'); display.className = 'editable'; display.textContent = value;
+  const input = document.createElement('input'); input.className = 'edit-input'; input.value = value;
   wrap.appendChild(display); wrap.appendChild(input);
-  function startEdit(){display.classList.add('editing');input.classList.add('visible');input.focus();input.select();}
-  function commit(){const nv=input.value.trim();display.classList.remove('editing');input.classList.remove('visible');if(nv&&nv!==value){display.textContent=nv;onCommit(nv);value=nv;}else{input.value=value;}}
-  display.addEventListener('click',startEdit);
-  input.addEventListener('blur',commit);
-  input.addEventListener('keydown',e=>{if(e.key==='Enter')commit();if(e.key==='Escape'){input.value=value;commit();}});
+  function startEdit() { display.classList.add('editing'); input.classList.add('visible'); input.focus(); input.select(); }
+  function commit() { const nv = input.value.trim(); display.classList.remove('editing'); input.classList.remove('visible'); if (nv && nv !== value) { display.textContent = nv; onCommit(nv); value = nv; } else { input.value = value; } }
+  display.addEventListener('click', startEdit);
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { input.value = value; commit(); } });
   return wrap;
 }
 
-function makeNotesArea(item){
-  const wrap=document.createElement('div'); wrap.className='notes-area';
-  const displayRow=document.createElement('div'); displayRow.style.cssText='display:flex;align-items:flex-start;gap:4px;flex-wrap:wrap;';
-  const display=document.createElement('span');
-  const editWrap=document.createElement('div'); editWrap.className='notes-edit-wrap';
-  const textarea=document.createElement('textarea'); textarea.className='notes-textarea'; textarea.rows=2;
-  const actionsDiv=document.createElement('div'); actionsDiv.className='notes-actions';
-  const saveBtn=document.createElement('button'); saveBtn.className='notes-save'; saveBtn.textContent='Save';
-  const cancelBtn=document.createElement('button'); cancelBtn.className='notes-cancel'; cancelBtn.textContent='Cancel';
+function makeNotesArea(item) {
+  const wrap = document.createElement('div'); wrap.className = 'notes-area';
+  const displayRow = document.createElement('div'); displayRow.style.cssText = 'display:flex;align-items:flex-start;gap:4px;flex-wrap:wrap;';
+  const display = document.createElement('span');
+  const editWrap = document.createElement('div'); editWrap.className = 'notes-edit-wrap';
+  const textarea = document.createElement('textarea'); textarea.className = 'notes-textarea'; textarea.rows = 2;
+  const actionsDiv = document.createElement('div'); actionsDiv.className = 'notes-actions';
+  const saveBtn = document.createElement('button'); saveBtn.className = 'notes-save'; saveBtn.textContent = 'Save';
+  const cancelBtn = document.createElement('button'); cancelBtn.className = 'notes-cancel'; cancelBtn.textContent = 'Cancel';
   actionsDiv.appendChild(saveBtn); actionsDiv.appendChild(cancelBtn);
   editWrap.appendChild(textarea); editWrap.appendChild(actionsDiv);
 
-  function renderDisplay(){
-    const notes=notesState[item.id];
-    display.className=notes?'notes-display':'notes-display empty';
-    display.textContent=notes||'Add note...';
+  function renderDisplay() {
+    const notes = notesState[item.id];
+    display.className = notes ? 'notes-display' : 'notes-display empty';
+    display.textContent = notes || 'Add note...';
   }
   renderDisplay();
 
-  function openEdit(){
-    textarea.value=notesState[item.id]||'';
-    editWrap.classList.add('open');
-    displayRow.style.display='none';
-    textarea.focus();
-  }
-  function closeEdit(){editWrap.classList.remove('open');displayRow.style.display='';}
-  function saveNotes(){
-    const nv=textarea.value.trim();
-    if(nv!==(notesState[item.id]||'')){
-      notesState[item.id]=nv;
+  function openEdit() { textarea.value = notesState[item.id] || ''; editWrap.classList.add('open'); displayRow.style.display = 'none'; textarea.focus(); }
+  function closeEdit() { editWrap.classList.remove('open'); displayRow.style.display = ''; }
+  function saveNotes() {
+    const nv = textarea.value.trim();
+    if (nv !== (notesState[item.id] || '')) {
+      notesState[item.id] = nv;
       renderDisplay();
-      sendUpdate(`Updating notes on "${item.subject}"`,
-        `Update notes for action item in inbox/action-items.md — Subject: "${item.subject}" — set Notes to: "${nv}"`,item.id);
+      submitMutation({ type: 'set-notes', subject: item.subject, value: nv }, `Updating notes on "${item.subject}"`, item.id);
     }
     closeEdit();
   }
 
-  display.addEventListener('click',openEdit);
-  saveBtn.addEventListener('click',saveNotes);
-  cancelBtn.addEventListener('click',closeEdit);
-  textarea.addEventListener('keydown',e=>{if(e.key==='Escape')closeEdit();if(e.key==='Enter'&&e.metaKey)saveNotes();});
+  display.addEventListener('click', openEdit);
+  saveBtn.addEventListener('click', saveNotes);
+  cancelBtn.addEventListener('click', closeEdit);
+  textarea.addEventListener('keydown', e => { if (e.key === 'Escape') closeEdit(); if (e.key === 'Enter' && e.metaKey) saveNotes(); });
 
   displayRow.appendChild(display);
   wrap.appendChild(displayRow);
@@ -517,148 +742,279 @@ function makeNotesArea(item){
   return wrap;
 }
 
-function makeAgentToggle(item){
-  const wrap=document.createElement('div'); wrap.className='agent-toggle';
-  function render(){
-    const on=agentState[item.id]; wrap.innerHTML='';
-    const chip=document.createElement('span'); chip.className='agent-chip '+(on?'on':'off');
-    chip.innerHTML=`<span class="dot"></span>${on?'Yes':'No'}`;
-    chip.addEventListener('click',e=>{
-      e.stopPropagation(); const nv=!agentState[item.id]; agentState[item.id]=nv;
-      const tr=document.getElementById('row-'+item.id); if(tr)tr.classList.toggle('agent-row',nv);
+function makeAgentToggle(item) {
+  const wrap = document.createElement('div'); wrap.className = 'agent-toggle';
+  function render() {
+    const on = agentState[item.id]; wrap.innerHTML = '';
+    const chip = document.createElement('span'); chip.className = 'agent-chip ' + (on ? 'on' : 'off');
+    chip.innerHTML = `<span class="dot"></span>${on ? 'Yes' : 'No'}`;
+    chip.addEventListener('click', e => {
+      e.stopPropagation();
+      const nv = !agentState[item.id]; agentState[item.id] = nv;
+      const tr = document.getElementById('row-' + item.id); if (tr) tr.classList.toggle('agent-row', nv);
       render(); renderStats();
-      sendUpdate(nv?`Flagging "${item.subject}" as agent-eligible`:`Removing agent flag from "${item.subject}"`,
-        `Update action item in inbox/action-items.md — Subject: "${item.subject}" — set Agent to "${nv?'Y':'N'}"`,item.id);
+      submitMutation({ type: 'toggle-agent', subject: item.subject, value: nv }, nv ? `Flagging "${item.subject}" as agent-eligible` : `Removing agent flag from "${item.subject}"`, item.id);
     });
     wrap.appendChild(chip);
   }
   render(); return wrap;
 }
 
-function renderRows(filtered){
-  const tbody=document.getElementById('tbody'),tbl=document.getElementById('tbl'),noRes=document.getElementById('no-results');
-  tbody.innerHTML='';
-  if(filtered.length===0){tbl.classList.add('hidden');noRes.classList.remove('hidden');return;}
-  tbl.classList.remove('hidden');noRes.classList.add('hidden');
+// ── Render: rows ───────────────────────────────────────────────────────────
+function renderRows(filtered) {
+  const tbody = document.getElementById('tbody'), tbl = document.getElementById('tbl'), noRes = document.getElementById('no-results');
+  document.getElementById('loading-overlay').classList.add('hidden');
+  tbody.innerHTML = '';
+  if (filtered.length === 0) { tbl.classList.add('hidden'); noRes.classList.remove('hidden'); return; }
+  tbl.classList.remove('hidden'); noRes.classList.add('hidden');
 
-  filtered.forEach(item=>{
-    const tr=document.createElement('tr'); tr.id='row-'+item.id;
-    if(agentState[item.id])tr.classList.add('agent-row');
+  filtered.forEach(item => {
+    const tr = document.createElement('tr'); tr.id = 'row-' + item.id;
+    if (agentState[item.id]) tr.classList.add('agent-row');
 
-    const tdCb=document.createElement('td'); tdCb.style.cssText='width:30px;vertical-align:top;padding-top:13px';
-    const cb=document.createElement('input'); cb.type='checkbox';cb.className='cb';
+    const tdCb = document.createElement('td'); tdCb.style.cssText = 'width:30px;vertical-align:top;padding-top:13px';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'cb';
     tdCb.appendChild(cb);
 
-    const tdPri=document.createElement('td'); tdPri.style.width='88px';
-    tdPri.innerHTML=`<span class="badge ${badgeCls[item.priority]}">${item.priority}</span>`;
+    const tdPri = document.createElement('td'); tdPri.style.width = '88px';
+    tdPri.innerHTML = `<span class="badge ${badgeCls[item.priority]}">${item.priority}</span>`;
 
-    const tdMain=document.createElement('td');
-    const subjectRow=document.createElement('div'); subjectRow.className='subject-row';
-    const subjectEditable=makeEditableCell(item.subject,nv=>{
-      sendUpdate(`Renaming "${item.subject}" to "${nv}"`,
-        `Update action item in inbox/action-items.md — old Subject: "${item.subject}" — new Subject: "${nv}"`,item.id);
-      item.subject=nv;
+    const tdMain = document.createElement('td');
+    const subjectRow = document.createElement('div'); subjectRow.className = 'subject-row';
+    const subjectEditable = makeEditableCell(item.subject, nv => {
+      submitMutation({ type: 'rename-subject', subject: item.subject, value: nv }, `Renaming "${item.subject}" to "${nv}"`, item.id);
+      item.subject = nv;
     });
     subjectEditable.querySelector('.editable').classList.add('subject-text');
-    const pendingDot=document.createElement('span'); pendingDot.className='row-pending-dot'; pendingDot.id='pendot-'+item.id;
+    const pendingDot = document.createElement('span'); pendingDot.className = 'row-pending-dot'; pendingDot.id = 'pendot-' + item.id;
     subjectRow.appendChild(subjectEditable); subjectRow.appendChild(pendingDot);
 
-    const detailsEl=document.createElement('div'); detailsEl.className='details-text'; detailsEl.textContent=item.details;
-    detailsEl.addEventListener('click',()=>detailsEl.classList.toggle('expanded'));
+    const detailsEl = document.createElement('div'); detailsEl.className = 'details-text'; detailsEl.textContent = item.details;
+    detailsEl.addEventListener('click', () => detailsEl.classList.toggle('expanded'));
 
-    const confirmStrip=document.createElement('div'); confirmStrip.className='confirm-strip';
-    const shortName=item.subject.length>44?item.subject.slice(0,44)+'…':item.subject;
-    confirmStrip.innerHTML=`<span>Mark <strong>"${shortName}"</strong> as complete?</span><button class="btn-yes">Done</button><button class="btn-no">Cancel</button>`;
-    confirmStrip.querySelector('.btn-yes').addEventListener('click',()=>{
-      confirmStrip.classList.remove('show');tr.classList.add('pending-row');
-      sendUpdate(`Marking "${item.subject}" as complete`,
-        `Mark as complete in inbox/action-items.md — Subject: "${item.subject}"`,item.id);
+    const confirmStrip = document.createElement('div'); confirmStrip.className = 'confirm-strip';
+    const shortName = item.subject.length > 44 ? item.subject.slice(0, 44) + '…' : item.subject;
+    confirmStrip.innerHTML = `<span>Mark <strong>"${shortName}"</strong> as complete?</span><button class="btn-yes">Done</button><button class="btn-no">Cancel</button>`;
+    confirmStrip.querySelector('.btn-yes').addEventListener('click', () => {
+      confirmStrip.classList.remove('show'); tr.classList.add('pending-row');
+      submitMutation({ type: 'mark-complete', subject: item.subject }, `Marking "${item.subject}" as complete`, item.id);
     });
-    confirmStrip.querySelector('.btn-no').addEventListener('click',()=>{confirmStrip.classList.remove('show');cb.checked=false;});
+    confirmStrip.querySelector('.btn-no').addEventListener('click', () => { confirmStrip.classList.remove('show'); cb.checked = false; });
 
     tdMain.appendChild(subjectRow);
     tdMain.appendChild(detailsEl);
     tdMain.appendChild(makeNotesArea(item));
     tdMain.appendChild(confirmStrip);
 
-    const tdFrom=document.createElement('td'); tdFrom.style.width='140px';
-    tdFrom.appendChild(makeEditableCell(item.from,nv=>{
-      sendUpdate(`Changing "From" on "${item.subject}" to "${nv}"`,
-        `Update action item in inbox/action-items.md — Subject: "${item.subject}" — set From to "${nv}"`,item.id);
+    const tdFrom = document.createElement('td'); tdFrom.style.width = '140px';
+    tdFrom.appendChild(makeEditableCell(item.from, nv => {
+      submitMutation({ type: 'set-from', subject: item.subject, value: nv }, `Changing "From" on "${item.subject}" to "${nv}"`, item.id);
     }));
 
-    const tdDue=document.createElement('td'); tdDue.style.cssText='width:108px;position:relative';
-    const dueWrap=document.createElement('div'); dueWrap.className='due-cell-wrap';
-    const rel=relativeDue(item.due);
-    const dueDisplay=document.createElement('span'); dueDisplay.className='due-display '+(rel.cls||''); dueDisplay.textContent=rel.text;
-    dueDisplay.title=rel.actual||item.due;
-    const dueActual=document.createElement('div'); dueActual.className='due-actual'; dueActual.textContent=rel.actual;
-    const pop=makeDuePopover(item,dueWrap);
-    dueDisplay.addEventListener('click',e=>{e.stopPropagation();const o=pop.classList.contains('open');closeAllPopovers();if(!o)pop.classList.add('open');});
-    dueWrap.appendChild(dueDisplay); if(rel.actual)dueWrap.appendChild(dueActual); dueWrap.appendChild(pop); tdDue.appendChild(dueWrap);
+    const tdDue = document.createElement('td'); tdDue.style.cssText = 'width:108px;position:relative';
+    const dueWrap = document.createElement('div'); dueWrap.className = 'due-cell-wrap';
+    const rel = relativeDue(item.due);
+    const dueDisplay = document.createElement('span'); dueDisplay.className = 'due-display ' + (rel.cls || ''); dueDisplay.textContent = rel.text;
+    dueDisplay.title = rel.actual || item.due;
+    const dueActual = document.createElement('div'); dueActual.className = 'due-actual'; dueActual.textContent = rel.actual;
+    const pop = makeDuePopover(item, dueWrap);
+    dueDisplay.addEventListener('click', e => { e.stopPropagation(); const o = pop.classList.contains('open'); closeAllPopovers(); if (!o) pop.classList.add('open'); });
+    dueWrap.appendChild(dueDisplay); if (rel.actual) dueWrap.appendChild(dueActual); dueWrap.appendChild(pop); tdDue.appendChild(dueWrap);
 
-    const tdAgent=document.createElement('td'); tdAgent.style.cssText='width:80px;text-align:center;vertical-align:top;padding-top:11px';
+    const tdAgent = document.createElement('td'); tdAgent.style.cssText = 'width:80px;text-align:center;vertical-align:top;padding-top:11px';
     tdAgent.appendChild(makeAgentToggle(item));
 
-    const tdArc=document.createElement('td'); tdArc.style.cssText='width:68px;vertical-align:top;padding-top:11px';
-    const arcBtn=document.createElement('button'); arcBtn.className='archive-btn'; arcBtn.textContent='Archive';
-    arcBtn.addEventListener('click',()=>{tr.classList.add('pending-row');
-      sendUpdate(`Archiving "${item.subject}"`,`Archive action item in inbox/action-items.md — Subject: "${item.subject}"`,item.id);});
+    const tdArc = document.createElement('td'); tdArc.style.cssText = 'width:68px;vertical-align:top;padding-top:11px';
+    const arcBtn = document.createElement('button'); arcBtn.className = 'archive-btn'; arcBtn.textContent = 'Archive';
+    arcBtn.addEventListener('click', () => {
+      tr.classList.add('pending-row');
+      submitMutation({ type: 'archive', subject: item.subject }, `Archiving "${item.subject}"`, item.id);
+    });
     tdArc.appendChild(arcBtn);
 
-    cb.addEventListener('change',()=>{cb.checked=false;confirmStrip.classList.add('show');});
-    tr.appendChild(tdCb);tr.appendChild(tdPri);tr.appendChild(tdMain);tr.appendChild(tdFrom);tr.appendChild(tdDue);tr.appendChild(tdAgent);tr.appendChild(tdArc);
+    cb.addEventListener('change', () => { cb.checked = false; confirmStrip.classList.add('show'); });
+    tr.appendChild(tdCb); tr.appendChild(tdPri); tr.appendChild(tdMain); tr.appendChild(tdFrom); tr.appendChild(tdDue); tr.appendChild(tdAgent); tr.appendChild(tdArc);
     tbody.appendChild(tr);
   });
 
-  document.getElementById('showing').textContent=`Showing ${filtered.length} of ${items.length} items  ·  ${RECENTLY_COMPLETED} completed in the last 30 days`;
+  document.getElementById('showing').textContent = `Showing ${filtered.length} of ${items.length} items  ·  ${recentlyCompleted} completed in the last 30 days`;
+}
+
+// ── Filters ────────────────────────────────────────────────────────────────
+function applyFilters() {
+  let f = items;
+  if (activeFilter === 'agent') f = f.filter(it => agentState[it.id]);
+  else if (activeFilter !== 'all') f = f.filter(it => it.priority === activeFilter);
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    f = f.filter(it => it.subject.toLowerCase().includes(q) || it.from.toLowerCase().includes(q) || it.details.toLowerCase().includes(q) || (notesState[it.id] || '').toLowerCase().includes(q));
+  }
+  renderRows(f);
+}
+
+document.querySelectorAll('.pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active'); activeFilter = pill.dataset.filter; applyFilters();
+  });
+});
+document.getElementById('search').addEventListener('input', e => { searchQuery = e.target.value; applyFilters(); });
+
+// ── Mutations: apply locally, then persist to file ─────────────────────────
+function applyMutationToState(op) {
+  const findActive = subj => activeItems.find(it => it.subject === subj);
+  const findActiveIdx = subj => activeItems.findIndex(it => it.subject === subj);
+
+  switch (op.type) {
+    case 'set-due': {
+      const it = findActive(op.subject); if (it) it.due = op.value; break;
+    }
+    case 'set-notes': {
+      const it = findActive(op.subject); if (it) it.notes = op.value; break;
+    }
+    case 'toggle-agent': {
+      const it = findActive(op.subject); if (it) it.agent = op.value ? 'Y' : 'N'; break;
+    }
+    case 'rename-subject': {
+      const it = findActive(op.subject); if (it) it.subject = op.value; break;
+    }
+    case 'set-from': {
+      const it = findActive(op.subject); if (it) it.from = op.value; break;
+    }
+    case 'mark-complete': {
+      const idx = findActiveIdx(op.subject);
+      if (idx >= 0) {
+        const it = activeItems.splice(idx, 1)[0];
+        const today = new Date().toISOString().split('T')[0];
+        completedItems.unshift({
+          date: it.date, from: it.from, subject: it.subject,
+          resolution: it.actionNeeded || '(complete)', completed: today
+        });
+      }
+      break;
+    }
+    case 'archive': {
+      const idx = findActiveIdx(op.subject);
+      if (idx >= 0) {
+        const it = activeItems.splice(idx, 1)[0];
+        const today = new Date().toISOString().split('T')[0];
+        archivedItems.unshift({
+          date: it.date, from: it.from, subject: it.subject,
+          actionNeeded: it.actionNeeded, archived: today
+        });
+      }
+      break;
+    }
+    case 'add-item': {
+      activeItems.unshift({
+        date: op.date, from: op.from, subject: op.subject,
+        actionNeeded: op.actionNeeded || op.subject, due: op.due,
+        agent: op.agent, notes: op.notes
+      });
+      break;
+    }
+  }
+}
+
+let inflight = Promise.resolve();
+function submitMutation(op, description, rowId) {
+  showPending(description, rowId);
+  // Serialize file writes so two rapid clicks don't race
+  inflight = inflight.then(async () => {
+    try {
+      // Re-read file to capture any concurrent agent edits
+      const content = await readFile();
+      const parsed = parseMarkdown(content);
+      preamble = parsed.preamble;
+      activeItems = parsed.active;
+      completedItems = parsed.completed;
+      archivedItems = parsed.archived;
+      // Apply mutation
+      applyMutationToState(op);
+      // Write back
+      await writeFile(serializeMarkdown());
+      // Refresh state and re-render
+      rebuildItems();
+      renderStats();
+      applyFilters();
+      // Clear THIS pending entry
+      const idx = statusEntries.findIndex(e => e.kind === 'pending' && e.description === description);
+      if (idx >= 0) statusEntries.splice(idx, 1);
+      if (rowId != null) { const d = document.getElementById('pendot-' + rowId); if (d) d.classList.remove('show'); }
+      const tr = rowId != null ? document.getElementById('row-' + rowId) : null; if (tr) tr.classList.remove('pending-row');
+      if (statusEntries.filter(e => e.kind === 'pending').length === 0) {
+        document.getElementById('sync-dot').classList.remove('stale');
+        updateSyncLabel(new Date());
+      }
+      renderStatusPanel();
+    } catch (err) {
+      const idx = statusEntries.findIndex(e => e.kind === 'pending' && e.description === description);
+      if (idx >= 0) statusEntries.splice(idx, 1);
+      showError(`${description} failed: ${err.message || err}`);
+      if (rowId != null) { const d = document.getElementById('pendot-' + rowId); if (d) d.classList.remove('show'); }
+      const tr = rowId != null ? document.getElementById('row-' + rowId) : null; if (tr) tr.classList.remove('pending-row');
+    }
+  });
+  return inflight;
 }
 
 // ── Quick-add ──────────────────────────────────────────────────────────────
 let qaAgentOn = false;
 document.getElementById('qa-agent-toggle').addEventListener('click', () => {
   qaAgentOn = !qaAgentOn;
-  const tog=document.getElementById('qa-agent-toggle');
+  const tog = document.getElementById('qa-agent-toggle');
   tog.classList.toggle('on', qaAgentOn);
   tog.querySelector('.qa-agent-text').textContent = qaAgentOn ? 'Yes — Agent' : 'No';
 });
 
 document.getElementById('qa-add-btn').addEventListener('click', () => {
-  const subject=document.getElementById('qa-subject').value.trim();
+  const subject = document.getElementById('qa-subject').value.trim();
   if (!subject) { document.getElementById('qa-subject').focus(); return; }
-  const from=document.getElementById('qa-from').value.trim()||'Self';
-  const due=document.getElementById('qa-due').value.trim()||'TBD';
-  const notes=document.getElementById('qa-notes').value.trim();
-  const agent=qaAgentOn?'Y':'N';
-  const today=new Date().toISOString().split('T')[0];
+  const from = document.getElementById('qa-from').value.trim() || 'Self';
+  const due = document.getElementById('qa-due').value.trim() || 'TBD';
+  const notes = document.getElementById('qa-notes').value.trim();
+  const agent = qaAgentOn ? 'Y' : 'N';
+  const today = new Date().toISOString().split('T')[0];
 
-  sendUpdate(`Adding new item: "${subject}"`,
-    `Add new action item to inbox/action-items.md Active table with the following fields:\n- Date: ${today}\n- From: ${from}\n- Subject: ${subject}\n- Action Needed: ${subject}\n- Due: ${due}\n- Agent: ${agent}\n- Notes: ${notes}\n\nFile schema for Active table: | Date | From | Subject | Action Needed | Due | Agent | Notes |`);
+  submitMutation({ type: 'add-item', date: today, from, subject, actionNeeded: subject, due, agent, notes }, `Adding new item: "${subject}"`);
 
-  document.getElementById('qa-subject').value='';
-  document.getElementById('qa-from').value='Self';
-  document.getElementById('qa-due').value='TBD';
-  document.getElementById('qa-notes').value='';
-  qaAgentOn=false;
-  const tog=document.getElementById('qa-agent-toggle'); tog.classList.remove('on'); tog.querySelector('.qa-agent-text').textContent='No';
+  document.getElementById('qa-subject').value = '';
+  document.getElementById('qa-from').value = 'Self';
+  document.getElementById('qa-due').value = 'TBD';
+  document.getElementById('qa-notes').value = '';
+  qaAgentOn = false;
+  const tog = document.getElementById('qa-agent-toggle'); tog.classList.remove('on'); tog.querySelector('.qa-agent-text').textContent = 'No';
 });
 
-document.getElementById('qa-subject').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('qa-add-btn').click(); });
+document.getElementById('qa-subject').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('qa-add-btn').click(); });
 
-// ── Filters ────────────────────────────────────────────────────────────────
-let activeFilter='all', searchQuery='';
-function applyFilters(){
-  let f=items;
-  if(activeFilter==='agent') f=f.filter(it=>agentState[it.id]);
-  else if(activeFilter!=='all') f=f.filter(it=>it.priority===activeFilter);
-  if(searchQuery){const q=searchQuery.toLowerCase();f=f.filter(it=>it.subject.toLowerCase().includes(q)||it.from.toLowerCase().includes(q)||it.details.toLowerCase().includes(q)||(notesState[it.id]||'').toLowerCase().includes(q));}
-  renderRows(f);
+// ── Refresh button ─────────────────────────────────────────────────────────
+async function reload() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning'); btn.disabled = true;
+  clearErrors();
+  try {
+    const content = await readFile();
+    const parsed = parseMarkdown(content);
+    preamble = parsed.preamble;
+    activeItems = parsed.active;
+    completedItems = parsed.completed;
+    archivedItems = parsed.archived;
+    rebuildItems();
+    renderStats();
+    applyFilters();
+    updateSyncLabel(new Date());
+  } catch (err) {
+    showError(`Failed to load action items: ${err.message || err}`);
+  } finally {
+    btn.classList.remove('spinning'); btn.disabled = false;
+  }
 }
-document.querySelectorAll('.pill').forEach(pill=>{
-  pill.addEventListener('click',()=>{document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));pill.classList.add('active');activeFilter=pill.dataset.filter;applyFilters();});
-});
-document.getElementById('search').addEventListener('input',e=>{searchQuery=e.target.value;applyFilters();});
-applyFilters();
+
+document.getElementById('refresh-btn').addEventListener('click', reload);
+
+// ── Initial load ───────────────────────────────────────────────────────────
+reload();
 </script>
 </body>
 </html>
