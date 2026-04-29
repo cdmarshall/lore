@@ -3,7 +3,7 @@
 {
   "name": "Action Items",
   "schemaVersion": 1,
-  "description": "Live action items tracker, sourced from inbox/action-items.md. Reads and writes the file directly via window.cowork.callMcpTool('mcp__workspace__bash', ...). Shows active items sorted by priority with filter pills, search, inline edits, and stats."
+  "description": "Live action items tracker. Data is embedded at artifact create/update time. Buttons either send a prompt to chat (sendPrompt) or, if that's unavailable, surface a copy-pasteable command for the user to send themselves."
 }
 </script>
 <html>
@@ -21,18 +21,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .sync-wrap { display: flex; align-items: center; gap: 7px; }
 .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; flex-shrink: 0; transition: background 0.3s; }
 .sync-dot.stale { background: #fbbf24; }
-.sync-dot.error { background: #ef4444; }
 .sync-label { font-size: 11px; opacity: 0.75; white-space: nowrap; }
 .refresh-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.12); color: white; font-size: 12px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
-.refresh-btn:hover:not(:disabled) { background: rgba(255,255,255,0.22); }
-.refresh-btn:disabled { cursor: default; opacity: 0.7; }
-.refresh-btn .btn-spinner { display: none; }
-.refresh-btn.spinning .btn-spinner { display: inline-block; }
-.refresh-btn.spinning .btn-label { opacity: 0.75; }
+.refresh-btn:hover { background: rgba(255,255,255,0.22); }
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .spinner { display: inline-block; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.65s linear infinite; flex-shrink: 0; }
-.spinner-sm { width: 10px; height: 10px; border-width: 1.5px; }
 .spinner-xs { width: 8px; height: 8px; border-width: 1.5px; }
 
 .stats { display: flex; gap: 10px; }
@@ -43,29 +37,40 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .stat-n { font-size: 20px; font-weight: 700; line-height: 1.15; }
 .stat-l { font-size: 10px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* Status panel (pending writes + errors) */
-.status-panel { overflow: hidden; transition: max-height 0.25s ease; max-height: 0; }
-.status-panel.visible { max-height: 400px; }
-.status-panel.pending { background: #fffbeb; border-bottom: 1.5px solid #fcd34d; }
-.status-panel.error   { background: #fef2f2; border-bottom: 1.5px solid #fca5a5; }
-.status-header { display: flex; align-items: center; gap: 9px; padding: 9px 24px; cursor: pointer; user-select: none; }
-.status-panel.pending .status-header-text { color: #92400e; }
-.status-panel.error   .status-header-text { color: #991b1b; }
-.status-header-text { font-size: 12.5px; font-weight: 600; flex: 1; }
-.status-chevron { font-size: 10px; transition: transform 0.2s; }
-.status-panel.pending .status-chevron { color: #b45309; }
-.status-panel.error   .status-chevron { color: #b91c1c; }
-.status-panel.expanded .status-chevron { transform: rotate(180deg); }
-.status-list { padding: 0 24px 10px; display: none; }
-.status-panel.expanded .status-list { display: block; }
-.status-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; font-size: 12px; line-height: 1.4; }
-.status-panel.pending .status-item { color: #78350f; border-bottom: 1px solid #fef3c7; }
-.status-panel.error   .status-item { color: #7f1d1d; border-bottom: 1px solid #fecaca; }
-.status-item:last-child { border-bottom: none; }
-.status-item-desc { flex: 1; }
-.status-item-time { font-size: 10.5px; white-space: nowrap; margin-top: 1px; }
-.status-panel.pending .status-item-time { color: #b45309; }
-.status-panel.error   .status-item-time { color: #b91c1c; }
+/* Pending panel */
+.pending-panel { background: #fffbeb; border-bottom: 1.5px solid #fcd34d; overflow: hidden; transition: max-height 0.25s ease; max-height: 0; }
+.pending-panel.visible { max-height: 400px; }
+.pending-header { display: flex; align-items: center; gap: 9px; padding: 9px 24px; cursor: pointer; user-select: none; border-bottom: 1px solid transparent; }
+.pending-panel.expanded .pending-header { border-color: #fde68a; }
+.pending-header-text { font-size: 12.5px; font-weight: 600; color: #92400e; flex: 1; }
+.pending-chevron { font-size: 10px; color: #b45309; transition: transform 0.2s; }
+.pending-panel.expanded .pending-chevron { transform: rotate(180deg); }
+.pending-list { padding: 0 24px 10px; display: none; }
+.pending-panel.expanded .pending-list { display: block; }
+.pending-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; border-bottom: 1px solid #fef3c7; font-size: 12px; color: #78350f; }
+.pending-item:last-child { border-bottom: none; }
+.pending-item-desc { flex: 1; line-height: 1.4; }
+.pending-item-time { font-size: 10.5px; color: #b45309; white-space: nowrap; margin-top: 1px; }
+
+.row-pending-dot { display: none; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid #f59e0b; border-top-color: transparent; animation: spin 0.65s linear infinite; margin-left: 6px; vertical-align: middle; flex-shrink: 0; }
+.row-pending-dot.show { display: inline-block; }
+
+/* Modal: copy-pasteable prompt fallback */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none; align-items: center; justify-content: center; z-index: 500; padding: 20px; }
+.modal-backdrop.show { display: flex; }
+.modal { background: white; border-radius: 12px; width: 100%; max-width: 540px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); overflow: hidden; }
+.modal-header { padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+.modal-title { font-size: 14px; font-weight: 600; color: #1e293b; }
+.modal-close { background: none; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: #64748b; padding: 0 4px; }
+.modal-body { padding: 16px 20px; }
+.modal-instructions { font-size: 12.5px; color: #475569; line-height: 1.5; margin-bottom: 12px; }
+.modal-prompt { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 14px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12.5px; color: #0f172a; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
+.modal-actions { padding: 12px 20px 16px; display: flex; gap: 8px; justify-content: flex-end; }
+.modal-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12.5px; cursor: pointer; font-weight: 500; background: white; color: #475569; }
+.modal-btn:hover { background: #f8fafc; }
+.modal-btn.primary { background: #1a3254; color: white; border-color: #1a3254; }
+.modal-btn.primary:hover { background: #2a5298; }
+.modal-btn.copied { background: #059669; color: white; border-color: #059669; }
 
 /* Controls */
 .controls { background: white; border-bottom: 1px solid #e9ecef; padding: 11px 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
@@ -88,16 +93,8 @@ td { padding: 10px 14px; border-bottom: 1px solid #f2f2f2; vertical-align: top; 
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover td { background: #fafbfc; }
 tbody tr:hover .archive-btn { opacity: 1; }
-tbody tr:hover .add-note-btn { opacity: 1; }
 tbody tr.agent-row td { background: #f0fdf4; }
 tbody tr.agent-row:hover td { background: #dcfce7; }
-
-.row-pending-dot { display: none; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid #f59e0b; border-top-color: transparent; animation: spin 0.65s linear infinite; margin-left: 6px; vertical-align: middle; flex-shrink: 0; }
-.row-pending-dot.show { display: inline-block; }
-
-/* Loading skeleton */
-.loading-overlay { position: relative; padding: 64px 24px; text-align: center; color: #6b7280; font-size: 13px; }
-.loading-overlay .spinner { width: 22px; height: 22px; border-width: 2.5px; color: #2a5298; margin-bottom: 14px; }
 
 /* Badges */
 .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
@@ -108,14 +105,12 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
 .b-thisweek { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
 .b-tbd      { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
 
-/* Relative due date */
 .due-display { cursor: pointer; border-radius: 4px; padding: 2px 5px; margin: -2px -5px; display: inline-block; transition: background 0.12s; font-size: 12.5px; }
 .due-display:hover { background: #eef2ff; }
 .due-display.overdue  { color: #b91c1c; font-weight: 600; }
 .due-display.upcoming { color: #c2410c; font-weight: 600; }
 .due-actual { font-size: 10.5px; color: #9ca3af; margin-top: 1px; }
 
-/* Due popover */
 .due-cell-wrap { position: relative; }
 .due-popover { display: none; position: absolute; z-index: 200; top: calc(100% + 4px); left: 0; background: white; border: 1.5px solid #c7d2fe; border-radius: 10px; padding: 14px; width: 240px; box-shadow: 0 6px 24px rgba(0,0,0,0.13); }
 .due-popover.open { display: block; }
@@ -129,7 +124,6 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
 .pop-custom-input { flex: 1; padding: 5px 9px; border: 1.5px solid #dee2e6; border-radius: 6px; font-size: 12px; color: #1a1a2e; outline: none; }
 .pop-set-btn { padding: 5px 11px; border-radius: 6px; border: none; background: #1a3254; color: white; font-size: 12px; font-weight: 600; cursor: pointer; }
 
-/* Editable cells */
 .editable { cursor: text; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; transition: background 0.12s; display: inline-block; min-width: 40px; line-height: 1.35; }
 .editable:hover { background: #eef2ff; }
 .editable.editing { display: none; }
@@ -140,13 +134,10 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
 .details-text { color: #6c757d; font-size: 12px; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; cursor: pointer; margin-bottom: 3px; }
 .details-text.expanded { display: block; }
 
-/* Notes */
 .notes-area { margin-top: 4px; }
 .notes-display { font-size: 11.5px; color: #6b7280; font-style: italic; line-height: 1.4; cursor: text; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; display: inline-block; }
 .notes-display:hover { background: #f3f4f6; }
 .notes-display.empty { color: #c9ccd1; font-style: normal; }
-.add-note-btn { font-size: 11px; color: #9ca3af; cursor: pointer; opacity: 0; transition: opacity 0.15s; background: none; border: none; padding: 1px 4px; }
-.add-note-btn:hover { color: #2a5298; }
 .notes-edit-wrap { display: none; margin-top: 4px; }
 .notes-edit-wrap.open { display: block; }
 .notes-textarea { width: 100%; padding: 5px 8px; border: 1.5px solid #2a5298; border-radius: 5px; font-size: 12px; font-family: inherit; color: #1a1a2e; background: white; outline: none; resize: vertical; min-height: 48px; line-height: 1.45; }
@@ -155,7 +146,6 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
 .notes-save:hover { background: #2a5298; }
 .notes-cancel { padding: 3px 11px; border-radius: 5px; border: 1px solid #dee2e6; background: white; color: #6c757d; font-size: 11.5px; cursor: pointer; }
 
-/* Agent toggle */
 .agent-toggle { display: flex; align-items: center; justify-content: center; }
 .agent-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1.5px solid; transition: all 0.15s; white-space: nowrap; user-select: none; }
 .agent-chip.on  { background: #ecfdf5; color: #059669; border-color: #6ee7b7; }
@@ -164,7 +154,6 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
 .agent-chip.off:hover { background: #f3f4f6; border-color: #9ca3af; color: #6b7280; }
 .agent-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
-/* Confirm + Archive */
 .cb { width: 15px; height: 15px; cursor: pointer; accent-color: #1a3254; display: block; margin-top: 2px; }
 .confirm-strip { display: none; margin-top: 6px; padding: 5px 10px; background: #f0f4ff; border-radius: 6px; border: 1px solid #c7d2fe; align-items: center; gap: 8px; font-size: 12px; color: #374151; flex-wrap: wrap; }
 .confirm-strip.show { display: flex; }
@@ -176,7 +165,6 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
 tr.pending-row td { opacity: 0.35; pointer-events: none; }
 tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
 
-/* Quick-add section */
 .quick-add-outer { padding: 12px 24px 20px; }
 .quick-add-box {
   background: white; border-radius: 10px; border: 2px dashed #c7d2fe;
@@ -193,17 +181,11 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
 .quick-add-fields { display: flex; gap: 10px; padding: 10px 14px; flex-wrap: wrap; align-items: flex-end; }
 .qa-field { display: flex; flex-direction: column; gap: 4px; }
 .qa-label { font-size: 10.5px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.4px; }
-.qa-input {
-  padding: 6px 10px; border: 1.5px solid #dee2e6; border-radius: 6px;
-  font-size: 13px; color: #1a1a2e; outline: none; font-family: inherit;
-  background: white; transition: border-color 0.15s;
-}
+.qa-input { padding: 6px 10px; border: 1.5px solid #dee2e6; border-radius: 6px; font-size: 13px; color: #1a1a2e; outline: none; font-family: inherit; background: white; transition: border-color 0.15s; }
 .qa-input:focus { border-color: #2a5298; }
 .qa-input::placeholder { color: #c9ccd1; }
-.qa-subject { flex: 1; min-width: 220px; }
 .qa-from { width: 130px; }
 .qa-due { width: 110px; }
-.qa-notes { width: 200px; }
 .qa-agent-wrap { display: flex; flex-direction: column; gap: 4px; }
 .qa-agent-toggle { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1.5px solid #dee2e6; border-radius: 6px; cursor: pointer; user-select: none; background: white; }
 .qa-agent-toggle.on { border-color: #6ee7b7; background: #ecfdf5; }
@@ -211,15 +193,10 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
 .qa-agent-toggle.on .qa-dot { background: #059669; }
 .qa-agent-text { font-size: 12.5px; color: #6c757d; }
 .qa-agent-toggle.on .qa-agent-text { color: #059669; font-weight: 600; }
-.qa-add-btn {
-  padding: 7px 18px; border-radius: 6px; border: none;
-  background: #1a3254; color: white; font-size: 13px; font-weight: 600;
-  cursor: pointer; white-space: nowrap; transition: background 0.15s; align-self: flex-end;
-}
+.qa-add-btn { padding: 7px 18px; border-radius: 6px; border: none; background: #1a3254; color: white; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; align-self: flex-end; }
 .qa-add-btn:hover { background: #2a5298; }
 .qa-add-btn:disabled { opacity: 0.5; cursor: default; }
 
-/* Footer */
 .footer { padding: 6px 24px 16px; font-size: 12px; color: #9ca3af; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 .tip { font-size: 11.5px; color: #6b7280; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 5px 12px; }
 .no-results { background: white; border-radius: 10px; text-align: center; padding: 48px; color: #9ca3af; font-style: italic; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
@@ -233,23 +210,22 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
     <h1>Action Items</h1>
     <div class="sync-wrap">
       <div class="sync-dot" id="sync-dot"></div>
-      <span class="sync-label" id="sync-label">Loading...</span>
+      <span class="sync-label" id="sync-label"></span>
     </div>
     <button class="refresh-btn" id="refresh-btn">
-      <span class="spinner spinner-sm btn-spinner" style="color:white"></span>
       <span class="btn-label">Refresh</span>
     </button>
   </div>
   <div class="stats" id="stats"></div>
 </div>
 
-<div class="status-panel" id="status-panel">
-  <div class="status-header" id="status-header">
-    <span class="spinner spinner-xs status-spinner" style="color:#b45309"></span>
-    <span class="status-header-text" id="status-header-text"></span>
-    <span class="status-chevron">▼</span>
+<div class="pending-panel" id="pending-panel">
+  <div class="pending-header" id="pending-header">
+    <span class="spinner spinner-xs" style="color:#b45309"></span>
+    <span class="pending-header-text" id="pending-header-text"></span>
+    <span class="pending-chevron">▼</span>
   </div>
-  <div class="status-list" id="status-list"></div>
+  <div class="pending-list" id="pending-list"></div>
 </div>
 
 <div class="controls">
@@ -268,12 +244,8 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
   </div>
 </div>
 
-<div class="table-outer" id="table-outer">
-  <div class="loading-overlay" id="loading-overlay">
-    <span class="spinner"></span>
-    <div>Loading action items...</div>
-  </div>
-  <table id="tbl" class="hidden">
+<div class="table-outer">
+  <table id="tbl">
     <thead>
       <tr>
         <th style="width:30px"></th>
@@ -290,9 +262,8 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
   <div id="no-results" class="no-results hidden">No items match your filter or search.</div>
 </div>
 
-<!-- Quick-add -->
 <div class="quick-add-outer">
-  <div class="quick-add-box" id="quick-add-box">
+  <div class="quick-add-box">
     <div class="quick-add-header"><span class="quick-add-plus">＋</span> Add Action Item</div>
     <div class="quick-add-fields">
       <div class="qa-field" style="flex:1;min-width:220px">
@@ -325,274 +296,137 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
 
 <div class="footer">
   <span id="showing"></span>
-  <span class="tip">Click any cell to edit · Changes saved directly to inbox/action-items.md</span>
+  <span class="tip">Click any cell to edit · Changes go through chat to update inbox/action-items.md</span>
+</div>
+
+<!-- Copy-prompt fallback modal (used when sendPrompt isn't available) -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Send to chat</span>
+      <button class="modal-close" id="modal-close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-instructions">Copy this prompt and paste it into the Cowork chat. Lore will update <code>inbox/action-items.md</code> and refresh this artifact.</div>
+      <div class="modal-prompt" id="modal-prompt"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" id="modal-cancel">Cancel</button>
+      <button class="modal-btn primary" id="modal-copy">Copy prompt</button>
+    </div>
+  </div>
 </div>
 
 <script>
 // ─────────────────────────────────────────────────────────────────────────────
-// Action Items Artifact
-// Reads and writes inbox/action-items.md directly via window.cowork.callMcpTool
-// using mcp__workspace__bash. The agent is not in the loop for any operation.
+// Action Items Artifact (data-embedded)
+// The agent reads inbox/action-items.md and substitutes the data into this HTML
+// at create/update time. The artifact itself does not call any MCP tools — when
+// the user clicks a button, we either call sendPrompt() if available, or show a
+// modal with a copy-pasteable prompt the user can send themselves.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── State ──────────────────────────────────────────────────────────────────
-const TODAY = (() => { const d = new Date(); d.setHours(12,0,0,0); return d; })();
-let lorePath = null;
-let actionItemsPath = null;
-let preamble = '';                 // Lines before "## Active"
-let activeItems = [];               // Active table rows
-let completedItems = [];            // Completed table rows
-let archivedItems = [];             // Archived table rows
-let items = [];                     // Active items with priority, used by render
-let recentlyCompleted = 0;          // Count of completed items in last 30 days
-const agentState = {};
-const notesState = {};
-let activeFilter = 'all';
-let searchQuery = '';
+// ── DATA (substituted by the agent at create/update time) ─────────────────
+// SUBSTITUTE: today's date as YYYY-MM-DD
+const TODAY = new Date('__TODAY__T12:00:00');
+// SUBSTITUTE: count of rows in the Completed table over the last 30 days
+const RECENTLY_COMPLETED = __RECENTLY_COMPLETED__;
+// SUBSTITUTE: array of active items, one object per row of the Active table.
+//   Field mapping: from = From, subject = Subject, details = Action Needed,
+//   due = Due, agentable = (Agent === "Y"), notes = Notes
+const raw = __RAW__;
 
-// ── MCP helpers ────────────────────────────────────────────────────────────
-function extractText(result) {
-  if (result == null) return '';
-  if (typeof result === 'string') return result;
-  if (typeof result.stdout === 'string') return result.stdout;
-  if (typeof result.output === 'string') return result.output;
-  if (typeof result.text === 'string') return result.text;
-  if (Array.isArray(result.content)) {
-    return result.content.map(c => (c && c.text) ? c.text : '').join('');
-  }
-  try { return JSON.stringify(result); } catch (e) { return String(result); }
-}
-
-async function bash(command) {
-  if (!window.cowork || !window.cowork.callMcpTool) {
-    throw new Error('window.cowork.callMcpTool unavailable');
-  }
-  const r = await window.cowork.callMcpTool('mcp__workspace__bash', { command });
-  return extractText(r);
-}
-
-async function findActionItemsPath() {
-  // Discover the lore mount path dynamically — the bash session path may change
-  // across Cowork restarts, but the user's lore folder is always under /sessions/*/mnt/.
-  const out = (await bash('ls -d /sessions/*/mnt/lore 2>/dev/null | head -1')).trim();
-  if (!out) throw new Error('Could not locate the lore folder under /sessions/*/mnt/');
-  lorePath = out;
-  actionItemsPath = lorePath + '/inbox/action-items.md';
-}
-
-async function readFile() {
-  if (!actionItemsPath) await findActionItemsPath();
-  // Use cat with -- to handle any path edge cases. Quote the path.
-  const content = await bash(`cat -- "${actionItemsPath}"`);
-  return content;
-}
-
-async function writeFile(content) {
-  if (!actionItemsPath) await findActionItemsPath();
-  // Encode to base64 to bypass all shell escaping concerns.
-  const b64 = btoa(unescape(encodeURIComponent(content)));
-  await bash(`printf %s "${b64}" | base64 -d > "${actionItemsPath}"`);
-}
-
-// ── Markdown parser/serializer ─────────────────────────────────────────────
-function parseMarkdown(content) {
-  const lines = content.split('\n');
-  const preambleLines = [];
-  const active = [], completed = [], archived = [];
-  let section = 'preamble';
-  let inTable = false;
-
-  for (const line of lines) {
-    const m = line.match(/^##\s+(\w+)/);
-    if (m) {
-      const name = m[1].toLowerCase();
-      if (name === 'active')   { section = 'active';   inTable = false; continue; }
-      if (name === 'completed'){ section = 'completed'; inTable = false; continue; }
-      if (name === 'archived') { section = 'archived'; inTable = false; continue; }
-      section = 'other'; inTable = false;
-      continue;
+// ── Action prompt helpers ──────────────────────────────────────────────────
+function trySendPrompt(prompt) {
+  // Cowork artifacts may or may not expose a global sendPrompt(). Try it
+  // safely; if it doesn't exist or throws, fall back to the copy-prompt modal.
+  try {
+    if (typeof sendPrompt === 'function') {
+      sendPrompt(prompt);
+      return true;
     }
-    if (section === 'preamble') { preambleLines.push(line); continue; }
-    if (!line.startsWith('|')) { inTable = false; continue; }
+  } catch (e) { /* fall through */ }
+  showCopyModal(prompt);
+  return false;
+}
 
-    // Parse pipe-delimited row
-    const inner = line.replace(/^\|/, '').replace(/\|\s*$/, '');
-    const cells = inner.split('|').map(c => c.trim());
-    // Separator row?
-    if (cells.every(c => /^[:-\s]+$/.test(c) && c.length > 0)) { inTable = true; continue; }
-    // Header row
-    if (!inTable) { inTable = true; continue; }
-    // Empty data row
-    if (cells.every(c => c === '')) continue;
-
-    if (section === 'active' && cells.length >= 4) {
-      active.push({
-        date:         cells[0] || '',
-        from:         cells[1] || '',
-        subject:      cells[2] || '',
-        actionNeeded: cells[3] || '',
-        due:          cells[4] || 'TBD',
-        agent:        cells[5] || '',
-        notes:        cells[6] || ''
-      });
-    } else if (section === 'completed' && cells.length >= 3) {
-      completed.push({
-        date:       cells[0] || '',
-        from:       cells[1] || '',
-        subject:    cells[2] || '',
-        resolution: cells[3] || '',
-        completed:  cells[4] || ''
-      });
-    } else if (section === 'archived' && cells.length >= 3) {
-      archived.push({
-        date:         cells[0] || '',
-        from:         cells[1] || '',
-        subject:      cells[2] || '',
-        actionNeeded: cells[3] || '',
-        archived:     cells[4] || ''
-      });
+function showCopyModal(prompt, title) {
+  document.getElementById('modal-title').textContent = title || 'Send to chat';
+  document.getElementById('modal-prompt').textContent = prompt;
+  document.getElementById('modal-copy').textContent = 'Copy prompt';
+  document.getElementById('modal-copy').classList.remove('copied');
+  document.getElementById('modal-backdrop').classList.add('show');
+  document.getElementById('modal-copy').onclick = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch (e) {
+      // Fallback: select the prompt text so user can copy manually
+      const el = document.getElementById('modal-prompt');
+      const range = document.createRange(); range.selectNode(el);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
     }
-  }
-
-  // Trim trailing blank lines from preamble
-  while (preambleLines.length && preambleLines[preambleLines.length - 1].trim() === '') preambleLines.pop();
-
-  return {
-    preamble: preambleLines.join('\n'),
-    active, completed, archived
+    const btn = document.getElementById('modal-copy');
+    btn.textContent = 'Copied ✓'; btn.classList.add('copied');
   };
 }
+function hideCopyModal() { document.getElementById('modal-backdrop').classList.remove('show'); }
+document.getElementById('modal-close').addEventListener('click', hideCopyModal);
+document.getElementById('modal-cancel').addEventListener('click', hideCopyModal);
+document.getElementById('modal-backdrop').addEventListener('click', e => { if (e.target.id === 'modal-backdrop') hideCopyModal(); });
 
-function serializeMarkdown() {
-  let out = preamble ? preamble + '\n\n' : '# Action Items\n\n';
-
-  out += '## Active\n\n';
-  out += '| Date | From | Subject | Action Needed | Due | Agent | Notes |\n';
-  out += '|------|------|---------|---------------|-----|-------|-------|\n';
-  for (const it of activeItems) {
-    out += `| ${it.date} | ${it.from} | ${it.subject} | ${it.actionNeeded} | ${it.due} | ${it.agent} | ${it.notes} |\n`;
-  }
-  out += '\n';
-
-  out += '## Completed\n\n';
-  out += '| Date | From | Subject | Resolution | Completed |\n';
-  out += '|------|------|---------|------------|-----------|\n';
-  for (const it of completedItems) {
-    out += `| ${it.date} | ${it.from} | ${it.subject} | ${it.resolution} | ${it.completed} |\n`;
-  }
-  out += '\n';
-
-  out += '## Archived\n\n';
-  out += '| Date | From | Subject | Action Needed | Archived |\n';
-  out += '|------|------|---------|---------------|----------|\n';
-  for (const it of archivedItems) {
-    out += `| ${it.date} | ${it.from} | ${it.subject} | ${it.actionNeeded} | ${it.archived} |\n`;
-  }
-  out += '\n';
-
-  return out;
-}
-
-// ── Status panel (pending writes + errors) ─────────────────────────────────
-const statusEntries = [];
-let statusKind = 'pending';
-let statusExpanded = true;
-
-function setStatus(kind) {
-  statusKind = kind;
-  const panel = document.getElementById('status-panel');
-  panel.classList.toggle('pending', kind === 'pending');
-  panel.classList.toggle('error',   kind === 'error');
-  document.querySelector('.status-spinner').style.display = (kind === 'pending') ? '' : 'none';
-}
-
-function showPending(description, rowId) {
-  setStatus('pending');
-  statusEntries.push({ description, rowId, time: new Date(), kind: 'pending' });
-  document.getElementById('sync-dot').classList.remove('error');
+// ── Pending tracker ────────────────────────────────────────────────────────
+const pending = [];
+let panelExpanded = true;
+function addPending(description, rowId) {
+  pending.push({ description, rowId, time: new Date() });
   document.getElementById('sync-dot').classList.add('stale');
-  if (rowId != null) {
-    const d = document.getElementById('pendot-' + rowId); if (d) d.classList.add('show');
-  }
-  renderStatusPanel();
+  if (rowId != null) { const d = document.getElementById('pendot-' + rowId); if (d) d.classList.add('show'); }
+  renderPendingPanel();
 }
-
-function clearPending() {
-  for (let i = statusEntries.length - 1; i >= 0; i--) {
-    if (statusEntries[i].kind === 'pending') statusEntries.splice(i, 1);
-  }
-  document.querySelectorAll('.row-pending-dot').forEach(d => d.classList.remove('show'));
-  document.getElementById('sync-dot').classList.remove('stale');
-  if (!statusEntries.some(e => e.kind === 'error')) {
-    document.getElementById('sync-dot').classList.remove('error');
-  }
-  renderStatusPanel();
-}
-
-function showError(description) {
-  setStatus('error');
-  statusEntries.push({ description, time: new Date(), kind: 'error' });
-  document.getElementById('sync-dot').classList.remove('stale');
-  document.getElementById('sync-dot').classList.add('error');
-  renderStatusPanel();
-}
-
-function clearErrors() {
-  for (let i = statusEntries.length - 1; i >= 0; i--) {
-    if (statusEntries[i].kind === 'error') statusEntries.splice(i, 1);
-  }
-  document.getElementById('sync-dot').classList.remove('error');
-  renderStatusPanel();
-}
-
-function renderStatusPanel() {
-  const panel = document.getElementById('status-panel');
-  const list = document.getElementById('status-list');
-  const hdr = document.getElementById('status-header-text');
-  if (statusEntries.length === 0) { panel.classList.remove('visible', 'expanded'); return; }
-  panel.classList.add('visible'); if (statusExpanded) panel.classList.add('expanded');
-
-  const errorCount = statusEntries.filter(e => e.kind === 'error').length;
-  const pendingCount = statusEntries.filter(e => e.kind === 'pending').length;
-  if (errorCount > 0) {
-    setStatus('error');
-    hdr.textContent = errorCount === 1 ? '1 error' : `${errorCount} errors`;
-  } else {
-    setStatus('pending');
-    hdr.textContent = pendingCount === 1 ? '1 update in flight' : `${pendingCount} updates in flight`;
-  }
-
+function renderPendingPanel() {
+  const panel = document.getElementById('pending-panel'), list = document.getElementById('pending-list'), hdr = document.getElementById('pending-header-text');
+  if (pending.length === 0) { panel.classList.remove('visible', 'expanded'); return; }
+  panel.classList.add('visible'); if (panelExpanded) panel.classList.add('expanded');
+  hdr.textContent = `${pending.length} update${pending.length > 1 ? 's' : ''} sent — Lore is processing`;
   list.innerHTML = '';
-  statusEntries.forEach(e => {
-    const row = document.createElement('div'); row.className = 'status-item';
+  pending.forEach(e => {
+    const row = document.createElement('div'); row.className = 'pending-item';
     const t = e.time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
-    const icon = e.kind === 'error' ? '⚠' : '<span class="spinner spinner-xs" style="color:#b45309;margin-top:2px"></span>';
-    row.innerHTML = `<span style="margin-top:1px">${icon}</span><span class="status-item-desc">${e.description}</span><span class="status-item-time">${t}</span>`;
+    row.innerHTML = `<span class="spinner spinner-xs" style="color:#b45309;margin-top:2px"></span><span class="pending-item-desc">${e.description}</span><span class="pending-item-time">${t}</span>`;
     list.appendChild(row);
   });
 }
+document.getElementById('pending-header').addEventListener('click', () => {
+  panelExpanded = !panelExpanded;
+  document.getElementById('pending-panel').classList.toggle('expanded', panelExpanded);
+});
 
-document.getElementById('status-header').addEventListener('click', () => {
-  statusExpanded = !statusExpanded;
-  document.getElementById('status-panel').classList.toggle('expanded', statusExpanded);
+function sendUpdate(description, prompt, rowId) {
+  addPending(description, rowId);
+  trySendPrompt(prompt);
+}
+
+// ── Refresh ────────────────────────────────────────────────────────────────
+document.getElementById('refresh-btn').addEventListener('click', () => {
+  trySendPrompt('Refresh the action items artifact with the latest data from inbox/action-items.md');
 });
 
 // ── Sync label ─────────────────────────────────────────────────────────────
-function fmtTimestamp(d) {
-  return 'Synced ' + d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-}
-function updateSyncLabel(ts) { document.getElementById('sync-label').textContent = ts ? fmtTimestamp(ts) : 'Loading...'; }
+function fmtTimestamp(d) { return 'Synced ' + d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }); }
+document.getElementById('sync-label').textContent = fmtTimestamp(new Date());
 
-// ── Priority + relative due ────────────────────────────────────────────────
+// ── State derived from raw ─────────────────────────────────────────────────
+const agentState = {}, notesState = {};
+raw.forEach((r, i) => { agentState[i] = !!r.agentable; notesState[i] = r.notes || ''; });
+
 function getPriority(due) {
   if (due === 'ASAP')      return { label: 'ASAP',      order: 3 };
   if (due === 'Soon')      return { label: 'Soon',      order: 4 };
   if (due === 'This week') return { label: 'This week', order: 5 };
-  if (due === 'TBD' || !due) return { label: 'TBD',     order: 99 };
+  if (due === 'TBD' || !due) return { label: 'TBD', order: 99 };
   const d = new Date(due + 'T12:00:00'); if (isNaN(d)) return { label: 'TBD', order: 99 };
   const diff = Math.floor((d - TODAY) / 86400000);
-  if (diff < 0)   return { label: 'OVERDUE',  order: 1 };
-  if (diff <= 7)  return { label: 'UPCOMING', order: 2 };
+  if (diff < 0)  return { label: 'OVERDUE',  order: 1 };
+  if (diff <= 7) return { label: 'UPCOMING', order: 2 };
   return { label: 'TBD', order: 99 };
 }
 
@@ -610,45 +444,13 @@ function relativeDue(due) {
   return { text: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), cls: '', actual };
 }
 
-// ── Build derived state from raw items ─────────────────────────────────────
-function rebuildItems() {
-  // Clear state objects in place
-  for (const k in agentState) delete agentState[k];
-  for (const k in notesState) delete notesState[k];
+const items = raw.map((r, i) => {
+  const p = getPriority(r.due);
+  return { ...r, id: i, priority: p.label, order: p.order };
+}).sort((a, b) => a.order - b.order || a.subject.localeCompare(b.subject));
 
-  items = activeItems.map((r, i) => {
-    const p = getPriority(r.due);
-    return {
-      id: i,
-      date: r.date,
-      from: r.from,
-      subject: r.subject,
-      details: r.actionNeeded,
-      due: r.due,
-      agentable: r.agent === 'Y' || r.agent === 'y',
-      notes: r.notes,
-      priority: p.label,
-      order: p.order
-    };
-  }).sort((a, b) => a.order - b.order || a.subject.localeCompare(b.subject));
-
-  items.forEach(it => {
-    agentState[it.id] = it.agentable;
-    notesState[it.id] = it.notes;
-  });
-
-  // Recently completed: items completed in the last 30 days
-  const thirtyDaysAgo = new Date(TODAY.getTime() - 30 * 86400000);
-  recentlyCompleted = completedItems.filter(c => {
-    const d = new Date((c.completed || '') + 'T12:00:00');
-    return !isNaN(d) && d >= thirtyDaysAgo;
-  }).length;
-}
-
-// ── Render: stats ──────────────────────────────────────────────────────────
 function renderStats() {
-  const counts = {};
-  items.forEach(it => { counts[it.priority] = (counts[it.priority] || 0) + 1; });
+  const counts = {}; items.forEach(it => { counts[it.priority] = (counts[it.priority] || 0) + 1; });
   const agentCount = Object.values(agentState).filter(Boolean).length;
   const el = document.getElementById('stats'); el.innerHTML = '';
   [
@@ -662,10 +464,10 @@ function renderStats() {
     el.appendChild(div);
   });
 }
+renderStats();
 
 const badgeCls = { OVERDUE: 'b-overdue', UPCOMING: 'b-upcoming', ASAP: 'b-asap', Soon: 'b-soon', 'This week': 'b-thisweek', TBD: 'b-tbd' };
 
-// ── Popovers ───────────────────────────────────────────────────────────────
 function closeAllPopovers() { document.querySelectorAll('.due-popover.open').forEach(p => p.classList.remove('open')); }
 document.addEventListener('click', e => { if (!e.target.closest('.due-cell-wrap')) closeAllPopovers(); });
 
@@ -674,9 +476,8 @@ function makeDuePopover(item, container) {
   pop.innerHTML = `<div class="pop-label">Quick select</div><div class="pop-presets">${['ASAP','Soon','This week','TBD'].map(p => `<button class="pop-preset" data-val="${p}">${p}</button>`).join('')}</div><div class="pop-label">Pick a date</div><input type="date" class="pop-date-input"><div class="pop-label" style="margin-top:10px">Custom text</div><div class="pop-custom-row"><input class="pop-custom-input" placeholder="e.g. When [name] starts"><button class="pop-set-btn">Set</button></div>`;
   function applyDue(val) {
     closeAllPopovers();
-    submitMutation({ type: 'set-due', subject: item.subject, value: val }, `Setting due date for "${item.subject}" to "${val}"`, item.id);
-    const rel = relativeDue(val);
-    const disp = container.querySelector('.due-display');
+    sendUpdate(`Setting due date for "${item.subject}" to "${val}"`, `Update action item in inbox/action-items.md — Subject: "${item.subject}" — set Due to "${val}"`, item.id);
+    const rel = relativeDue(val); const disp = container.querySelector('.due-display');
     if (disp) { disp.textContent = rel.text; disp.className = 'due-display ' + (rel.cls || ''); }
     const act = container.querySelector('.due-actual'); if (act) act.textContent = rel.actual;
   }
@@ -726,7 +527,7 @@ function makeNotesArea(item) {
     if (nv !== (notesState[item.id] || '')) {
       notesState[item.id] = nv;
       renderDisplay();
-      submitMutation({ type: 'set-notes', subject: item.subject, value: nv }, `Updating notes on "${item.subject}"`, item.id);
+      sendUpdate(`Updating notes on "${item.subject}"`, `Update notes for action item in inbox/action-items.md — Subject: "${item.subject}" — set Notes to: "${nv}"`, item.id);
     }
     closeEdit();
   }
@@ -753,17 +554,15 @@ function makeAgentToggle(item) {
       const nv = !agentState[item.id]; agentState[item.id] = nv;
       const tr = document.getElementById('row-' + item.id); if (tr) tr.classList.toggle('agent-row', nv);
       render(); renderStats();
-      submitMutation({ type: 'toggle-agent', subject: item.subject, value: nv }, nv ? `Flagging "${item.subject}" as agent-eligible` : `Removing agent flag from "${item.subject}"`, item.id);
+      sendUpdate(nv ? `Flagging "${item.subject}" as agent-eligible` : `Removing agent flag from "${item.subject}"`, `Update action item in inbox/action-items.md — Subject: "${item.subject}" — set Agent to "${nv ? 'Y' : 'N'}"`, item.id);
     });
     wrap.appendChild(chip);
   }
   render(); return wrap;
 }
 
-// ── Render: rows ───────────────────────────────────────────────────────────
 function renderRows(filtered) {
   const tbody = document.getElementById('tbody'), tbl = document.getElementById('tbl'), noRes = document.getElementById('no-results');
-  document.getElementById('loading-overlay').classList.add('hidden');
   tbody.innerHTML = '';
   if (filtered.length === 0) { tbl.classList.add('hidden'); noRes.classList.remove('hidden'); return; }
   tbl.classList.remove('hidden'); noRes.classList.add('hidden');
@@ -782,7 +581,7 @@ function renderRows(filtered) {
     const tdMain = document.createElement('td');
     const subjectRow = document.createElement('div'); subjectRow.className = 'subject-row';
     const subjectEditable = makeEditableCell(item.subject, nv => {
-      submitMutation({ type: 'rename-subject', subject: item.subject, value: nv }, `Renaming "${item.subject}" to "${nv}"`, item.id);
+      sendUpdate(`Renaming "${item.subject}" to "${nv}"`, `Update action item in inbox/action-items.md — old Subject: "${item.subject}" — new Subject: "${nv}"`, item.id);
       item.subject = nv;
     });
     subjectEditable.querySelector('.editable').classList.add('subject-text');
@@ -797,7 +596,7 @@ function renderRows(filtered) {
     confirmStrip.innerHTML = `<span>Mark <strong>"${shortName}"</strong> as complete?</span><button class="btn-yes">Done</button><button class="btn-no">Cancel</button>`;
     confirmStrip.querySelector('.btn-yes').addEventListener('click', () => {
       confirmStrip.classList.remove('show'); tr.classList.add('pending-row');
-      submitMutation({ type: 'mark-complete', subject: item.subject }, `Marking "${item.subject}" as complete`, item.id);
+      sendUpdate(`Marking "${item.subject}" as complete`, `Mark as complete in inbox/action-items.md — Subject: "${item.subject}"`, item.id);
     });
     confirmStrip.querySelector('.btn-no').addEventListener('click', () => { confirmStrip.classList.remove('show'); cb.checked = false; });
 
@@ -808,7 +607,7 @@ function renderRows(filtered) {
 
     const tdFrom = document.createElement('td'); tdFrom.style.width = '140px';
     tdFrom.appendChild(makeEditableCell(item.from, nv => {
-      submitMutation({ type: 'set-from', subject: item.subject, value: nv }, `Changing "From" on "${item.subject}" to "${nv}"`, item.id);
+      sendUpdate(`Changing "From" on "${item.subject}" to "${nv}"`, `Update action item in inbox/action-items.md — Subject: "${item.subject}" — set From to "${nv}"`, item.id);
     }));
 
     const tdDue = document.createElement('td'); tdDue.style.cssText = 'width:108px;position:relative';
@@ -828,7 +627,7 @@ function renderRows(filtered) {
     const arcBtn = document.createElement('button'); arcBtn.className = 'archive-btn'; arcBtn.textContent = 'Archive';
     arcBtn.addEventListener('click', () => {
       tr.classList.add('pending-row');
-      submitMutation({ type: 'archive', subject: item.subject }, `Archiving "${item.subject}"`, item.id);
+      sendUpdate(`Archiving "${item.subject}"`, `Archive action item in inbox/action-items.md — Subject: "${item.subject}"`, item.id);
     });
     tdArc.appendChild(arcBtn);
 
@@ -837,125 +636,7 @@ function renderRows(filtered) {
     tbody.appendChild(tr);
   });
 
-  document.getElementById('showing').textContent = `Showing ${filtered.length} of ${items.length} items  ·  ${recentlyCompleted} completed in the last 30 days`;
-}
-
-// ── Filters ────────────────────────────────────────────────────────────────
-function applyFilters() {
-  let f = items;
-  if (activeFilter === 'agent') f = f.filter(it => agentState[it.id]);
-  else if (activeFilter !== 'all') f = f.filter(it => it.priority === activeFilter);
-  if (searchQuery) {
-    const q = searchQuery.toLowerCase();
-    f = f.filter(it => it.subject.toLowerCase().includes(q) || it.from.toLowerCase().includes(q) || it.details.toLowerCase().includes(q) || (notesState[it.id] || '').toLowerCase().includes(q));
-  }
-  renderRows(f);
-}
-
-document.querySelectorAll('.pill').forEach(pill => {
-  pill.addEventListener('click', () => {
-    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
-    pill.classList.add('active'); activeFilter = pill.dataset.filter; applyFilters();
-  });
-});
-document.getElementById('search').addEventListener('input', e => { searchQuery = e.target.value; applyFilters(); });
-
-// ── Mutations: apply locally, then persist to file ─────────────────────────
-function applyMutationToState(op) {
-  const findActive = subj => activeItems.find(it => it.subject === subj);
-  const findActiveIdx = subj => activeItems.findIndex(it => it.subject === subj);
-
-  switch (op.type) {
-    case 'set-due': {
-      const it = findActive(op.subject); if (it) it.due = op.value; break;
-    }
-    case 'set-notes': {
-      const it = findActive(op.subject); if (it) it.notes = op.value; break;
-    }
-    case 'toggle-agent': {
-      const it = findActive(op.subject); if (it) it.agent = op.value ? 'Y' : 'N'; break;
-    }
-    case 'rename-subject': {
-      const it = findActive(op.subject); if (it) it.subject = op.value; break;
-    }
-    case 'set-from': {
-      const it = findActive(op.subject); if (it) it.from = op.value; break;
-    }
-    case 'mark-complete': {
-      const idx = findActiveIdx(op.subject);
-      if (idx >= 0) {
-        const it = activeItems.splice(idx, 1)[0];
-        const today = new Date().toISOString().split('T')[0];
-        completedItems.unshift({
-          date: it.date, from: it.from, subject: it.subject,
-          resolution: it.actionNeeded || '(complete)', completed: today
-        });
-      }
-      break;
-    }
-    case 'archive': {
-      const idx = findActiveIdx(op.subject);
-      if (idx >= 0) {
-        const it = activeItems.splice(idx, 1)[0];
-        const today = new Date().toISOString().split('T')[0];
-        archivedItems.unshift({
-          date: it.date, from: it.from, subject: it.subject,
-          actionNeeded: it.actionNeeded, archived: today
-        });
-      }
-      break;
-    }
-    case 'add-item': {
-      activeItems.unshift({
-        date: op.date, from: op.from, subject: op.subject,
-        actionNeeded: op.actionNeeded || op.subject, due: op.due,
-        agent: op.agent, notes: op.notes
-      });
-      break;
-    }
-  }
-}
-
-let inflight = Promise.resolve();
-function submitMutation(op, description, rowId) {
-  showPending(description, rowId);
-  // Serialize file writes so two rapid clicks don't race
-  inflight = inflight.then(async () => {
-    try {
-      // Re-read file to capture any concurrent agent edits
-      const content = await readFile();
-      const parsed = parseMarkdown(content);
-      preamble = parsed.preamble;
-      activeItems = parsed.active;
-      completedItems = parsed.completed;
-      archivedItems = parsed.archived;
-      // Apply mutation
-      applyMutationToState(op);
-      // Write back
-      await writeFile(serializeMarkdown());
-      // Refresh state and re-render
-      rebuildItems();
-      renderStats();
-      applyFilters();
-      // Clear THIS pending entry
-      const idx = statusEntries.findIndex(e => e.kind === 'pending' && e.description === description);
-      if (idx >= 0) statusEntries.splice(idx, 1);
-      if (rowId != null) { const d = document.getElementById('pendot-' + rowId); if (d) d.classList.remove('show'); }
-      const tr = rowId != null ? document.getElementById('row-' + rowId) : null; if (tr) tr.classList.remove('pending-row');
-      if (statusEntries.filter(e => e.kind === 'pending').length === 0) {
-        document.getElementById('sync-dot').classList.remove('stale');
-        updateSyncLabel(new Date());
-      }
-      renderStatusPanel();
-    } catch (err) {
-      const idx = statusEntries.findIndex(e => e.kind === 'pending' && e.description === description);
-      if (idx >= 0) statusEntries.splice(idx, 1);
-      showError(`${description} failed: ${err.message || err}`);
-      if (rowId != null) { const d = document.getElementById('pendot-' + rowId); if (d) d.classList.remove('show'); }
-      const tr = rowId != null ? document.getElementById('row-' + rowId) : null; if (tr) tr.classList.remove('pending-row');
-    }
-  });
-  return inflight;
+  document.getElementById('showing').textContent = `Showing ${filtered.length} of ${items.length} items  ·  ${RECENTLY_COMPLETED} completed in the last 30 days`;
 }
 
 // ── Quick-add ──────────────────────────────────────────────────────────────
@@ -976,7 +657,7 @@ document.getElementById('qa-add-btn').addEventListener('click', () => {
   const agent = qaAgentOn ? 'Y' : 'N';
   const today = new Date().toISOString().split('T')[0];
 
-  submitMutation({ type: 'add-item', date: today, from, subject, actionNeeded: subject, due, agent, notes }, `Adding new item: "${subject}"`);
+  sendUpdate(`Adding new item: "${subject}"`, `Add new action item to inbox/action-items.md Active table:\n- Date: ${today}\n- From: ${from}\n- Subject: ${subject}\n- Action Needed: ${subject}\n- Due: ${due}\n- Agent: ${agent}\n- Notes: ${notes}`);
 
   document.getElementById('qa-subject').value = '';
   document.getElementById('qa-from').value = 'Self';
@@ -985,36 +666,28 @@ document.getElementById('qa-add-btn').addEventListener('click', () => {
   qaAgentOn = false;
   const tog = document.getElementById('qa-agent-toggle'); tog.classList.remove('on'); tog.querySelector('.qa-agent-text').textContent = 'No';
 });
-
 document.getElementById('qa-subject').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('qa-add-btn').click(); });
 
-// ── Refresh button ─────────────────────────────────────────────────────────
-async function reload() {
-  const btn = document.getElementById('refresh-btn');
-  btn.classList.add('spinning'); btn.disabled = true;
-  clearErrors();
-  try {
-    const content = await readFile();
-    const parsed = parseMarkdown(content);
-    preamble = parsed.preamble;
-    activeItems = parsed.active;
-    completedItems = parsed.completed;
-    archivedItems = parsed.archived;
-    rebuildItems();
-    renderStats();
-    applyFilters();
-    updateSyncLabel(new Date());
-  } catch (err) {
-    showError(`Failed to load action items: ${err.message || err}`);
-  } finally {
-    btn.classList.remove('spinning'); btn.disabled = false;
+// ── Filters ────────────────────────────────────────────────────────────────
+let activeFilter = 'all', searchQuery = '';
+function applyFilters() {
+  let f = items;
+  if (activeFilter === 'agent') f = f.filter(it => agentState[it.id]);
+  else if (activeFilter !== 'all') f = f.filter(it => it.priority === activeFilter);
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    f = f.filter(it => it.subject.toLowerCase().includes(q) || it.from.toLowerCase().includes(q) || it.details.toLowerCase().includes(q) || (notesState[it.id] || '').toLowerCase().includes(q));
   }
+  renderRows(f);
 }
-
-document.getElementById('refresh-btn').addEventListener('click', reload);
-
-// ── Initial load ───────────────────────────────────────────────────────────
-reload();
+document.querySelectorAll('.pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active'); activeFilter = pill.dataset.filter; applyFilters();
+  });
+});
+document.getElementById('search').addEventListener('input', e => { searchQuery = e.target.value; applyFilters(); });
+applyFilters();
 </script>
 </body>
 </html>
