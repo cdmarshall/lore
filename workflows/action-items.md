@@ -48,18 +48,51 @@ Append a new row to the Active table with all 7 columns:
 
 The action items are also available as a live Cowork artifact (id: `action-items`) that renders in the Cowork sidebar. It shows all active items with priority badges, filter pills, search, inline edits, due date picker, agent toggle, notes, quick-add row, and a Refresh button.
 
-**Where it lives:** Cowork's artifact system (not in the lore folder). The canonical HTML template ships at `templates/action-items-artifact.template.html`. It is fully self-contained and self-loading.
+**Where it lives:** Cowork's artifact system (not in the lore folder). The canonical HTML template ships at `templates/action-items-artifact.template.html`.
 
 **Architecture (important for agents):**
-The artifact is autonomous. It reads and writes `inbox/action-items.md` directly using `window.cowork.callMcpTool('mcp__workspace__bash', ...)` with a JS markdown parser/serializer. The agent is **not** in the loop for refresh, mark-complete, due date changes, notes, agent toggle, archive, rename, or add-item. The artifact's Refresh button just re-reads the file; every inline edit re-reads, mutates in memory, and writes the whole file back atomically.
 
-This means:
-- You should NOT respond to prompts like "Refresh the action items artifact" — those used to come from the artifact's old sendPrompt-based architecture, which was broken and is now removed.
-- You can still freely edit `inbox/action-items.md` directly. The artifact will pick up your changes on the next Refresh.
-- If the artifact is somehow lost (manifest cleared, etc.) and the user asks to recreate it, just call `mcp__cowork__create_artifact` with id `action-items`, html_path pointing at `templates/action-items-artifact.template.html`, and `mcp_tools: ["mcp__workspace__bash"]`. No template substitution is needed — the artifact discovers everything it needs at runtime.
+The artifact does **not** read or write the file itself. (Cowork artifacts can't call `mcp__workspace__bash` — it returns HTTP 400 from the artifact context.) Instead, the agent embeds the current data into the HTML at create/update time, and button actions in the artifact send prompts back to chat to trigger updates.
 
-**File path discovery:**
-The artifact finds `inbox/action-items.md` at runtime by globbing `/sessions/*/mnt/lore/inbox/action-items.md`. This works regardless of which Cowork session the user is in, so the artifact survives session restarts.
+The template has three placeholders the agent must substitute every time it creates or refreshes the artifact:
+
+- `__TODAY__` — today's date in `YYYY-MM-DD` format (e.g., `2026-04-29`)
+- `__RECENTLY_COMPLETED__` — count of rows in the Completed table whose Completed date is within the last 30 days (a plain integer like `14`)
+- `__RAW__` — a JSON array of objects, one per row of the Active table, with this shape:
+  ```json
+  [
+    { "from": "...", "subject": "...", "details": "...", "due": "TBD",
+      "agentable": false, "notes": "" }
+  ]
+  ```
+  Field mapping from the markdown columns:
+  - `from` ← From column
+  - `subject` ← Subject column
+  - `details` ← Action Needed column (full text, escape quotes for JSON)
+  - `due` ← Due column (`ASAP` / `Soon` / `This week` / `TBD` / `YYYY-MM-DD` / custom string)
+  - `agentable` ← Agent column: `true` if `Y`, `false` otherwise
+  - `notes` ← Notes column (string, may be empty)
+
+**When to refresh / recreate the artifact:**
+
+Whenever:
+- The user clicks Refresh in the artifact (it sends a prompt: `Refresh the action items artifact with the latest data from inbox/action-items.md`)
+- The user makes an inline edit in the artifact (the artifact sends an instruction prompt like `Update action item in inbox/action-items.md — Subject: "X" — set Due to "ASAP"`)
+- You modify `inbox/action-items.md` for any other reason and the user has the artifact open
+- The user explicitly asks to refresh, recreate, or rebuild the artifact
+
+The procedure:
+
+1. If the user's prompt contains an instruction (e.g., "set Due to ASAP", "Mark as complete", "Archive..."), apply that change to `inbox/action-items.md` first. Use the `Edit` or `Write` tool to update the markdown table. Be careful to preserve the file's table schema: `| Date | From | Subject | Action Needed | Due | Agent | Notes |`.
+2. Read the (now updated) `inbox/action-items.md`.
+3. Read `templates/action-items-artifact.template.html`.
+4. Substitute `__TODAY__`, `__RECENTLY_COMPLETED__`, and `__RAW__` in the template.
+5. Write the substituted HTML to a temporary file.
+6. Call `mcp__cowork__update_artifact` with `id: "action-items"`, `html_path` pointing at your written file, `mcp_tools: []` (the artifact doesn't call any MCP tools), and a brief `update_summary`.
+
+If the artifact doesn't exist yet, use `mcp__cowork__create_artifact` instead with the same arguments.
+
+**Helper script:** `outbox/build-action-items-artifact.js` (if present) automates steps 2-5 with Node. Otherwise the agent does the substitution manually.
 
 ---
 
