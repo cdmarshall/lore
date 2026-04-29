@@ -51,35 +51,38 @@ Tasks that MUST follow workflows — never trigger a skill for these:
 
 ## Folder Structure
 
+> Folders marked **[GITIGNORED]** contain the user's personal data. The folder skeleton is committed (via `.gitkeep`), but the contents are gitignored so the template repo stays clean. **A returning user has real files in these folders.** Always use filesystem tools (`Read`, `Glob`, `ls`, `find`) to list contents — never `git ls-files`, IDE git indexers, or anything else that filters by `.gitignore`. If you see only `.gitkeep` in one of these folders, you're probably looking through a git filter; re-check with the filesystem.
+
 ```
 lore/
-├── CLAUDE.md                  ← You are here (read at session start)
-├── README.md                  ← Human-facing setup guide
-├── context.md                 ← The user's role, team, current priorities (READ FIRST after this file)
+├── CLAUDE.md                  ← You are here (read at session start)                         [committed]
+├── README.md                  ← Human-facing setup guide                                     [committed]
+├── context.md                 ← The user's role, team, current priorities (READ FIRST)       [GITIGNORED]
 │
-├── templates/                 ← Canonical file templates used by onboarding and workflows
+├── templates/                 ← Canonical file templates used by onboarding and workflows    [committed]
 │
 ├── inbox/
-│   ├── action-items.md        ← Tracked action items (active + completed)
-│   └── documents/             ← Drop documents here to process/ingest
+│   ├── action-items.md        ← Tracked action items (active + completed)                    [GITIGNORED]
+│   └── documents/             ← Drop documents here to process/ingest                        [GITIGNORED]
 │
-├── outbox/                    ← Generated outputs: reports, exports, scorecards, CSVs
+├── outbox/                    ← Generated outputs: reports, exports, scorecards, CSVs        [GITIGNORED]
 │
-├── team/                      ← Direct report profiles (one file per direct report)
-├── stakeholders/              ← Stakeholder profiles (one file per stakeholder)
+├── team/                      ← Direct report profiles (one file per direct report)          [GITIGNORED]
+├── stakeholders/              ← Stakeholder profiles (one file per stakeholder)              [GITIGNORED]
+│
 ├── meetings/
-│   ├── notes/                 ← Structured meeting summaries
-│   ├── transcripts/           ← Raw transcripts; .processed tracks what's been processed
-│   └── templates/             ← Pre-meeting prep templates (1:1, decision meeting, weekly planning, weekly review)
+│   ├── notes/                 ← Structured meeting summaries                                 [GITIGNORED]
+│   ├── transcripts/           ← Raw transcripts; .processed tracks what's been processed    [GITIGNORED]
+│   └── templates/             ← Pre-meeting prep templates (1:1, decision, planning, review) [committed]
 │
 ├── decisions/
-│   └── log.md                 ← Log of key decisions with context and rationale
+│   └── log.md                 ← Log of key decisions with context and rationale              [GITIGNORED]
 │
-├── playbooks/                 ← Frameworks for difficult conversations, stakeholder mgmt, feedback, etc.
-├── strategy/                  ← User's strategy docs (vision, roadmap, etc.)
-├── weekly-reviews/            ← Weekly review entries (YYYY-MM-DD.md)
+├── playbooks/                 ← Frameworks for difficult conversations, feedback, etc.       [committed]
+├── strategy/                  ← User's strategy docs (vision, roadmap, etc.)                 [GITIGNORED]
+├── weekly-reviews/            ← Weekly review entries (YYYY-MM-DD.md)                        [GITIGNORED]
 │
-└── workflows/                 ← Workflow definitions — read these when the user asks for a task (see below)
+└── workflows/                 ← Workflow definitions (see workflow table below)              [committed]
 ```
 
 ---
