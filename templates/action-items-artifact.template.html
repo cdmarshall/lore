@@ -181,8 +181,10 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
 
 <!-- Embedded seed data (substituted by the agent at create/update time).
      This is ONLY used to populate IndexedDB on first run. After that, IDB
-     is canonical and the embedded data is ignored. -->
-<script type="application/json" id="seed-data">__SEED__</script>
+     is canonical and the embedded data is ignored. The placeholder string
+     below is intentionally only mentioned in this one place so the build
+     script's global replace can't accidentally hit any other code. -->
+<script type="application/json" id="seed-data">/*__LORE_ACTION_ITEMS_SEED_PLACEHOLDER__*/</script>
 
 <div class="header">
   <div class="header-row">
@@ -413,8 +415,9 @@ async function loadStashedHandle(key) {
 async function seedFromEmbedded() {
   const tag = document.getElementById('seed-data');
   const txt = tag ? tag.textContent.trim() : '';
-  if (!txt || txt === '__SEED__') return false;
-  const seed = JSON.parse(txt);
+  if (!txt) return false;
+  let seed;
+  try { seed = JSON.parse(txt); } catch (_) { return false; } // unsubstituted placeholder
   activeItems    = seed.active    || [];
   completedItems = seed.completed || [];
   archivedItems  = seed.archived  || [];
