@@ -18,12 +18,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .header { background: linear-gradient(135deg, #1a3254 0%, #2a5298 100%); color: white; padding: 18px 24px 16px; }
 .header-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; flex: 1; }
-.sync-wrap { display: flex; align-items: center; gap: 7px; }
-.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; flex-shrink: 0; transition: background 0.3s; }
+.sync-wrap { display: flex; align-items: center; gap: 7px; padding: 3px 9px; background: rgba(255,255,255,0.13); border-radius: 14px; }
+.sync-dot { width: 9px; height: 9px; border-radius: 50%; background: #34d399; flex-shrink: 0; transition: background 0.3s; box-shadow: 0 0 0 2px rgba(255,255,255,0.18); }
 .sync-dot.stale { background: #fbbf24; }
 .sync-dot.error { background: #ef4444; }
 .sync-dot.local { background: #60a5fa; }
-.sync-label { font-size: 11px; opacity: 0.75; white-space: nowrap; }
+.sync-label { font-size: 11.5px; font-weight: 500; opacity: 0.95; white-space: nowrap; }
 
 .header-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.12); color: white; font-size: 12px; cursor: pointer; font-weight: 500; transition: background 0.15s; }
 .header-btn:hover { background: rgba(255,255,255,0.22); }
@@ -194,8 +194,8 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
       <span class="sync-label" id="sync-label">Loading...</span>
     </div>
     <div class="menu-row">
-      <button class="header-btn" id="backup-btn" title="Set up an auto-saved markdown backup file">Backup file: off</button>
-      <button class="header-btn" id="export-btn" title="Download the current items as a markdown file">Export</button>
+      <button class="header-btn" id="backup-btn" title="Pick a markdown file once; every edit auto-writes to it silently from then on">Auto-save: off</button>
+      <button class="header-btn" id="export-btn" title="Download a one-time snapshot of the current items as a .md file">Download snapshot</button>
     </div>
   </div>
   <div class="stats" id="stats"></div>
@@ -275,7 +275,7 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
 
 <div class="footer">
   <span id="showing"></span>
-  <span class="tip" id="footer-tip">Click any cell to edit · Stored locally in this artifact</span>
+  <span class="tip" id="footer-tip">Click any cell to edit · <strong>Auto-save</strong> writes every change to a markdown file · <strong>Download snapshot</strong> exports a one-time copy</span>
 </div>
 
 <script>
@@ -484,7 +484,7 @@ async function setupBackupFile() {
     }
     backupHandle = handle;
     await stashHandle('backup-handle', handle);
-    document.getElementById('backup-btn').textContent = 'Backup file: on';
+    document.getElementById('backup-btn').textContent = 'Auto-save: on';
     showToast('info', 'Backup file connected. Every change will save to it automatically.', null, null, 4000);
   } catch (e) {
     if (e.name === 'AbortError') return;
@@ -501,9 +501,9 @@ async function tryRestoreBackupHandle() {
     const perm = await stored.queryPermission({ mode: 'readwrite' });
     if (perm === 'granted') {
       backupHandle = stored;
-      document.getElementById('backup-btn').textContent = 'Backup file: on';
+      document.getElementById('backup-btn').textContent = 'Auto-save: on';
     } else {
-      document.getElementById('backup-btn').textContent = 'Backup file: reconnect';
+      document.getElementById('backup-btn').textContent = 'Auto-save: reconnect';
     }
   } catch (_) { /* nothing stored */ }
 }
@@ -517,9 +517,9 @@ async function writeBackup() {
     await w.close();
   } catch (e) {
     // Don't block the UI; just tell the user backup failed once.
-    showToast('warn', `Backup write failed: ${e.message}. Click "Backup file" to reconnect.`, 'Reconnect', setupBackupFile);
+    showToast('warn', `Auto-save write failed: ${e.message}. Click "Auto-save" to reconnect.`, 'Reconnect', setupBackupFile);
     backupHandle = null;
-    document.getElementById('backup-btn').textContent = 'Backup file: off';
+    document.getElementById('backup-btn').textContent = 'Auto-save: off';
   }
 }
 

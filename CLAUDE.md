@@ -51,7 +51,7 @@ Tasks that MUST follow workflows — never trigger a skill for these:
 
 ## Folder Structure
 
-> Folders marked **[GITIGNORED]** contain the user's personal data. The folder skeleton is committed (via `.gitkeep`), but the contents are gitignored so the template repo stays clean. **A returning user has real files in these folders.** Always use filesystem tools (`Read`, `Glob`, `ls`, `find`) to list contents — never `git ls-files`, IDE git indexers, or anything else that filters by `.gitignore`. If you see only `.gitkeep` in one of these folders, you're probably looking through a git filter; re-check with the filesystem.
+> Folders marked **[GITIGNORED]** contain the user's personal data. The folder skeleton is committed (via `.gitkeep`), but the contents are gitignored so the template repo stays clean. **A returning user has real files in these folders.** To list contents of gitignored folders, always use `bash ls` or `bash find` — **never** `git ls-files`, IDE git indexers, or any other tool that filters by `.gitignore`. If a listing returns empty or only `.gitkeep`, you are almost certainly seeing a gitignore-filtered result; re-check with `bash ls` before concluding the folder is empty.
 
 ```
 lore/
@@ -109,7 +109,11 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 - **The user = "you"** in all files. When transcripts mention the user's name, that's the user — don't create observations about them.
 - **Inbox -> Outbox flow**: Documents dropped in `inbox/documents/` get processed and outputs go to `outbox/` (reports, CSVs, exports) or their respective folders (team, stakeholders, meetings).
 - **Relative paths**: All file references in workflow docs are relative to this workspace root (`lore/`).
-- **Personal folders are gitignored, NOT empty.** `team/`, `stakeholders/`, `meetings/notes/`, `meetings/transcripts/`, `decisions/`, `weekly-reviews/`, `inbox/`, `outbox/`, `strategy/`, and `context.md` are all gitignored so the template repo stays clean. **A returning user has real files in these folders.** Always list folder contents using actual filesystem tools (Read, Glob, `ls`, `find`), not git-aware tools (`git ls-files`, IDE git indexers). If a folder appears to contain only `.gitkeep`, you may be looking through a git filter — re-check with `ls` before concluding the folder is empty.
+- **Personal folders are gitignored, NOT empty.** `team/`, `stakeholders/`, `meetings/notes/`, `meetings/transcripts/`, `decisions/`, `weekly-reviews/`, `inbox/`, `outbox/`, `strategy/`, and `context.md` are all gitignored so the template repo stays clean. **A returning user has real files in these folders.** Always list folder contents using `bash ls` or `bash find` — **never use `Glob`** for gitignored folders, as it silently returns nothing for these directories, making a full folder appear empty. If a listing returns empty or only `.gitkeep`, assume you are seeing a gitignore-filtered result and re-check with `bash ls` before concluding the folder is empty. Discovered the hard way: using `Glob` on `stakeholders/` returned zero results, causing an existing stakeholder file to be overwritten rather than appended to.
+- **Before writing any file in a gitignored folder, run a two-step existence check:**
+  1. `bash ls [target file path]` — direct existence check
+  2. `bash ls [parent folder]` — list the folder to catch any name variations or near-matches
+  If either check shows the file exists (or something close to it), **stop and read the file first**, then append or update rather than overwrite. Never write to a gitignored path without completing both checks. This is a hard rule with no exceptions.
 - **Templates**: When generating new files (team profiles, stakeholder profiles, meeting notes, decision entries, weekly reviews, action items), copy from the canonical template in `templates/` and fill it in. Don't invent new structures.
 - **Jira/Confluence and other tools**: When using an MCP connector, only use the projects/spaces listed in `context.md`.
 - **OOO calendar events**: If the user has documented shared team-OOO calendars in `context.md` (in Notes for Lore or Working Style), treat events with only those calendars as attendees as OOO markers, not real meetings. No prep needed.

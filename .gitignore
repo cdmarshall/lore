@@ -35,12 +35,17 @@
 # --- Strategy docs (user-specific) ---
 /strategy/*.md
 
-# --- Personal artifacts ---
+# --- Personal artifacts (binary docs, almost always personal) ---
 *.xlsx
 *.xls
+*.xlsm
 *.docx
+*.doc
+*.pptx
+*.ppt
 *.pdf
 *.csv
+*.tsv
 .~lock*
 
 # --- Secrets ---
