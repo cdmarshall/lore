@@ -3,7 +3,7 @@
 {
   "name": "Action Items",
   "schemaVersion": 1,
-  "description": "Live action items tracker. Data is embedded at artifact create/update time. Buttons either send a prompt to chat (sendPrompt) or, if that's unavailable, surface a copy-pasteable command for the user to send themselves."
+  "description": "Live action items tracker. Reads and writes inbox/action-items.md directly via the browser File System Access API after a one-time permission grant. Falls back to a copy-paste modal if the API is unavailable."
 }
 </script>
 <html>
@@ -21,12 +21,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .sync-wrap { display: flex; align-items: center; gap: 7px; }
 .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; flex-shrink: 0; transition: background 0.3s; }
 .sync-dot.stale { background: #fbbf24; }
+.sync-dot.error { background: #ef4444; }
+.sync-dot.disconnected { background: #94a3b8; }
 .sync-label { font-size: 11px; opacity: 0.75; white-space: nowrap; }
 .refresh-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.12); color: white; font-size: 12px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
-.refresh-btn:hover { background: rgba(255,255,255,0.22); }
+.refresh-btn:hover:not(:disabled) { background: rgba(255,255,255,0.22); }
+.refresh-btn:disabled { cursor: default; opacity: 0.7; }
+.refresh-btn .btn-spinner { display: none; }
+.refresh-btn.spinning .btn-spinner { display: inline-block; }
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .spinner { display: inline-block; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.65s linear infinite; flex-shrink: 0; }
+.spinner-sm { width: 10px; height: 10px; border-width: 1.5px; }
 .spinner-xs { width: 8px; height: 8px; border-width: 1.5px; }
 
 .stats { display: flex; gap: 10px; }
@@ -37,40 +43,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .stat-n { font-size: 20px; font-weight: 700; line-height: 1.15; }
 .stat-l { font-size: 10px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* Pending panel */
-.pending-panel { background: #fffbeb; border-bottom: 1.5px solid #fcd34d; overflow: hidden; transition: max-height 0.25s ease; max-height: 0; }
-.pending-panel.visible { max-height: 400px; }
-.pending-header { display: flex; align-items: center; gap: 9px; padding: 9px 24px; cursor: pointer; user-select: none; border-bottom: 1px solid transparent; }
-.pending-panel.expanded .pending-header { border-color: #fde68a; }
-.pending-header-text { font-size: 12.5px; font-weight: 600; color: #92400e; flex: 1; }
-.pending-chevron { font-size: 10px; color: #b45309; transition: transform 0.2s; }
-.pending-panel.expanded .pending-chevron { transform: rotate(180deg); }
-.pending-list { padding: 0 24px 10px; display: none; }
-.pending-panel.expanded .pending-list { display: block; }
-.pending-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; border-bottom: 1px solid #fef3c7; font-size: 12px; color: #78350f; }
-.pending-item:last-child { border-bottom: none; }
-.pending-item-desc { flex: 1; line-height: 1.4; }
-.pending-item-time { font-size: 10.5px; color: #b45309; white-space: nowrap; margin-top: 1px; }
-
-.row-pending-dot { display: none; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid #f59e0b; border-top-color: transparent; animation: spin 0.65s linear infinite; margin-left: 6px; vertical-align: middle; flex-shrink: 0; }
-.row-pending-dot.show { display: inline-block; }
-
-/* Modal: copy-pasteable prompt fallback */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none; align-items: center; justify-content: center; z-index: 500; padding: 20px; }
-.modal-backdrop.show { display: flex; }
-.modal { background: white; border-radius: 12px; width: 100%; max-width: 540px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); overflow: hidden; }
-.modal-header { padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
-.modal-title { font-size: 14px; font-weight: 600; color: #1e293b; }
-.modal-close { background: none; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: #64748b; padding: 0 4px; }
-.modal-body { padding: 16px 20px; }
-.modal-instructions { font-size: 12.5px; color: #475569; line-height: 1.5; margin-bottom: 12px; }
-.modal-prompt { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 14px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12.5px; color: #0f172a; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
-.modal-actions { padding: 12px 20px 16px; display: flex; gap: 8px; justify-content: flex-end; }
-.modal-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12.5px; cursor: pointer; font-weight: 500; background: white; color: #475569; }
-.modal-btn:hover { background: #f8fafc; }
-.modal-btn.primary { background: #1a3254; color: white; border-color: #1a3254; }
-.modal-btn.primary:hover { background: #2a5298; }
-.modal-btn.copied { background: #059669; color: white; border-color: #059669; }
+/* Status / connect banner */
+.banner { padding: 12px 24px; display: none; align-items: center; gap: 12px; font-size: 13px; }
+.banner.show { display: flex; }
+.banner.connect { background: #eff6ff; border-bottom: 1.5px solid #93c5fd; color: #1e3a8a; }
+.banner.error   { background: #fef2f2; border-bottom: 1.5px solid #fca5a5; color: #7f1d1d; }
+.banner.info    { background: #fffbeb; border-bottom: 1.5px solid #fcd34d; color: #78350f; }
+.banner-text { flex: 1; line-height: 1.45; }
+.banner .btn-action { padding: 5px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 12.5px; font-weight: 600; }
+.banner.connect .btn-action { background: #1d4ed8; color: white; }
+.banner.connect .btn-action:hover { background: #1e40af; }
+.banner.error .btn-action   { background: #b91c1c; color: white; }
+.banner.error .btn-action:hover { background: #991b1b; }
 
 /* Controls */
 .controls { background: white; border-bottom: 1px solid #e9ecef; padding: 11px 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
@@ -82,6 +66,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .search-wrap input { padding: 6px 14px; border: 1.5px solid #dee2e6; border-radius: 20px; font-size: 13px; outline: none; width: 200px; transition: border-color 0.15s; color: #1a1a2e; }
 .search-wrap input:focus { border-color: #2a5298; }
 .search-wrap input::placeholder { color: #adb5bd; }
+
+/* Loading */
+.loading-overlay { padding: 64px 24px; text-align: center; color: #6b7280; font-size: 13px; }
+.loading-overlay .spinner { width: 22px; height: 22px; border-width: 2.5px; color: #2a5298; margin-bottom: 14px; }
 
 /* Table */
 .table-outer { padding: 16px 24px 4px; }
@@ -95,6 +83,9 @@ tbody tr:hover td { background: #fafbfc; }
 tbody tr:hover .archive-btn { opacity: 1; }
 tbody tr.agent-row td { background: #f0fdf4; }
 tbody tr.agent-row:hover td { background: #dcfce7; }
+
+.row-pending-dot { display: none; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid #f59e0b; border-top-color: transparent; animation: spin 0.65s linear infinite; margin-left: 6px; vertical-align: middle; flex-shrink: 0; }
+.row-pending-dot.show { display: inline-block; }
 
 /* Badges */
 .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
@@ -166,17 +157,9 @@ tr.pending-row td { opacity: 0.35; pointer-events: none; }
 tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
 
 .quick-add-outer { padding: 12px 24px 20px; }
-.quick-add-box {
-  background: white; border-radius: 10px; border: 2px dashed #c7d2fe;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05); overflow: hidden;
-  transition: border-color 0.15s;
-}
+.quick-add-box { background: white; border-radius: 10px; border: 2px dashed #c7d2fe; box-shadow: 0 1px 4px rgba(0,0,0,0.05); overflow: hidden; transition: border-color 0.15s; }
 .quick-add-box:focus-within { border-color: #2a5298; }
-.quick-add-header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 14px 0; font-size: 11.5px; font-weight: 600; color: #6b7280;
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
+.quick-add-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0; font-size: 11.5px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
 .quick-add-plus { font-size: 16px; color: #2a5298; line-height: 1; }
 .quick-add-fields { display: flex; gap: 10px; padding: 10px 14px; flex-wrap: wrap; align-items: flex-end; }
 .qa-field { display: flex; flex-direction: column; gap: 4px; }
@@ -209,23 +192,23 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
   <div class="header-row">
     <h1>Action Items</h1>
     <div class="sync-wrap">
-      <div class="sync-dot" id="sync-dot"></div>
-      <span class="sync-label" id="sync-label"></span>
+      <div class="sync-dot disconnected" id="sync-dot"></div>
+      <span class="sync-label" id="sync-label">Not connected</span>
     </div>
-    <button class="refresh-btn" id="refresh-btn">
+    <button class="refresh-btn" id="refresh-btn" disabled>
+      <span class="spinner spinner-sm btn-spinner" style="color:white"></span>
       <span class="btn-label">Refresh</span>
     </button>
   </div>
   <div class="stats" id="stats"></div>
 </div>
 
-<div class="pending-panel" id="pending-panel">
-  <div class="pending-header" id="pending-header">
-    <span class="spinner spinner-xs" style="color:#b45309"></span>
-    <span class="pending-header-text" id="pending-header-text"></span>
-    <span class="pending-chevron">▼</span>
-  </div>
-  <div class="pending-list" id="pending-list"></div>
+<!-- Connect banner: prompts user to grant file access -->
+<div class="banner connect show" id="banner">
+  <span class="banner-text" id="banner-text">
+    Connect to your <code>action-items.md</code> file to enable live editing. You'll only need to grant access once per session.
+  </span>
+  <button class="btn-action" id="banner-action">Connect file</button>
 </div>
 
 <div class="controls">
@@ -244,8 +227,12 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
   </div>
 </div>
 
-<div class="table-outer">
-  <table id="tbl">
+<div class="table-outer" id="table-outer">
+  <div class="loading-overlay" id="loading-overlay">
+    <span class="spinner"></span>
+    <div id="loading-text">Connect a file to load action items</div>
+  </div>
+  <table id="tbl" class="hidden">
     <thead>
       <tr>
         <th style="width:30px"></th>
@@ -296,127 +283,230 @@ tr.pending-row td:first-child { opacity: 1; pointer-events: auto; }
 
 <div class="footer">
   <span id="showing"></span>
-  <span class="tip">Click any cell to edit · Changes go through chat to update inbox/action-items.md</span>
-</div>
-
-<!-- Copy-prompt fallback modal (used when sendPrompt isn't available) -->
-<div class="modal-backdrop" id="modal-backdrop">
-  <div class="modal" id="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-title">Send to chat</span>
-      <button class="modal-close" id="modal-close">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="modal-instructions">Copy this prompt and paste it into the Cowork chat. Lore will update <code>inbox/action-items.md</code> and refresh this artifact.</div>
-      <div class="modal-prompt" id="modal-prompt"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="modal-btn" id="modal-cancel">Cancel</button>
-      <button class="modal-btn primary" id="modal-copy">Copy prompt</button>
-    </div>
-  </div>
+  <span class="tip" id="footer-tip">Click any cell to edit · Changes saved directly to action-items.md</span>
 </div>
 
 <script>
 // ─────────────────────────────────────────────────────────────────────────────
-// Action Items Artifact (data-embedded)
-// The agent reads inbox/action-items.md and substitutes the data into this HTML
-// at create/update time. The artifact itself does not call any MCP tools — when
-// the user clicks a button, we either call sendPrompt() if available, or show a
-// modal with a copy-pasteable prompt the user can send themselves.
+// Action Items Artifact
+// Reads/writes action-items.md directly via the File System Access API.
+// On first use, the user picks the file via a one-time picker. The handle is
+// persisted in IndexedDB so future loads only need a permission check.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── DATA (substituted by the agent at create/update time) ─────────────────
-// SUBSTITUTE: today's date as YYYY-MM-DD
-const TODAY = new Date('__TODAY__T12:00:00');
-// SUBSTITUTE: count of rows in the Completed table over the last 30 days
-const RECENTLY_COMPLETED = __RECENTLY_COMPLETED__;
-// SUBSTITUTE: array of active items, one object per row of the Active table.
-//   Field mapping: from = From, subject = Subject, details = Action Needed,
-//   due = Due, agentable = (Agent === "Y"), notes = Notes
-const raw = __RAW__;
+const TODAY = (() => { const d = new Date(); d.setHours(12,0,0,0); return d; })();
 
-// ── Action prompt helpers ──────────────────────────────────────────────────
-function trySendPrompt(prompt) {
-  // Cowork artifacts may or may not expose a global sendPrompt(). Try it
-  // safely; if it doesn't exist or throws, fall back to the copy-prompt modal.
+// State
+let fileHandle = null;
+let preamble = '';
+let activeItems = [], completedItems = [], archivedItems = [];
+let items = [];
+let recentlyCompleted = 0;
+const agentState = {}, notesState = {};
+let activeFilter = 'all', searchQuery = '';
+
+// ── IndexedDB: persist FileSystemFileHandle across loads ───────────────────
+const IDB_DB = 'lore-action-items';
+const IDB_STORE = 'handles';
+function openIdb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSet(key, value) {
+  const db = await openIdb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGet(key) {
+  const db = await openIdb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbDel(key) {
+  const db = await openIdb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// ── Banner / status helpers ────────────────────────────────────────────────
+function setBanner(kind, text, actionLabel, onAction) {
+  const b = document.getElementById('banner');
+  const t = document.getElementById('banner-text');
+  const a = document.getElementById('banner-action');
+  b.className = 'banner show ' + kind;
+  t.innerHTML = text;
+  if (actionLabel) {
+    a.textContent = actionLabel;
+    a.style.display = '';
+    a.onclick = onAction || null;
+  } else {
+    a.style.display = 'none';
+  }
+}
+function hideBanner() { document.getElementById('banner').classList.remove('show'); }
+function setSyncDot(state, label) {
+  const dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot ' + state;
+  document.getElementById('sync-label').textContent = label;
+}
+function setLoadingText(text) {
+  const overlay = document.getElementById('loading-overlay');
+  document.getElementById('loading-text').textContent = text;
+  overlay.classList.remove('hidden');
+  document.getElementById('tbl').classList.add('hidden');
+  document.getElementById('no-results').classList.add('hidden');
+}
+
+// ── File System Access API ─────────────────────────────────────────────────
+function fsaSupported() {
+  return typeof window.showOpenFilePicker === 'function';
+}
+
+async function pickFile() {
+  if (!fsaSupported()) {
+    setBanner('error', 'This browser doesn\'t support the File System Access API. Update Chrome/Edge or open this artifact in a context that supports it.', null);
+    return false;
+  }
   try {
-    if (typeof sendPrompt === 'function') {
-      sendPrompt(prompt);
-      return true;
-    }
-  } catch (e) { /* fall through */ }
-  showCopyModal(prompt);
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }],
+      multiple: false,
+      excludeAcceptAllOption: false
+    });
+    fileHandle = handle;
+    await idbSet('action-items-handle', handle);
+    return true;
+  } catch (e) {
+    if (e.name === 'AbortError') return false;
+    setBanner('error', `Picker failed: ${e.message}`, 'Try again', () => pickFile().then(ok => ok && reload()));
+    return false;
+  }
+}
+
+async function ensurePermission(handle, mode = 'readwrite') {
+  if (!handle || !handle.queryPermission) return false;
+  const opts = { mode };
+  if ((await handle.queryPermission(opts)) === 'granted') return true;
+  if ((await handle.requestPermission(opts)) === 'granted') return true;
   return false;
 }
 
-function showCopyModal(prompt, title) {
-  document.getElementById('modal-title').textContent = title || 'Send to chat';
-  document.getElementById('modal-prompt').textContent = prompt;
-  document.getElementById('modal-copy').textContent = 'Copy prompt';
-  document.getElementById('modal-copy').classList.remove('copied');
-  document.getElementById('modal-backdrop').classList.add('show');
-  document.getElementById('modal-copy').onclick = async () => {
-    try { await navigator.clipboard.writeText(prompt); }
-    catch (e) {
-      // Fallback: select the prompt text so user can copy manually
-      const el = document.getElementById('modal-prompt');
-      const range = document.createRange(); range.selectNode(el);
-      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+async function tryRestoreHandle() {
+  try {
+    const stored = await idbGet('action-items-handle');
+    if (!stored) return null;
+    return stored;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function readFile() {
+  if (!fileHandle) throw new Error('No file connected');
+  const file = await fileHandle.getFile();
+  return await file.text();
+}
+
+async function writeFile(content) {
+  if (!fileHandle) throw new Error('No file connected');
+  const writable = await fileHandle.createWritable();
+  await writable.write(content);
+  await writable.close();
+}
+
+// ── Markdown parser/serializer ─────────────────────────────────────────────
+function parseMarkdown(content) {
+  const lines = content.split('\n');
+  const preambleLines = [];
+  const active = [], completed = [], archived = [];
+  let section = 'preamble';
+  let inTable = false;
+
+  for (const line of lines) {
+    const m = line.match(/^##\s+(\w+)/);
+    if (m) {
+      const name = m[1].toLowerCase();
+      if (name === 'active')   { section = 'active';   inTable = false; continue; }
+      if (name === 'completed'){ section = 'completed'; inTable = false; continue; }
+      if (name === 'archived') { section = 'archived'; inTable = false; continue; }
+      section = 'other'; inTable = false;
+      continue;
     }
-    const btn = document.getElementById('modal-copy');
-    btn.textContent = 'Copied ✓'; btn.classList.add('copied');
-  };
-}
-function hideCopyModal() { document.getElementById('modal-backdrop').classList.remove('show'); }
-document.getElementById('modal-close').addEventListener('click', hideCopyModal);
-document.getElementById('modal-cancel').addEventListener('click', hideCopyModal);
-document.getElementById('modal-backdrop').addEventListener('click', e => { if (e.target.id === 'modal-backdrop') hideCopyModal(); });
+    if (section === 'preamble') { preambleLines.push(line); continue; }
+    if (!line.startsWith('|')) { inTable = false; continue; }
+    const inner = line.replace(/^\|/, '').replace(/\|\s*$/, '');
+    const cells = inner.split('|').map(c => c.trim());
+    if (cells.every(c => /^[:-\s]+$/.test(c) && c.length > 0)) { inTable = true; continue; }
+    if (!inTable) { inTable = true; continue; }
+    if (cells.every(c => c === '')) continue;
 
-// ── Pending tracker ────────────────────────────────────────────────────────
-const pending = [];
-let panelExpanded = true;
-function addPending(description, rowId) {
-  pending.push({ description, rowId, time: new Date() });
-  document.getElementById('sync-dot').classList.add('stale');
-  if (rowId != null) { const d = document.getElementById('pendot-' + rowId); if (d) d.classList.add('show'); }
-  renderPendingPanel();
-}
-function renderPendingPanel() {
-  const panel = document.getElementById('pending-panel'), list = document.getElementById('pending-list'), hdr = document.getElementById('pending-header-text');
-  if (pending.length === 0) { panel.classList.remove('visible', 'expanded'); return; }
-  panel.classList.add('visible'); if (panelExpanded) panel.classList.add('expanded');
-  hdr.textContent = `${pending.length} update${pending.length > 1 ? 's' : ''} sent — Lore is processing`;
-  list.innerHTML = '';
-  pending.forEach(e => {
-    const row = document.createElement('div'); row.className = 'pending-item';
-    const t = e.time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
-    row.innerHTML = `<span class="spinner spinner-xs" style="color:#b45309;margin-top:2px"></span><span class="pending-item-desc">${e.description}</span><span class="pending-item-time">${t}</span>`;
-    list.appendChild(row);
-  });
-}
-document.getElementById('pending-header').addEventListener('click', () => {
-  panelExpanded = !panelExpanded;
-  document.getElementById('pending-panel').classList.toggle('expanded', panelExpanded);
-});
+    if (section === 'active' && cells.length >= 4) {
+      active.push({
+        date: cells[0] || '', from: cells[1] || '', subject: cells[2] || '',
+        actionNeeded: cells[3] || '', due: cells[4] || 'TBD',
+        agent: cells[5] || '', notes: cells[6] || ''
+      });
+    } else if (section === 'completed' && cells.length >= 3) {
+      completed.push({
+        date: cells[0] || '', from: cells[1] || '', subject: cells[2] || '',
+        resolution: cells[3] || '', completed: cells[4] || ''
+      });
+    } else if (section === 'archived' && cells.length >= 3) {
+      archived.push({
+        date: cells[0] || '', from: cells[1] || '', subject: cells[2] || '',
+        actionNeeded: cells[3] || '', archived: cells[4] || ''
+      });
+    }
+  }
 
-function sendUpdate(description, prompt, rowId) {
-  addPending(description, rowId);
-  trySendPrompt(prompt);
+  while (preambleLines.length && preambleLines[preambleLines.length - 1].trim() === '') preambleLines.pop();
+  return { preamble: preambleLines.join('\n'), active, completed, archived };
 }
 
-// ── Refresh ────────────────────────────────────────────────────────────────
-document.getElementById('refresh-btn').addEventListener('click', () => {
-  trySendPrompt('Refresh the action items artifact with the latest data from inbox/action-items.md');
-});
+function serializeMarkdown() {
+  let out = preamble ? preamble + '\n\n' : '# Action Items\n\n';
+  out += '## Active\n\n| Date | From | Subject | Action Needed | Due | Agent | Notes |\n|------|------|---------|---------------|-----|-------|-------|\n';
+  for (const it of activeItems) out += `| ${it.date} | ${it.from} | ${it.subject} | ${it.actionNeeded} | ${it.due} | ${it.agent} | ${it.notes} |\n`;
+  out += '\n## Completed\n\n| Date | From | Subject | Resolution | Completed |\n|------|------|---------|------------|-----------|\n';
+  for (const it of completedItems) out += `| ${it.date} | ${it.from} | ${it.subject} | ${it.resolution} | ${it.completed} |\n`;
+  out += '\n## Archived\n\n| Date | From | Subject | Action Needed | Archived |\n|------|------|---------|---------------|----------|\n';
+  for (const it of archivedItems) out += `| ${it.date} | ${it.from} | ${it.subject} | ${it.actionNeeded} | ${it.archived} |\n`;
+  out += '\n';
+  return out;
+}
 
-// ── Sync label ─────────────────────────────────────────────────────────────
-function fmtTimestamp(d) { return 'Synced ' + d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }); }
-document.getElementById('sync-label').textContent = fmtTimestamp(new Date());
+// ── Derive items array for rendering ───────────────────────────────────────
+function rebuildItems() {
+  for (const k in agentState) delete agentState[k];
+  for (const k in notesState) delete notesState[k];
+  items = activeItems.map((r, i) => {
+    const p = getPriority(r.due);
+    return { id: i, date: r.date, from: r.from, subject: r.subject, details: r.actionNeeded, due: r.due, agentable: r.agent === 'Y' || r.agent === 'y', notes: r.notes, priority: p.label, order: p.order };
+  }).sort((a, b) => a.order - b.order || a.subject.localeCompare(b.subject));
+  items.forEach(it => { agentState[it.id] = it.agentable; notesState[it.id] = it.notes; });
 
-// ── State derived from raw ─────────────────────────────────────────────────
-const agentState = {}, notesState = {};
-raw.forEach((r, i) => { agentState[i] = !!r.agentable; notesState[i] = r.notes || ''; });
+  const thirtyDaysAgo = new Date(TODAY.getTime() - 30 * 86400000);
+  recentlyCompleted = completedItems.filter(c => {
+    const d = new Date((c.completed || '') + 'T12:00:00');
+    return !isNaN(d) && d >= thirtyDaysAgo;
+  }).length;
+}
 
 function getPriority(due) {
   if (due === 'ASAP')      return { label: 'ASAP',      order: 3 };
@@ -444,11 +534,7 @@ function relativeDue(due) {
   return { text: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), cls: '', actual };
 }
 
-const items = raw.map((r, i) => {
-  const p = getPriority(r.due);
-  return { ...r, id: i, priority: p.label, order: p.order };
-}).sort((a, b) => a.order - b.order || a.subject.localeCompare(b.subject));
-
+// ── Stats ──────────────────────────────────────────────────────────────────
 function renderStats() {
   const counts = {}; items.forEach(it => { counts[it.priority] = (counts[it.priority] || 0) + 1; });
   const agentCount = Object.values(agentState).filter(Boolean).length;
@@ -464,10 +550,10 @@ function renderStats() {
     el.appendChild(div);
   });
 }
-renderStats();
 
 const badgeCls = { OVERDUE: 'b-overdue', UPCOMING: 'b-upcoming', ASAP: 'b-asap', Soon: 'b-soon', 'This week': 'b-thisweek', TBD: 'b-tbd' };
 
+// ── Popover and editable cell helpers ──────────────────────────────────────
 function closeAllPopovers() { document.querySelectorAll('.due-popover.open').forEach(p => p.classList.remove('open')); }
 document.addEventListener('click', e => { if (!e.target.closest('.due-cell-wrap')) closeAllPopovers(); });
 
@@ -476,10 +562,7 @@ function makeDuePopover(item, container) {
   pop.innerHTML = `<div class="pop-label">Quick select</div><div class="pop-presets">${['ASAP','Soon','This week','TBD'].map(p => `<button class="pop-preset" data-val="${p}">${p}</button>`).join('')}</div><div class="pop-label">Pick a date</div><input type="date" class="pop-date-input"><div class="pop-label" style="margin-top:10px">Custom text</div><div class="pop-custom-row"><input class="pop-custom-input" placeholder="e.g. When [name] starts"><button class="pop-set-btn">Set</button></div>`;
   function applyDue(val) {
     closeAllPopovers();
-    sendUpdate(`Setting due date for "${item.subject}" to "${val}"`, `Update action item in inbox/action-items.md — Subject: "${item.subject}" — set Due to "${val}"`, item.id);
-    const rel = relativeDue(val); const disp = container.querySelector('.due-display');
-    if (disp) { disp.textContent = rel.text; disp.className = 'due-display ' + (rel.cls || ''); }
-    const act = container.querySelector('.due-actual'); if (act) act.textContent = rel.actual;
+    submit({ type: 'set-due', subject: item.subject, value: val }, item.id);
   }
   pop.querySelectorAll('.pop-preset').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); applyDue(b.dataset.val); }));
   pop.querySelector('.pop-date-input').addEventListener('change', e => { if (e.target.value) applyDue(e.target.value); });
@@ -527,11 +610,10 @@ function makeNotesArea(item) {
     if (nv !== (notesState[item.id] || '')) {
       notesState[item.id] = nv;
       renderDisplay();
-      sendUpdate(`Updating notes on "${item.subject}"`, `Update notes for action item in inbox/action-items.md — Subject: "${item.subject}" — set Notes to: "${nv}"`, item.id);
+      submit({ type: 'set-notes', subject: item.subject, value: nv }, item.id);
     }
     closeEdit();
   }
-
   display.addEventListener('click', openEdit);
   saveBtn.addEventListener('click', saveNotes);
   cancelBtn.addEventListener('click', closeEdit);
@@ -554,15 +636,17 @@ function makeAgentToggle(item) {
       const nv = !agentState[item.id]; agentState[item.id] = nv;
       const tr = document.getElementById('row-' + item.id); if (tr) tr.classList.toggle('agent-row', nv);
       render(); renderStats();
-      sendUpdate(nv ? `Flagging "${item.subject}" as agent-eligible` : `Removing agent flag from "${item.subject}"`, `Update action item in inbox/action-items.md — Subject: "${item.subject}" — set Agent to "${nv ? 'Y' : 'N'}"`, item.id);
+      submit({ type: 'toggle-agent', subject: item.subject, value: nv }, item.id);
     });
     wrap.appendChild(chip);
   }
   render(); return wrap;
 }
 
+// ── Render rows ────────────────────────────────────────────────────────────
 function renderRows(filtered) {
   const tbody = document.getElementById('tbody'), tbl = document.getElementById('tbl'), noRes = document.getElementById('no-results');
+  document.getElementById('loading-overlay').classList.add('hidden');
   tbody.innerHTML = '';
   if (filtered.length === 0) { tbl.classList.add('hidden'); noRes.classList.remove('hidden'); return; }
   tbl.classList.remove('hidden'); noRes.classList.add('hidden');
@@ -581,7 +665,7 @@ function renderRows(filtered) {
     const tdMain = document.createElement('td');
     const subjectRow = document.createElement('div'); subjectRow.className = 'subject-row';
     const subjectEditable = makeEditableCell(item.subject, nv => {
-      sendUpdate(`Renaming "${item.subject}" to "${nv}"`, `Update action item in inbox/action-items.md — old Subject: "${item.subject}" — new Subject: "${nv}"`, item.id);
+      submit({ type: 'rename-subject', subject: item.subject, value: nv }, item.id);
       item.subject = nv;
     });
     subjectEditable.querySelector('.editable').classList.add('subject-text');
@@ -596,7 +680,7 @@ function renderRows(filtered) {
     confirmStrip.innerHTML = `<span>Mark <strong>"${shortName}"</strong> as complete?</span><button class="btn-yes">Done</button><button class="btn-no">Cancel</button>`;
     confirmStrip.querySelector('.btn-yes').addEventListener('click', () => {
       confirmStrip.classList.remove('show'); tr.classList.add('pending-row');
-      sendUpdate(`Marking "${item.subject}" as complete`, `Mark as complete in inbox/action-items.md — Subject: "${item.subject}"`, item.id);
+      submit({ type: 'mark-complete', subject: item.subject }, item.id);
     });
     confirmStrip.querySelector('.btn-no').addEventListener('click', () => { confirmStrip.classList.remove('show'); cb.checked = false; });
 
@@ -607,7 +691,7 @@ function renderRows(filtered) {
 
     const tdFrom = document.createElement('td'); tdFrom.style.width = '140px';
     tdFrom.appendChild(makeEditableCell(item.from, nv => {
-      sendUpdate(`Changing "From" on "${item.subject}" to "${nv}"`, `Update action item in inbox/action-items.md — Subject: "${item.subject}" — set From to "${nv}"`, item.id);
+      submit({ type: 'set-from', subject: item.subject, value: nv }, item.id);
     }));
 
     const tdDue = document.createElement('td'); tdDue.style.cssText = 'width:108px;position:relative';
@@ -627,7 +711,7 @@ function renderRows(filtered) {
     const arcBtn = document.createElement('button'); arcBtn.className = 'archive-btn'; arcBtn.textContent = 'Archive';
     arcBtn.addEventListener('click', () => {
       tr.classList.add('pending-row');
-      sendUpdate(`Archiving "${item.subject}"`, `Archive action item in inbox/action-items.md — Subject: "${item.subject}"`, item.id);
+      submit({ type: 'archive', subject: item.subject }, item.id);
     });
     tdArc.appendChild(arcBtn);
 
@@ -636,40 +720,9 @@ function renderRows(filtered) {
     tbody.appendChild(tr);
   });
 
-  document.getElementById('showing').textContent = `Showing ${filtered.length} of ${items.length} items  ·  ${RECENTLY_COMPLETED} completed in the last 30 days`;
+  document.getElementById('showing').textContent = `Showing ${filtered.length} of ${items.length} items  ·  ${recentlyCompleted} completed in the last 30 days`;
 }
 
-// ── Quick-add ──────────────────────────────────────────────────────────────
-let qaAgentOn = false;
-document.getElementById('qa-agent-toggle').addEventListener('click', () => {
-  qaAgentOn = !qaAgentOn;
-  const tog = document.getElementById('qa-agent-toggle');
-  tog.classList.toggle('on', qaAgentOn);
-  tog.querySelector('.qa-agent-text').textContent = qaAgentOn ? 'Yes — Agent' : 'No';
-});
-
-document.getElementById('qa-add-btn').addEventListener('click', () => {
-  const subject = document.getElementById('qa-subject').value.trim();
-  if (!subject) { document.getElementById('qa-subject').focus(); return; }
-  const from = document.getElementById('qa-from').value.trim() || 'Self';
-  const due = document.getElementById('qa-due').value.trim() || 'TBD';
-  const notes = document.getElementById('qa-notes').value.trim();
-  const agent = qaAgentOn ? 'Y' : 'N';
-  const today = new Date().toISOString().split('T')[0];
-
-  sendUpdate(`Adding new item: "${subject}"`, `Add new action item to inbox/action-items.md Active table:\n- Date: ${today}\n- From: ${from}\n- Subject: ${subject}\n- Action Needed: ${subject}\n- Due: ${due}\n- Agent: ${agent}\n- Notes: ${notes}`);
-
-  document.getElementById('qa-subject').value = '';
-  document.getElementById('qa-from').value = 'Self';
-  document.getElementById('qa-due').value = 'TBD';
-  document.getElementById('qa-notes').value = '';
-  qaAgentOn = false;
-  const tog = document.getElementById('qa-agent-toggle'); tog.classList.remove('on'); tog.querySelector('.qa-agent-text').textContent = 'No';
-});
-document.getElementById('qa-subject').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('qa-add-btn').click(); });
-
-// ── Filters ────────────────────────────────────────────────────────────────
-let activeFilter = 'all', searchQuery = '';
 function applyFilters() {
   let f = items;
   if (activeFilter === 'agent') f = f.filter(it => agentState[it.id]);
@@ -687,7 +740,177 @@ document.querySelectorAll('.pill').forEach(pill => {
   });
 });
 document.getElementById('search').addEventListener('input', e => { searchQuery = e.target.value; applyFilters(); });
-applyFilters();
+
+// ── Mutations ──────────────────────────────────────────────────────────────
+function applyMutationToState(op) {
+  const findActive = subj => activeItems.find(it => it.subject === subj);
+  const findActiveIdx = subj => activeItems.findIndex(it => it.subject === subj);
+  switch (op.type) {
+    case 'set-due':         { const it = findActive(op.subject); if (it) it.due = op.value; break; }
+    case 'set-notes':       { const it = findActive(op.subject); if (it) it.notes = op.value; break; }
+    case 'toggle-agent':    { const it = findActive(op.subject); if (it) it.agent = op.value ? 'Y' : 'N'; break; }
+    case 'rename-subject':  { const it = findActive(op.subject); if (it) it.subject = op.value; break; }
+    case 'set-from':        { const it = findActive(op.subject); if (it) it.from = op.value; break; }
+    case 'mark-complete': {
+      const idx = findActiveIdx(op.subject);
+      if (idx >= 0) {
+        const it = activeItems.splice(idx, 1)[0];
+        const today = new Date().toISOString().split('T')[0];
+        completedItems.unshift({ date: it.date, from: it.from, subject: it.subject, resolution: it.actionNeeded || '(complete)', completed: today });
+      }
+      break;
+    }
+    case 'archive': {
+      const idx = findActiveIdx(op.subject);
+      if (idx >= 0) {
+        const it = activeItems.splice(idx, 1)[0];
+        const today = new Date().toISOString().split('T')[0];
+        archivedItems.unshift({ date: it.date, from: it.from, subject: it.subject, actionNeeded: it.actionNeeded, archived: today });
+      }
+      break;
+    }
+    case 'add-item': {
+      activeItems.unshift({ date: op.date, from: op.from, subject: op.subject, actionNeeded: op.actionNeeded || op.subject, due: op.due, agent: op.agent, notes: op.notes });
+      break;
+    }
+  }
+}
+
+let inflight = Promise.resolve();
+function submit(op, rowId) {
+  if (rowId != null) { const d = document.getElementById('pendot-' + rowId); if (d) d.classList.add('show'); }
+  setSyncDot('stale', 'Saving...');
+  inflight = inflight.then(async () => {
+    try {
+      const content = await readFile();
+      const parsed = parseMarkdown(content);
+      preamble = parsed.preamble; activeItems = parsed.active; completedItems = parsed.completed; archivedItems = parsed.archived;
+      applyMutationToState(op);
+      await writeFile(serializeMarkdown());
+      rebuildItems(); renderStats(); applyFilters();
+      if (rowId != null) { const d = document.getElementById('pendot-' + rowId); if (d) d.classList.remove('show'); }
+      const tr = rowId != null ? document.getElementById('row-' + rowId) : null; if (tr) tr.classList.remove('pending-row');
+      setSyncDot('', 'Saved ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }));
+    } catch (err) {
+      if (rowId != null) { const d = document.getElementById('pendot-' + rowId); if (d) d.classList.remove('show'); }
+      const tr = rowId != null ? document.getElementById('row-' + rowId) : null; if (tr) tr.classList.remove('pending-row');
+      setSyncDot('error', 'Save failed');
+      setBanner('error', `Save failed: ${err.message}. Try Refresh to reload.`, 'Refresh', () => reload());
+    }
+  });
+  return inflight;
+}
+
+// ── Quick-add ──────────────────────────────────────────────────────────────
+let qaAgentOn = false;
+document.getElementById('qa-agent-toggle').addEventListener('click', () => {
+  qaAgentOn = !qaAgentOn;
+  const tog = document.getElementById('qa-agent-toggle');
+  tog.classList.toggle('on', qaAgentOn);
+  tog.querySelector('.qa-agent-text').textContent = qaAgentOn ? 'Yes — Agent' : 'No';
+});
+document.getElementById('qa-add-btn').addEventListener('click', () => {
+  const subject = document.getElementById('qa-subject').value.trim();
+  if (!subject) { document.getElementById('qa-subject').focus(); return; }
+  const from = document.getElementById('qa-from').value.trim() || 'Self';
+  const due = document.getElementById('qa-due').value.trim() || 'TBD';
+  const notes = document.getElementById('qa-notes').value.trim();
+  const agent = qaAgentOn ? 'Y' : 'N';
+  const today = new Date().toISOString().split('T')[0];
+  submit({ type: 'add-item', date: today, from, subject, actionNeeded: subject, due, agent, notes });
+  document.getElementById('qa-subject').value = '';
+  document.getElementById('qa-from').value = 'Self';
+  document.getElementById('qa-due').value = 'TBD';
+  document.getElementById('qa-notes').value = '';
+  qaAgentOn = false;
+  const tog = document.getElementById('qa-agent-toggle'); tog.classList.remove('on'); tog.querySelector('.qa-agent-text').textContent = 'No';
+});
+document.getElementById('qa-subject').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('qa-add-btn').click(); });
+
+// ── Reload ─────────────────────────────────────────────────────────────────
+async function reload() {
+  if (!fileHandle) { showConnectBanner(); return; }
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning'); btn.disabled = true;
+  setSyncDot('stale', 'Loading...');
+  setLoadingText('Reading file...');
+  try {
+    const ok = await ensurePermission(fileHandle, 'readwrite');
+    if (!ok) {
+      setSyncDot('disconnected', 'Permission denied');
+      setBanner('connect', 'Permission to read your file was denied. Click to grant access.', 'Grant access', async () => {
+        if (await ensurePermission(fileHandle, 'readwrite')) { hideBanner(); reload(); }
+      });
+      return;
+    }
+    const content = await readFile();
+    const parsed = parseMarkdown(content);
+    preamble = parsed.preamble; activeItems = parsed.active; completedItems = parsed.completed; archivedItems = parsed.archived;
+    rebuildItems(); renderStats(); applyFilters();
+    setSyncDot('', 'Synced ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }));
+    hideBanner();
+  } catch (err) {
+    setSyncDot('error', 'Load failed');
+    setBanner('error', `Failed to load file: ${err.message}`, 'Reconnect', async () => { if (await pickFile()) reload(); });
+  } finally {
+    btn.classList.remove('spinning'); btn.disabled = false;
+  }
+}
+
+document.getElementById('refresh-btn').addEventListener('click', reload);
+
+// ── Bootstrap ──────────────────────────────────────────────────────────────
+function showConnectBanner() {
+  if (!fsaSupported()) {
+    setBanner('error',
+      'This artifact needs the File System Access API to read and write your action-items.md file. The current view doesn\'t expose it. Edit the file directly in your editor for now.',
+      null);
+    setSyncDot('error', 'API unavailable');
+    setLoadingText('File System Access API not available in this view');
+    return;
+  }
+  setBanner('connect',
+    'Connect to your <code>action-items.md</code> file to enable live editing. The file picker will open; choose <code>inbox/action-items.md</code> in your lore folder. You\'ll only need to do this once per session.',
+    'Connect file',
+    async () => {
+      if (await pickFile()) {
+        document.getElementById('refresh-btn').disabled = false;
+        await reload();
+      }
+    });
+  setSyncDot('disconnected', 'Not connected');
+  setLoadingText('Click "Connect file" above to load action items');
+}
+
+(async function init() {
+  if (!fsaSupported()) { showConnectBanner(); return; }
+  const restored = await tryRestoreHandle();
+  if (restored) {
+    fileHandle = restored;
+    // Try non-prompting permission check first; if not granted, surface the connect button.
+    const granted = (await fileHandle.queryPermission({ mode: 'readwrite' })) === 'granted';
+    if (granted) {
+      document.getElementById('refresh-btn').disabled = false;
+      reload();
+      return;
+    }
+    // Permission needs to be re-requested with a user gesture.
+    setBanner('connect',
+      'Reconnecting to your <code>action-items.md</code> file. Click to grant access for this session.',
+      'Grant access',
+      async () => {
+        if (await ensurePermission(fileHandle, 'readwrite')) {
+          document.getElementById('refresh-btn').disabled = false;
+          hideBanner();
+          reload();
+        }
+      });
+    setSyncDot('disconnected', 'Awaiting permission');
+    setLoadingText('Click "Grant access" above to load action items');
+    return;
+  }
+  showConnectBanner();
+})();
 </script>
 </body>
 </html>
