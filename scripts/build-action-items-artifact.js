@@ -88,14 +88,17 @@ if (fs.existsSync(MARKDOWN_PATH)) {
 
 const tpl = fs.readFileSync(TEMPLATE_PATH, 'utf8');
 
-// Substitute __SEED__ with the JSON-encoded parsed data. The placeholder
-// lives inside a <script type="application/json"> tag in the template, so
-// we just inject the JSON text. Escape "</script>" if it appears in any value.
-const seedJson = JSON.stringify(parsed).replace(/<\/script>/gi, '<\\/script>');
-const out = tpl.replace(/__SEED__/g, seedJson);
+// Substitute the seed placeholder with the JSON-encoded parsed data. The
+// placeholder lives inside a <script type="application/json"> tag in the
+// template (wrapped in /* ... */ so a totally untouched template is also
+// valid HTML). We replace globally, but the placeholder string is unique
+// enough that it won't collide with any JS code in the template.
+const PLACEHOLDER = '/*__LORE_ACTION_ITEMS_SEED_PLACEHOLDER__*/';
+const seedJson = JSON.stringify(parsed).replace(/<\/script/gi, '<\\/script');
+const out = tpl.split(PLACEHOLDER).join(seedJson);
 
-if (out.includes('__SEED__')) {
-  console.error('ERROR: __SEED__ substitution did not occur');
+if (out.includes('__LORE_ACTION_ITEMS_SEED_PLACEHOLDER__')) {
+  console.error('ERROR: seed placeholder substitution did not occur');
   process.exit(1);
 }
 
