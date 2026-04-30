@@ -282,6 +282,12 @@ A few things worth flagging if you want to contribute:
 - **Templates evolve carefully.** Editing a file in `templates/` changes the format for all future generated files, but doesn't retroactively update existing ones. Test changes against your own data before submitting.
 - **No personal data in commits.** The `.gitignore` is aggressive but not infallible. Run a quick grep for names / company specifics on `git diff --cached` before committing.
 
+## Questions or interest in adopting Lore
+
+Reach out to Colton Marshall ([colton.marshall@rate.com](mailto:colton.marshall@rate.com)).
+
+---
+
 ## A note on the name
 
 Lore is a body of knowledge passed down — accumulated context that makes the people who hold it more effective at what they do. That's what this system is: a place for the lore of your role to accumulate and stay accessible, instead of living in your head and your notebooks and your Slack history.
