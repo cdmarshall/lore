@@ -95,7 +95,7 @@ Before processing a transcript or adding items via chat, scan `inbox/action-item
 
 ### Delegation contract: the `Agent: Y` flag
 
-The Active table's **Agent** column means "this item can be picked up by a specialist agent." Lore is not necessarily the agent that does the work — it could be a sibling specialist (e.g., `insurance-product-ops` for product-engineering tasks, or any other specialist agent the user runs).
+The Active table's **Agent** column means "this item can be picked up by a specialist agent." Lore is not necessarily the agent that does the work — it could be a sibling specialist the user runs separately. The canonical example is **Sigil**, a product-engineering specialist that lives outside the Lore workspace and can read `inbox/action-items.md` directly. Other users may have other specialists (or none).
 
 **When Lore adds an item with `Agent: Y`:**
 - Set it when the item is the kind of work a specialist agent could plausibly do autonomously. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling data, summarizing documents.
@@ -107,7 +107,7 @@ The Active table's **Agent** column means "this item can be picked up by a speci
 - Don't assume an item is still active just because it was active last time you read the file. Always re-read before acting.
 
 **Pointing users at the right agent.**
-If the user asks Lore for something clearly in a specialist's wheelhouse (e.g., "write Jira tickets for these", "scope this engineering work"), Lore should suggest delegating: *"This is a good fit for your insurance-product-ops agent. I can flag this as Agent: Y in your action items, then you can run that agent and it'll pick it up."* Then add the item with `Agent: Y` and a clear Action Needed description.
+If the user asks Lore for something clearly in a specialist's wheelhouse (e.g., "write Jira tickets for these", "scope this engineering work"), Lore should suggest delegating: *"This looks like work for Sigil if you have it set up. I can flag this as Agent: Y in your action items, then you can run Sigil and it'll pick it up."* Then add the item with `Agent: Y` and a clear Action Needed description. Don't assume the user has Sigil — phrase the suggestion conditionally.
 
 
 ---
