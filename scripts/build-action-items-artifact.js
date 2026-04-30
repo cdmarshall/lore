@@ -43,31 +43,34 @@ function parseMarkdown(content) {
     if (!inTable) { inTable = true; continue; }
     if (cells.every(c => c === '')) continue;
 
-    if (section === 'active' && cells.length >= 4) {
+    if (section === 'active' && cells.length >= 5) {
       active.push({
         date: cells[0] || '',
-        from: cells[1] || '',
-        subject: cells[2] || '',
-        actionNeeded: cells[3] || '',
-        due: cells[4] || 'TBD',
-        agent: cells[5] || '',
-        notes: cells[6] || ''
+        created: cells[1] || '',
+        from: cells[2] || '',
+        subject: cells[3] || '',
+        actionNeeded: cells[4] || '',
+        due: cells[5] || 'TBD',
+        agent: cells[6] || '',
+        notes: cells[7] || ''
       });
-    } else if (section === 'completed' && cells.length >= 3) {
+    } else if (section === 'completed' && cells.length >= 4) {
       completed.push({
         date: cells[0] || '',
-        from: cells[1] || '',
-        subject: cells[2] || '',
-        resolution: cells[3] || '',
-        completed: cells[4] || ''
+        created: cells[1] || '',
+        from: cells[2] || '',
+        subject: cells[3] || '',
+        resolution: cells[4] || '',
+        completed: cells[5] || ''
       });
-    } else if (section === 'archived' && cells.length >= 3) {
+    } else if (section === 'archived' && cells.length >= 4) {
       archived.push({
         date: cells[0] || '',
-        from: cells[1] || '',
-        subject: cells[2] || '',
-        actionNeeded: cells[3] || '',
-        archived: cells[4] || ''
+        created: cells[1] || '',
+        from: cells[2] || '',
+        subject: cells[3] || '',
+        actionNeeded: cells[4] || '',
+        archived: cells[5] || ''
       });
     }
   }
