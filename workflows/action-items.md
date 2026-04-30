@@ -93,6 +93,22 @@ The user is taking a manual snapshot. They'll typically save the result over `in
 
 Before processing a transcript or adding items via chat, scan `inbox/action-items.md`. If you suspect it's out of date relative to what the user has been doing in the artifact (e.g., the file looks weeks old or doesn't contain items the user just mentioned), say something like: *"Before I add these, click Download snapshot in your action items artifact and save it over inbox/action-items.md so I have your latest state. Otherwise edits you've made in the artifact since the last sync will be overwritten."* Then wait for confirmation.
 
+### Delegation contract: the `Agent: Y` flag
+
+The Active table's **Agent** column means "this item can be picked up by a specialist agent." Lore is not necessarily the agent that does the work — it could be a sibling specialist (e.g., `insurance-product-ops` for product-engineering tasks, or any other specialist agent the user runs).
+
+**When Lore adds an item with `Agent: Y`:**
+- Set it when the item is the kind of work a specialist agent could plausibly do autonomously. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling data, summarizing documents.
+- Leave it blank or `N` when the item needs human judgment, in-person conversation, or context only the user has.
+
+**Lore is not the only writer of `inbox/action-items.md`.**
+- Specialist agents may also append rows (when starting fresh work the user wants tracked) and modify rows (when completing items they were delegated).
+- When a specialist agent completes an item, it moves the row from `## Active` to `## Completed` directly. Lore picks up that change next time it reads the file and pushes the artifact.
+- Don't assume an item is still active just because it was active last time you read the file. Always re-read before acting.
+
+**Pointing users at the right agent.**
+If the user asks Lore for something clearly in a specialist's wheelhouse (e.g., "write Jira tickets for these", "scope this engineering work"), Lore should suggest delegating: *"This is a good fit for your insurance-product-ops agent. I can flag this as Agent: Y in your action items, then you can run that agent and it'll pick it up."* Then add the item with `Agent: Y` and a clear Action Needed description.
+
 
 ---
 
