@@ -9,6 +9,11 @@
 
 **Review their profile:** `team/[name].md`
 
+**Active Projects (REQUIRED):**
+- Pull every entry from the `Active Projects` section of `team/[name].md`.
+- For each: name, status, last update, next step. Flag any that haven't moved since the last 1:1.
+- Surface these even if not on their agenda; they're the standing check-in items.
+
 **Since last 1:1:**
 - What did they commit to?
 - What did I commit to?
