@@ -148,3 +148,15 @@ You can edit:
 - `context.md` to change anything about you or how Lore should talk to you.
 
 If you want a different tone or a different workflow, just edit the file. Lore reads the files fresh each session.
+
+---
+
+## Companion specialist agents
+
+Lore is designed to work with sibling specialist agents that handle role-specific execution. The pattern is: Lore is the generalist context layer, specialists are the executors that read from Lore and act.
+
+The action items file (`inbox/action-items.md`) doubles as a delegation bus. Its **Agent** column flags items as agent-eligible (`Y`); a specialist agent can scan for those, do the work, and write the row back into the Completed table directly. Lore picks up the change on its next run and reflects it in the live artifact. See `workflows/action-items.md` for the full delegation contract.
+
+A reference example: the Rate Insurance Product team uses a specialist agent called **Sigil** for product-engineering tasks (writing Jira tickets, drafting PRDs, scoping work). Sigil reads Lore's `context.md`, `team/`, `stakeholders/`, and `inbox/action-items.md` for context, picks up `Agent: Y` items autonomously, and writes results back. Lore knows about Sigil as a delegation target; Sigil knows about Lore as a context source. Neither requires the other to function.
+
+If you have a specialist agent of your own (call it whatever you want), the integration is just shared filesystem reads. Point it at `~/src/lore/` and tell it the convention. The specialist needs no special integration plumbing — just instructions, which can include a graceful "if Lore isn't installed for this user, ignore" check so the specialist works for teammates who don't run Lore.
