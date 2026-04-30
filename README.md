@@ -13,7 +13,7 @@ Lore's signet is the scroll: 📜. You'll see it on the agent's signed outputs (
 ### 1. Clone the repo
 
 ```bash
-git clone <repo-url> lore
+git clone https://github.com/Guaranteed-Rate/lore.git
 cd lore
 ```
 
@@ -73,6 +73,7 @@ lore/
 ├── templates/          ← Canonical file templates Lore uses for new files.
 ├── workflows/          ← Workflow definitions (onboarding, action items, transcripts, etc.).
 ├── playbooks/          ← Frameworks (stakeholder management, difficult conversations, feedback, etc.).
+├── scripts/            ← Helper scripts (e.g., the action items artifact builder).
 │
 ├── inbox/              ← Action items + drop zone for documents to process.
 ├── outbox/             ← Generated outputs (reports, exports, prep docs).
@@ -105,6 +106,8 @@ Personal files (everything in `inbox/`, `outbox/`, `team/`, `stakeholders/`, `me
 4. **Weekly reviews** — Structured reflection to maintain visibility and catch issues early.
 
 5. **Workflows** — Each common task has a workflow file in `workflows/`. Lore reads the relevant one and follows its instructions when you ask.
+
+6. **Live action items artifact** *(Cowork only)* — When you run Lore in Cowork, the agent creates a sidebar widget that shows your action items live. Edits in the widget (mark complete, set due date, toggle agent flag, add new items) are instant and persist locally. The agent keeps `inbox/action-items.md` in sync whenever it modifies items via chat. Claude Code users see and edit `inbox/action-items.md` directly instead.
 
 ---
 
@@ -160,3 +163,28 @@ The action items file (`inbox/action-items.md`) doubles as a delegation bus. Its
 A reference example: the Rate Insurance Product team uses a specialist agent called **Sigil** for product-engineering tasks (writing Jira tickets, drafting PRDs, scoping work). Sigil reads Lore's `context.md`, `team/`, `stakeholders/`, and `inbox/action-items.md` for context, picks up `Agent: Y` items autonomously, and writes results back. Lore knows about Sigil as a delegation target; Sigil knows about Lore as a context source. Neither requires the other to function.
 
 If you have a specialist agent of your own (call it whatever you want), the integration is just shared filesystem reads. Point it at `~/src/lore/` and tell it the convention. The specialist needs no special integration plumbing — just instructions, which can include a graceful "if Lore isn't installed for this user, ignore" check so the specialist works for teammates who don't run Lore.
+
+---
+
+## Contributing
+
+This repo lives at [github.com/Guaranteed-Rate/lore](https://github.com/Guaranteed-Rate/lore). Issues, ideas, and pull requests are welcome.
+
+A few things worth flagging if you want to contribute:
+
+- **Keep the template generic.** Anything user-specific (a particular team member's name, a particular Jira project key, a specific company) belongs in the gitignored personal files (`context.md`, `team/`, `stakeholders/`, etc.), not in the committed agent logic. The audit hooks in `CLAUDE.md` list which folders are personal.
+- **Workflows are the extension point.** Most new behavior should land as a new file in `workflows/` (and a corresponding row in `CLAUDE.md`'s workflow table) rather than as new top-level logic. Playbooks are similar: drop in a new framework as a markdown file in `playbooks/` and Lore can reach for it without code changes.
+- **Templates evolve carefully.** Editing a file in `templates/` changes the format for all future generated files, but doesn't retroactively update existing ones. Test changes against your own data before submitting.
+- **No personal data in commits.** The `.gitignore` is aggressive but not infallible. Run a quick grep for names / company specifics on `git diff --cached` before committing.
+
+## License and ownership
+
+Maintained by Guaranteed Rate. Internal use; license terms are governed by the company's standard internal-tools policies. Reach out to the Rate Insurance Product team for questions about external use.
+
+---
+
+## A note on the name
+
+Lore is a body of knowledge passed down — accumulated context that makes the people who hold it more effective at what they do. That's what this system is: a place for the lore of your role to accumulate and stay accessible, instead of living in your head and your notebooks and your Slack history.
+
+The scroll signet (📜) is on signed outputs because Lore writes documents the way a scribe might, and a scribe seals their work.
