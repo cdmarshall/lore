@@ -67,13 +67,33 @@ User-only edits (mark complete in the artifact, edit a due date, etc.) drift the
 Run this whenever you need to add or modify action items on the user's behalf (transcript processing, "Lore, add X to my list", "Mark X as complete", etc.):
 
 1. **Read** `inbox/action-items.md` for the current state. This is your baseline.
-2. **Apply** the change(s):
+2. **Duplicate check (REQUIRED before appending any new item)**.
+   - For every candidate new item, scan the existing Active table for likely matches before writing anything.
+   - Compare on **Subject + Action Needed + From + Agent**. Wording will differ; intent and ownership are what matter. Use fuzzy judgment:
+     - Same person/topic + same delegation/ownership + same outcome = duplicate.
+     - Examples that should match:
+       - "Talk to Mike Tumpane about renewal ops filtering criteria" ≈ "Renewal ops: talk to Mike Tumpane about filtering criteria"
+       - "Write Lead Source Differentiation tickets" ≈ "Lead Source Differentiation Tickets"
+       - "Follow up with Danelle on billing carrier IDs" ≈ "Billing Carrier IDs — Ops Coordination" (delegated to Danelle)
+   - Also scan the **Completed** and **Archived** tables. If a candidate matches a recently completed item, surface that to the user rather than re-adding it ("This looks like the item completed on YYYY-MM-DD — re-open it, or skip?").
+   - **Decision rules**:
+     - Clear duplicate → do NOT append. Optionally update the existing row's Notes or Action Needed if the new context adds something (new date, new sub-task, new due). Never create a parallel row for the same work.
+     - Likely duplicate but uncertain → lean toward consolidation. Update the existing row and flag the decision for the user.
+     - Genuinely new → proceed to step 3.
+   - **Reporting (REQUIRED)**: in the response to the user, list every skipped or consolidated candidate explicitly. Format:
+     ```
+     Skipped (duplicate): "[Proposed item subject]"
+       → Matches existing row: YYYY-MM-DD | [From] | [Existing Subject]
+       → Reasoning: [why you believe it's the same item]
+     ```
+     If consolidating, say so: `Consolidated into existing row [Subject]; updated Notes to add [new context].`
+3. **Apply** the change(s):
    - Adding new items → append rows to the `## Active` table.
    - Marking complete → move the row from Active to Completed, fill in the Resolution and Completed columns.
    - Editing existing items → update the relevant cells in place. Preserve the schema `| Date | From | Subject | Action Needed | Due | Agent | Notes |`.
-3. **Write** the updated content back to `inbox/action-items.md`.
-4. **Run** the build script: `node scripts/build-action-items-artifact.js`. This reads the file, stamps a fresh `seedVersion` (ISO timestamp), and writes the substituted HTML to `outbox/action-items-artifact-built.html`.
-5. **Push** to the artifact:
+4. **Write** the updated content back to `inbox/action-items.md`.
+5. **Run** the build script: `node scripts/build-action-items-artifact.js`. This reads the file, stamps a fresh `seedVersion` (ISO timestamp), and writes the substituted HTML to `outbox/action-items-artifact-built.html`.
+6. **Push** to the artifact:
    ```
    mcp__cowork__update_artifact(
      id: "action-items",
@@ -83,7 +103,7 @@ Run this whenever you need to add or modify action items on the user's behalf (t
    )
    ```
 
-After step 5, the file and the artifact are in sync. The artifact's bootstrap detects the new `seedVersion` and adopts the seed, replacing its IDB.
+After step 6, the file and the artifact are in sync. The artifact's bootstrap detects the new `seedVersion` and adopts the seed, replacing its IDB.
 
 ### When the user clicks "Download snapshot"
 
