@@ -107,10 +107,17 @@ Should I:
 - Add significant decisions to `decisions/log.md` using the format from `templates/decision-log-entry.template.md`
 
 **For the user's action items:**
-- Add to `inbox/action-items.md` under Active section
-- Format:
+- **Duplicate check first (REQUIRED).** Before appending anything, follow the duplicate-check procedure in `workflows/action-items.md` → "Procedure for agent-driven changes," step 2. Compare each candidate against existing Active rows (and recently Completed/Archived rows) on Subject + Action Needed + From + Agent. Wording will differ; intent and ownership are what matter.
+- If a candidate is a duplicate, do NOT append. Either skip it or consolidate the new context into the existing row's Notes / Action Needed.
+- If a candidate is genuinely new, add to `inbox/action-items.md` under Active section. Format:
   ```
-  | YYYY-MM-DD | [From/Meeting] | [Subject] | [Action Needed] | [Due Date or TBD] |
+  | YYYY-MM-DD | [From/Meeting] | [Subject] | [Action Needed] | [Due Date or TBD] | [Agent Y/N/blank] | [Notes] |
+  ```
+- **Report all skip / consolidate decisions in the Output Summary** under "Your Action Items." Use the format defined in `workflows/action-items.md`:
+  ```
+  Skipped (duplicate): "[Proposed item]"
+    → Matches existing row: YYYY-MM-DD | [From] | [Existing Subject]
+    → Reasoning: [why it's the same item]
   ```
 
 **For meeting notes:**
@@ -147,6 +154,12 @@ After processing, provide:
 ### Your Action Items (Added to inbox/action-items.md)
 - [ ] [Action 1] - Due: [date/TBD]
 - [ ] [Action 2] - Due: [date/TBD]
+
+**Skipped as duplicates / consolidated** (only include if any):
+- Skipped (duplicate): "[Proposed item]"
+  → Matches existing row: YYYY-MM-DD | [From] | [Existing Subject]
+  → Reasoning: [why it's the same item]
+- Consolidated: "[Proposed item]" → updated existing row "[Existing Subject]" Notes with [new context].
 
 ### Others' Action Items (Tracked in meeting notes)
 - [ ] [Person]: [Action] - Due: [date]
