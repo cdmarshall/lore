@@ -43,6 +43,23 @@
 |------|----------|-----|
 | | | |
 
+## Active Projects
+
+> Tracked work this person owns or has been delegated. Surface this section in 1:1 prep. Newest first.
+>
+> Each entry should capture: status, owner / collaborators, when delegated or started, scope, why it matters, cadence for follow-up, last update, and next step.
+
+### [Project Name]
+
+- **Status**:
+- **Owner**:
+- **Delegated / Started**:
+- **Scope**:
+- **Why it matters**:
+- **Cadence**:
+- **Last update**:
+- **Next step**:
+
 ## Observations
 
 > Insights gathered from meetings, transcripts, and interactions. Newest first.
