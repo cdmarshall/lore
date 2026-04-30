@@ -4,12 +4,18 @@
 
 ## Active
 
-| Date | From | Subject | Action Needed | Due |
-|------|------|---------|---------------|-----|
-| | | | | |
+| Date | Created | From | Subject | Action Needed | Due | Agent | Notes |
+|------|---------|------|---------|---------------|-----|-------|-------|
+| | | | | | | | |
 
 ## Completed
 
-| Action | From | Resolution | Completed |
-|--------|------|------------|-----------|
-| | | | |
+| Date | Created | From | Subject | Resolution | Completed |
+|------|---------|------|---------|------------|-----------|
+| | | | | | |
+
+## Archived
+
+| Date | Created | From | Subject | Action Needed | Archived |
+|------|---------|------|---------|---------------|----------|
+| | | | | | |

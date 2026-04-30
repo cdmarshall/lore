@@ -111,8 +111,10 @@ Should I:
 - If a candidate is a duplicate, do NOT append. Either skip it or consolidate the new context into the existing row's Notes / Action Needed.
 - If a candidate is genuinely new, add to `inbox/action-items.md` under Active section. Format:
   ```
-  | YYYY-MM-DD | [From/Meeting] | [Subject] | [Action Needed] | [Due Date or TBD] | [Agent Y/N/blank] | [Notes] |
+  | [Source date YYYY-MM-DD] | [Today YYYY-MM-DD] | [From/Meeting] | [Subject] | [Action Needed] | [Due Date or TBD] | [Agent Y/N/blank] | [Notes] |
   ```
+  - First column (`Date`) is the meeting/source date — the date the item originated. For transcript processing, use the meeting date.
+  - Second column (`Created`) is today's date — when the row was added to the list. Always populate; never leave blank.
 - **Report all skip / consolidate decisions in the Output Summary** under "Your Action Items." Use the format defined in `workflows/action-items.md`:
   ```
   Skipped (duplicate): "[Proposed item]"
