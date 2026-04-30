@@ -116,6 +116,15 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
 .details-text { color: #6c757d; font-size: 12px; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; cursor: pointer; margin-bottom: 3px; }
 .details-text.expanded { display: block; }
 
+.age-line { font-size: 10.5px; color: #9ca3af; line-height: 1.3; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+.age-line .age-pill { display: inline-block; padding: 1px 6px; border-radius: 8px; font-weight: 600; letter-spacing: 0.2px; }
+.age-line .age-pill.fresh    { background: #f3f4f6; color: #6b7280; }
+.age-line .age-pill.aging    { background: #fef3c7; color: #92400e; }
+.age-line .age-pill.stale    { background: #fee2e2; color: #b91c1c; }
+.age-line .age-pill.unknown  { background: #f9fafb; color: #c9ccd1; font-style: italic; font-weight: 500; }
+.age-line .age-added { color: #9ca3af; }
+.pill.stale-pill.active { background: #b91c1c; border-color: #b91c1c; }
+
 .notes-area { margin-top: 4px; }
 .notes-display { font-size: 11.5px; color: #6b7280; font-style: italic; line-height: 1.4; cursor: text; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; display: inline-block; }
 .notes-display:hover { background: #f3f4f6; }
@@ -216,6 +225,7 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
     <button class="pill" data-filter="This week">This Week</button>
     <button class="pill" data-filter="TBD">TBD</button>
     <button class="pill agent-pill" data-filter="agent">Agent-Ready</button>
+    <button class="pill stale-pill" data-filter="stale" title="Items added more than 30 days ago">Stale (&gt;30d)</button>
   </div>
   <div class="search-wrap">
     <input type="text" id="search" placeholder="Search items...">
@@ -462,12 +472,12 @@ function setSync(state, label) {
 // ── Markdown serializer (for backup file) ──────────────────────────────────
 function serializeMarkdown() {
   let out = '# Action Items\n\n> Live tracker. Source of truth is the artifact (IndexedDB). This file is an auto-saved backup written after every change.\n\n';
-  out += '## Active\n\n| Date | From | Subject | Action Needed | Due | Agent | Notes |\n|------|------|---------|---------------|-----|-------|-------|\n';
-  for (const it of activeItems) out += `| ${it.date || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.actionNeeded || ''} | ${it.due || 'TBD'} | ${it.agent || ''} | ${it.notes || ''} |\n`;
-  out += '\n## Completed\n\n| Date | From | Subject | Resolution | Completed |\n|------|------|---------|------------|-----------|\n';
-  for (const it of completedItems) out += `| ${it.date || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.resolution || ''} | ${it.completed || ''} |\n`;
-  out += '\n## Archived\n\n| Date | From | Subject | Action Needed | Archived |\n|------|------|---------|---------------|----------|\n';
-  for (const it of archivedItems) out += `| ${it.date || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.actionNeeded || ''} | ${it.archived || ''} |\n`;
+  out += '## Active\n\n| Date | Created | From | Subject | Action Needed | Due | Agent | Notes |\n|------|---------|------|---------|---------------|-----|-------|-------|\n';
+  for (const it of activeItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.actionNeeded || ''} | ${it.due || 'TBD'} | ${it.agent || ''} | ${it.notes || ''} |\n`;
+  out += '\n## Completed\n\n| Date | Created | From | Subject | Resolution | Completed |\n|------|---------|------|---------|------------|-----------|\n';
+  for (const it of completedItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.resolution || ''} | ${it.completed || ''} |\n`;
+  out += '\n## Archived\n\n| Date | Created | From | Subject | Action Needed | Archived |\n|------|---------|------|---------|---------------|----------|\n';
+  for (const it of archivedItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.actionNeeded || ''} | ${it.archived || ''} |\n`;
   out += '\n';
   return out;
 }
@@ -498,7 +508,7 @@ function rebuildItems() {
   for (const k in notesState) delete notesState[k];
   items = activeItems.map((r, i) => {
     const p = getPriority(r.due);
-    return { id: i, date: r.date, from: r.from, subject: r.subject, details: r.actionNeeded || '', due: r.due || 'TBD', agentable: r.agent === 'Y' || r.agent === 'y' || r.agent === true, notes: r.notes || '', priority: p.label, order: p.order };
+    return { id: i, date: r.date, created: r.created || '', from: r.from, subject: r.subject, details: r.actionNeeded || '', due: r.due || 'TBD', agentable: r.agent === 'Y' || r.agent === 'y' || r.agent === true, notes: r.notes || '', priority: p.label, order: p.order };
   }).sort((a, b) => a.order - b.order || (a.subject||'').localeCompare(b.subject||''));
   items.forEach(it => { agentState[it.id] = it.agentable; notesState[it.id] = it.notes; });
 
@@ -535,14 +545,34 @@ function relativeDue(due) {
   return { text: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), cls: '', actual };
 }
 
+// Returns { ageDays, addedLabel, ageLabel, ageClass } for the Created date
+// of an active item. ageDays === null when Created is unknown.
+const STALE_DAYS = 30;
+function ageInfo(createdStr) {
+  if (!createdStr) return { ageDays: null, addedLabel: '', ageLabel: 'date unknown', ageClass: 'unknown' };
+  const d = new Date(createdStr + 'T12:00:00');
+  if (isNaN(d)) return { ageDays: null, addedLabel: '', ageLabel: 'date unknown', ageClass: 'unknown' };
+  const ageDays = Math.max(0, Math.floor((TODAY - d) / 86400000));
+  const addedLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: TODAY.getFullYear() === d.getFullYear() ? undefined : 'numeric' });
+  let ageLabel;
+  if (ageDays === 0)      ageLabel = 'today';
+  else if (ageDays === 1) ageLabel = '1d ago';
+  else                    ageLabel = `${ageDays}d ago`;
+  const ageClass = ageDays >= STALE_DAYS ? 'stale' : ageDays >= 14 ? 'aging' : 'fresh';
+  return { ageDays, addedLabel, ageLabel, ageClass };
+}
+
 function renderStats() {
   const counts = {}; items.forEach(it => { counts[it.priority] = (counts[it.priority] || 0) + 1; });
   const agentCount = Object.values(agentState).filter(Boolean).length;
+  let staleCount = 0;
+  items.forEach(it => { const a = ageInfo(it.created); if (a.ageDays !== null && a.ageDays >= STALE_DAYS) staleCount++; });
   const el = document.getElementById('stats'); el.innerHTML = '';
   [
     { label: 'Total',       val: items.length,         cls: '' },
     { label: 'Overdue',     val: counts.OVERDUE  || 0, cls: 'danger' },
     { label: 'Due Soon',    val: counts.UPCOMING || 0, cls: 'warning' },
+    { label: 'Stale',       val: staleCount,           cls: 'danger' },
     { label: 'Agent-Ready', val: agentCount,           cls: 'agent' }
   ].forEach(s => {
     const div = document.createElement('div'); div.className = 'stat ' + s.cls;
@@ -682,6 +712,16 @@ function renderRows(filtered) {
 
     tdMain.appendChild(subjectRow);
     tdMain.appendChild(detailsEl);
+
+    const age = ageInfo(item.created);
+    const ageLine = document.createElement('div'); ageLine.className = 'age-line';
+    if (age.ageDays === null) {
+      ageLine.innerHTML = `<span class="age-pill unknown">created date unknown</span>`;
+    } else {
+      ageLine.innerHTML = `<span class="age-pill ${age.ageClass}">${age.ageLabel}</span><span class="age-added">added ${age.addedLabel}</span>`;
+    }
+    tdMain.appendChild(ageLine);
+
     tdMain.appendChild(makeNotesArea(item));
     tdMain.appendChild(confirmStrip);
 
@@ -717,6 +757,7 @@ function renderRows(filtered) {
 function applyFilters() {
   let f = items;
   if (activeFilter === 'agent') f = f.filter(it => agentState[it.id]);
+  else if (activeFilter === 'stale') f = f.filter(it => { const a = ageInfo(it.created); return a.ageDays !== null && a.ageDays >= STALE_DAYS; });
   else if (activeFilter !== 'all') f = f.filter(it => it.priority === activeFilter);
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
@@ -746,7 +787,7 @@ function applyMutationToState(op) {
       const idx = findActiveIdx(op.subject);
       if (idx >= 0) {
         const it = activeItems.splice(idx, 1)[0];
-        completedItems.unshift({ date: it.date, from: it.from, subject: it.subject, resolution: it.actionNeeded || '(complete)', completed: TODAY_STR });
+        completedItems.unshift({ date: it.date, created: it.created || '', from: it.from, subject: it.subject, resolution: it.actionNeeded || '(complete)', completed: TODAY_STR });
       }
       break;
     }
@@ -754,12 +795,12 @@ function applyMutationToState(op) {
       const idx = findActiveIdx(op.subject);
       if (idx >= 0) {
         const it = activeItems.splice(idx, 1)[0];
-        archivedItems.unshift({ date: it.date, from: it.from, subject: it.subject, actionNeeded: it.actionNeeded, archived: TODAY_STR });
+        archivedItems.unshift({ date: it.date, created: it.created || '', from: it.from, subject: it.subject, actionNeeded: it.actionNeeded, archived: TODAY_STR });
       }
       break;
     }
     case 'add-item': {
-      activeItems.unshift({ date: op.date || TODAY_STR, from: op.from, subject: op.subject, actionNeeded: op.actionNeeded || op.subject, due: op.due, agent: op.agent, notes: op.notes });
+      activeItems.unshift({ date: op.date || TODAY_STR, created: op.created || TODAY_STR, from: op.from, subject: op.subject, actionNeeded: op.actionNeeded || op.subject, due: op.due, agent: op.agent, notes: op.notes });
       break;
     }
   }
@@ -795,7 +836,7 @@ document.getElementById('qa-add-btn').addEventListener('click', () => {
   const due = document.getElementById('qa-due').value.trim() || 'TBD';
   const notes = document.getElementById('qa-notes').value.trim();
   const agent = qaAgentOn ? 'Y' : 'N';
-  apply({ type: 'add-item', date: TODAY_STR, from, subject, actionNeeded: subject, due, agent, notes });
+  apply({ type: 'add-item', date: TODAY_STR, created: TODAY_STR, from, subject, actionNeeded: subject, due, agent, notes });
   document.getElementById('qa-subject').value = '';
   document.getElementById('qa-from').value = 'Self';
   document.getElementById('qa-due').value = 'TBD';

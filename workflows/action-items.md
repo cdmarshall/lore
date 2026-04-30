@@ -8,11 +8,12 @@ Display current action items from the inbox in a single consolidated table.
 
 ### Active table schema
 ```
-| Date | From | Subject | Action Needed | Due | Agent | Notes |
-|------|------|---------|---------------|-----|-------|-------|
+| Date | Created | From | Subject | Action Needed | Due | Agent | Notes |
+|------|---------|------|---------|---------------|-----|-------|-------|
 ```
 
-- **Date** — ISO date (YYYY-MM-DD) or blank
+- **Date** — ISO date (YYYY-MM-DD) or blank. Source date — the meeting, email, or moment the item came from. Stays attached to the originating event even when the item lingers.
+- **Created** — ISO date (YYYY-MM-DD). When the row was added to the list. Always populated for new rows; should equal the date the agent (or user) wrote the row, regardless of how old the originating Date is. Used to surface stale items in the artifact.
 - **From** — source context (person, meeting, email thread)
 - **Subject** — short title for the action item
 - **Action Needed** — full description of what to do
@@ -20,27 +21,35 @@ Display current action items from the inbox in a single consolidated table.
 - **Agent** — `Y` if this task can be delegated to a product agent; `N` or blank otherwise
 - **Notes** — free-text notes; blank by default
 
+> **Why both Date and Created?** When a transcript from three weeks ago is processed today, the resulting action items have a `Date` of three weeks ago (the meeting) and a `Created` of today (when they entered the list). This separation lets the artifact show "added 0d ago" for genuinely fresh items while preserving the original meeting/source date for context. For items entered live ("Self" notes, in-meeting captures), Date and Created will typically be the same.
+
 ### Adding a new action item
 
-Append a new row to the Active table with all 7 columns:
+Append a new row to the Active table with all 8 columns:
 
 ```
-| YYYY-MM-DD | From | Subject | Action Needed | Due | Agent | Notes |
+| YYYY-MM-DD | YYYY-MM-DD | From | Subject | Action Needed | Due | Agent | Notes |
 ```
 
+- **Date** = source date. Use the meeting date, email date, or whenever the item originated. If unknown, use today.
+- **Created** = today's date in YYYY-MM-DD. Always populated; never leave blank when adding a new row.
 - Agent should be `Y` or `N` (or blank if unknown)
 - Notes should be blank unless the user provides them
-- Always preserve the exact column order: Date, From, Subject, Action Needed, Due, Agent, Notes
+- Always preserve the exact column order: Date, Created, From, Subject, Action Needed, Due, Agent, Notes
 
 ### Completed table schema
 ```
-| Date | From | Subject | Resolution | Completed |
+| Date | Created | From | Subject | Resolution | Completed |
 ```
+
+When moving a row from Active to Completed, preserve the original `Created` value. The `Completed` column captures the resolution date.
 
 ### Archived table schema
 ```
-| Date | From | Subject | Action Needed | Archived |
+| Date | Created | From | Subject | Action Needed | Archived |
 ```
+
+When archiving, preserve the original `Created` value. The `Archived` column captures the archive date.
 
 ---
 
@@ -88,9 +97,10 @@ Run this whenever you need to add or modify action items on the user's behalf (t
      ```
      If consolidating, say so: `Consolidated into existing row [Subject]; updated Notes to add [new context].`
 3. **Apply** the change(s):
-   - Adding new items → append rows to the `## Active` table.
-   - Marking complete → move the row from Active to Completed, fill in the Resolution and Completed columns.
-   - Editing existing items → update the relevant cells in place. Preserve the schema `| Date | From | Subject | Action Needed | Due | Agent | Notes |`.
+   - Adding new items → append rows to the `## Active` table. Always populate `Created` with today's date (YYYY-MM-DD).
+   - Marking complete → move the row from Active to Completed, preserve the original `Created` value, fill in the Resolution and Completed columns.
+   - Archiving → move the row from Active to Archived, preserve the original `Created` value, fill in the Archived date.
+   - Editing existing items → update the relevant cells in place. Preserve the schema `| Date | Created | From | Subject | Action Needed | Due | Agent | Notes |`. Do not change `Created` on an existing row even when other fields are revised.
 4. **Write** the updated content back to `inbox/action-items.md`.
 5. **Run** the build script: `node scripts/build-action-items-artifact.js`. This reads the file, stamps a fresh `seedVersion` (ISO timestamp), and writes the substituted HTML to `outbox/action-items-artifact-built.html`.
 6. **Push** to the artifact:
