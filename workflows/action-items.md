@@ -4,7 +4,7 @@ Display current action items from the inbox in a single consolidated table.
 
 ## File Schema
 
-`inbox/action-items.md` has three sections: **Active**, **Completed**, and **Archived**.
+`inbox/action-items.md` has four sections: **Active**, **Delegated**, **Completed**, and **Archived**.
 
 ### Active table schema
 ```
@@ -53,6 +53,41 @@ Append a new row to the Active table with all 9 columns:
 - **Specialist** = `Y` if a sibling specialist agent (e.g., Sigil) could autonomously pick it up.
 - Notes should be blank unless the user provides them
 - Always preserve the exact column order: Date, Created, From, Subject, Action Needed, Due, Lore, Specialist, Notes
+
+### Delegated table schema
+```
+| Date | Created | From | Subject | Delegated To | Action Needed | Delegated | Notes |
+|------|---------|------|---------|-------------|---------------|-----------|-------|
+```
+
+- **Date** — original source date (preserved from the Active row)
+- **Created** — preserved from the Active row; never updated when delegating
+- **From** — original source context (preserved)
+- **Subject** — preserved from the Active row
+- **Delegated To** — team member name: `Danelle`, `Hannah`, or `April`
+- **Action Needed** — preserved from the Active row
+- **Delegated** — ISO date (YYYY-MM-DD) when the item was delegated
+- **Notes** — any context or instructions for the delegatee; preserved from the Active row
+
+Delegated items are **in-flight work owned by a team member**. They stay visible (not buried in Completed) so the user can follow up. When the work is confirmed done, move to Completed with a resolution note. To re-open, move back to Active.
+
+**When delegating an item:**
+1. Remove it from the `## Active` table
+2. Append it to the `## Delegated` table, preserving `Date`, `Created`, `From`, `Subject`, `Action Needed`, and `Notes` from the Active row
+3. Populate `Delegated To` with the team member's name
+4. Populate `Delegated` with today's date
+
+**When a delegated item is confirmed complete:**
+1. Remove it from the `## Delegated` table
+2. Append to `## Completed` with a `Resolution` of `Delegated to [Name] — [brief outcome]`
+
+**When re-opening a delegated item:**
+1. Remove it from the `## Delegated` table
+2. Restore to `## Active` with the original fields intact; set `Due` to `TBD`
+
+### Meeting prep integration
+
+Delegated items surface automatically during prep for that team member. When running roundtable prep or a 1:1 prep (via `workflows/roundtable-prep.md`), Lore reads the `## Delegated` section and groups any items delegated to that person into a "Follow-up" block in the prep brief. This is the primary mechanism for the user to close the loop on delegated work.
 
 ### Completed table schema
 ```
@@ -116,8 +151,11 @@ Run this whenever you need to add or modify action items on the user's behalf (t
 3. **Apply** the change(s):
    - Adding new items → append rows to the `## Active` table. Always populate `Created` with today's date (YYYY-MM-DD).
    - Marking complete → move the row from Active to Completed, preserve the original `Created` value, fill in the Resolution and Completed columns.
+   - Delegating → move the row from Active to Delegated, preserve original fields, set `Delegated To` and `Delegated` date. See "Delegated table schema" above.
+   - Completing a delegated item → move from Delegated to Completed with resolution note.
+   - Re-opening a delegated item → move from Delegated back to Active with `Due` reset to `TBD`.
    - Archiving → move the row from Active to Archived, preserve the original `Created` value, fill in the Archived date.
-   - Editing existing items → update the relevant cells in place. Preserve the schema `| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |`. Do not change `Created` on an existing row even when other fields are revised.
+   - Editing existing items → update the relevant cells in place. Preserve the schema. Do not change `Created` on an existing row even when other fields are revised.
 4. **Write** the updated content back to `inbox/action-items.md`.
 5. **Run** the build script: `node scripts/build-action-items-artifact.js`. This reads the file, stamps a fresh `seedVersion` (ISO timestamp), and writes the substituted HTML to `outbox/action-items-artifact-built.html`.
 6. **Push** to the artifact:

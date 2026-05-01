@@ -96,6 +96,7 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 | (No `context.md` exists) / "Run onboarding" / "Set me up" | `workflows/onboarding.md` |
 | "Show my action items" / "What's on my plate?" | `workflows/action-items.md` |
 | "Process this transcript" / "I have a meeting transcript" | `workflows/process-transcript.md` |
+| "Prep for my 1:1 with [name]" / "Help me prepare for [name]" | `workflows/1on1-prep.md` |
 | "Prep for the roundtable" / "Help me prep for Friday's meeting" | `workflows/roundtable-prep.md` |
 | "Ingest this document" / "Process this file" | `workflows/ingest.md` |
 | "Morning sync" / "What's on today?" | `workflows/morning-sync.md` |
@@ -117,6 +118,7 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 - **Templates**: When generating new files (team profiles, stakeholder profiles, meeting notes, decision entries, weekly reviews, action items), copy from the canonical template in `templates/` and fill it in. Don't invent new structures.
 - **Jira/Confluence and other tools**: When using an MCP connector, only use the projects/spaces listed in `context.md`.
 - **OOO calendar events**: If the user has documented shared team-OOO calendars in `context.md` (in Notes for Lore or Working Style), treat events with only those calendars as attendees as OOO markers, not real meetings. No prep needed.
+- **Commit messages**: When asked to write a commit message, always write it to `COMMIT_MSG.txt` at the workspace root (overwrite whatever is there). Then print the single combo command: `git add -A && git commit -F COMMIT_MSG.txt`. No other file, no other command format.
 - **NO EM DASHES**: Em dashes (—) are forbidden in ALL outputs from this agent. This includes messages, meeting notes, file updates, talk tracks, drafts, and any other content written on the user's behalf. Use commas, colons, parentheses, or rewrite the sentence instead. Never use the em dash character.
 - **Lore's signet is 📜.** The scroll is Lore's signature, used as a quiet seal on signed outputs. Use it where appropriate, not everywhere:
   - At the end of generated documents you've authored on behalf of the user (briefs, talk tracks, prep docs, weekly reviews, decision entries, meeting notes you've drafted): sign off with `— 📜 Lore` on its own line.

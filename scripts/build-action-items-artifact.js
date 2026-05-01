@@ -20,19 +20,47 @@ const DEFAULT_OUT = path.join(LORE_DIR, 'outbox', 'action-items-artifact-built.h
 
 const outPath = process.argv[2] || DEFAULT_OUT;
 
+// Read team members from team/ directory. Extracts the first name from each
+// person file's top-level heading (e.g. "# Danelle Gibson - PM" → "Danelle").
+// Skips non-person files (hyphens in stem like team-dynamics.md, .gitkeep).
+function readTeamMembers(teamDir) {
+  if (!fs.existsSync(teamDir)) return [];
+  try {
+    return fs.readdirSync(teamDir)
+      .filter(f => f.endsWith('.md') && !f.includes('-') && f !== '.gitkeep')
+      .map(f => {
+        try {
+          const content = fs.readFileSync(path.join(teamDir, f), 'utf8');
+          const match = content.match(/^#\s+(.+)/m);
+          if (match) {
+            // "Danelle Gibson - Product Manager" → "Danelle"
+            const nameBeforeDash = match[1].split(' - ')[0].trim();
+            return nameBeforeDash.split(' ')[0];
+          }
+        } catch (_) {}
+        // Fallback: capitalize the filename stem
+        const stem = f.replace(/\.md$/, '');
+        return stem.charAt(0).toUpperCase() + stem.slice(1);
+      })
+      .filter(Boolean)
+      .sort();
+  } catch (_) { return []; }
+}
+
 function parseMarkdown(content) {
   const lines = content.split('\n');
   let section = 'preamble';
   let inTable = false;
-  const active = [], completed = [], archived = [];
+  const active = [], completed = [], archived = [], delegated = [];
 
   for (const line of lines) {
     const m = line.match(/^##\s+(\w+)/);
     if (m) {
       const name = m[1].toLowerCase();
-      if (name === 'active')   { section = 'active';   inTable = false; continue; }
-      if (name === 'completed'){ section = 'completed'; inTable = false; continue; }
-      if (name === 'archived') { section = 'archived'; inTable = false; continue; }
+      if (name === 'active')    { section = 'active';    inTable = false; continue; }
+      if (name === 'completed') { section = 'completed'; inTable = false; continue; }
+      if (name === 'archived')  { section = 'archived';  inTable = false; continue; }
+      if (name === 'delegated') { section = 'delegated'; inTable = false; continue; }
       section = 'other'; inTable = false;
       continue;
     }
@@ -73,9 +101,20 @@ function parseMarkdown(content) {
         actionNeeded: cells[4] || '',
         archived: cells[5] || ''
       });
+    } else if (section === 'delegated' && cells.length >= 5) {
+      delegated.push({
+        date: cells[0] || '',
+        created: cells[1] || '',
+        from: cells[2] || '',
+        subject: cells[3] || '',
+        delegatedTo: cells[4] || '',
+        actionNeeded: cells[5] || '',
+        delegated: cells[6] || '',
+        notes: cells[7] || ''
+      });
     }
   }
-  return { active, completed, archived };
+  return { active, completed, archived, delegated };
 }
 
 if (!fs.existsSync(TEMPLATE_PATH)) {
@@ -83,12 +122,15 @@ if (!fs.existsSync(TEMPLATE_PATH)) {
   process.exit(1);
 }
 
-let parsed = { active: [], completed: [], archived: [] };
+let parsed = { active: [], completed: [], archived: [], delegated: [] };
 if (fs.existsSync(MARKDOWN_PATH)) {
   parsed = parseMarkdown(fs.readFileSync(MARKDOWN_PATH, 'utf8'));
 } else {
   console.warn(`No ${MARKDOWN_PATH} found — building artifact with empty seed.`);
 }
+
+// Embed team members so the artifact can build its delegate picker dynamically.
+parsed.teamMembers = readTeamMembers(path.join(LORE_DIR, 'team'));
 
 // seedVersion is an ISO timestamp the artifact uses to decide whether the
 // agent's view is fresher than the user's local IDB edits. We bump it every
@@ -115,7 +157,9 @@ fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, out);
 
 console.log(`Built: ${outPath}`);
+console.log(`  Team members:    ${parsed.teamMembers.join(', ') || '(none — delegate disabled)'}`);
 console.log(`  Active items:    ${parsed.active.length}`);
+console.log(`  Delegated items: ${parsed.delegated.length}`);
 console.log(`  Completed items: ${parsed.completed.length}`);
 console.log(`  Archived items:  ${parsed.archived.length}`);
 console.log(`  Seed version:    ${parsed.seedVersion}`);
