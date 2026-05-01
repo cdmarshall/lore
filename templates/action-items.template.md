@@ -4,9 +4,9 @@
 
 ## Active
 
-| Date | Created | From | Subject | Action Needed | Due | Agent | Notes |
-|------|---------|------|---------|---------------|-----|-------|-------|
-| | | | | | | | |
+| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |
+|------|---------|------|---------|---------------|-----|------|------------|-------|
+| | | | | | | | | |
 
 ## Completed
 

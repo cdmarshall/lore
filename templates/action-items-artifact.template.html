@@ -10,177 +10,246 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root { color-scheme: light; }
+:root {
+  color-scheme: light;
+  /* Anthropic-inspired warm palette */
+  --bg-page: #F4F3EE;        /* Pampas */
+  --bg-card: #FFFFFF;
+  --bg-soft: #FBFAF6;        /* warm off-white for hover/sub-bg */
+  --bg-muted: #EFEDE5;
+  --border: #E5E0D3;
+  --border-strong: #D6D2C7;
+  --text-primary: #2C2825;   /* warm near-black */
+  --text-secondary: #605B4F;
+  --text-muted: #8C8779;
+  --text-faint: #B1ADA1;     /* Cloudy */
+
+  --brand: #C15F3C;          /* Crail */
+  --brand-deep: #A14E30;
+  --brand-light: #D97757;    /* Anthropic Orange */
+  --brand-soft: #F5E5DD;
+  --brand-soft-hover: #ECCFC1;
+
+  --lore: #6A9BCC;           /* Anthropic blue */
+  --lore-deep: #4A7AAB;
+  --lore-soft: #E8EFF7;
+  --lore-soft-hover: #D2DFEE;
+  --lore-border: #B5CDE3;
+
+  --spec: #788C5D;           /* Anthropic green */
+  --spec-deep: #5D6F48;
+  --spec-soft: #EEF1E7;
+  --spec-soft-hover: #DCE3CC;
+  --spec-border: #B7C49E;
+
+  --warn: #B5524A;           /* warm red */
+  --warn-soft: #FAEEEC;
+  --warn-border: #E8B5AB;
+  --amber: #A86B3D;
+  --amber-soft: #FBF1E5;
+  --amber-border: #E5C9A2;
+
+  --font-ui: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Lora', Georgia, 'Times New Roman', serif;
+}
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1a2e; min-height: 100vh; }
+body { font-family: var(--font-body); background: var(--bg-page); color: var(--text-primary); min-height: 100vh; }
 
-.header { background: linear-gradient(135deg, #1a3254 0%, #2a5298 100%); color: white; padding: 18px 24px 16px; }
-.header-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; flex: 1; }
-.sync-wrap { display: flex; align-items: center; gap: 7px; padding: 3px 9px; background: rgba(255,255,255,0.13); border-radius: 14px; }
-.sync-dot { width: 9px; height: 9px; border-radius: 50%; background: #34d399; flex-shrink: 0; transition: background 0.3s; box-shadow: 0 0 0 2px rgba(255,255,255,0.18); }
-.sync-dot.stale { background: #fbbf24; }
-.sync-dot.error { background: #ef4444; }
-.sync-dot.local { background: #60a5fa; }
-.sync-label { font-size: 11.5px; font-weight: 500; opacity: 0.95; white-space: nowrap; }
+/* ── Header ── */
+.header { background: linear-gradient(135deg, #C15F3C 0%, #D97757 100%); color: white; padding: 18px 24px 16px; }
+.header-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+.header-title-wrap { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.header h1 { font-family: var(--font-ui); font-size: 21px; font-weight: 600; letter-spacing: -0.4px; line-height: 1.15; }
+.header-subtitle { font-family: var(--font-body); font-size: 12.5px; font-weight: 400; opacity: 0.92; letter-spacing: 0.1px; }
+.header-subtitle .scroll { font-size: 13px; margin-left: 2px; filter: drop-shadow(0 0 1px rgba(0,0,0,0.15)); }
+.sync-wrap { display: flex; align-items: center; gap: 7px; padding: 4px 10px; background: rgba(255,255,255,0.18); border-radius: 14px; align-self: center; }
+.sync-dot { width: 9px; height: 9px; border-radius: 50%; background: #C8E0A6; flex-shrink: 0; transition: background 0.3s; box-shadow: 0 0 0 2px rgba(255,255,255,0.22); }
+.sync-dot.stale { background: #F2CD8E; }
+.sync-dot.error { background: #F2A89F; }
+.sync-dot.local { background: #B5CDE3; }
+.sync-label { font-family: var(--font-ui); font-size: 11.5px; font-weight: 500; opacity: 0.95; white-space: nowrap; }
 
-.header-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.12); color: white; font-size: 12px; cursor: pointer; font-weight: 500; transition: background 0.15s; }
-.header-btn:hover { background: rgba(255,255,255,0.22); }
+.header-btn { font-family: var(--font-ui); padding: 5px 13px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.16); color: white; font-size: 12px; cursor: pointer; font-weight: 500; transition: background 0.15s; align-self: center; }
+.header-btn:hover { background: rgba(255,255,255,0.26); }
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .spinner { display: inline-block; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.65s linear infinite; flex-shrink: 0; }
 .spinner-sm { width: 10px; height: 10px; border-width: 1.5px; }
 .spinner-xs { width: 8px; height: 8px; border-width: 1.5px; }
 
-.stats { display: flex; gap: 10px; }
-.stat { background: rgba(255,255,255,0.13); border-radius: 8px; padding: 7px 14px; text-align: center; min-width: 70px; }
-.stat.danger  { background: rgba(220,53,69,0.4); }
-.stat.warning { background: rgba(255,152,0,0.38); }
-.stat.agent   { background: rgba(16,185,129,0.35); }
-.stat-n { font-size: 20px; font-weight: 700; line-height: 1.15; }
-.stat-l { font-size: 10px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px; }
+.stats { display: flex; gap: 10px; flex-wrap: wrap; }
+.stat { background: rgba(255,255,255,0.14); border-radius: 8px; padding: 7px 14px; text-align: center; min-width: 70px; border: 1px solid rgba(255,255,255,0.18); }
+.stat.danger  { background: rgba(181,82,74,0.45); border-color: rgba(255,255,255,0.22); }
+.stat.warning { background: rgba(168,107,61,0.5); border-color: rgba(255,255,255,0.22); }
+.stat.agent   { background: rgba(120,140,93,0.5); border-color: rgba(255,255,255,0.22); }
+.stat.lore    { background: rgba(106,155,204,0.5); border-color: rgba(255,255,255,0.22); }
+.stat-n { font-family: var(--font-ui); font-size: 20px; font-weight: 600; line-height: 1.15; }
+.stat-l { font-family: var(--font-ui); font-size: 10px; opacity: 0.92; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
 
-/* Toast (non-blocking inline notice) */
-.toast { padding: 10px 24px; display: none; align-items: center; gap: 12px; font-size: 12.5px; }
+/* ── Toast ── */
+.toast { padding: 10px 24px; display: none; align-items: center; gap: 12px; font-size: 12.5px; font-family: var(--font-ui); }
 .toast.show { display: flex; }
-.toast.info { background: #eff6ff; border-bottom: 1px solid #bfdbfe; color: #1e3a8a; }
-.toast.warn { background: #fffbeb; border-bottom: 1px solid #fcd34d; color: #78350f; }
-.toast.error { background: #fef2f2; border-bottom: 1px solid #fca5a5; color: #7f1d1d; }
+.toast.info  { background: var(--lore-soft); border-bottom: 1px solid var(--lore-border); color: var(--lore-deep); }
+.toast.warn  { background: var(--amber-soft); border-bottom: 1px solid var(--amber-border); color: var(--amber); }
+.toast.error { background: var(--warn-soft); border-bottom: 1px solid var(--warn-border); color: var(--warn); }
 .toast-text { flex: 1; line-height: 1.45; }
-.toast-action { padding: 4px 12px; border-radius: 5px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; color: white; background: #1d4ed8; }
-.toast.warn .toast-action { background: #b45309; }
-.toast.error .toast-action { background: #b91c1c; }
+.toast-action { font-family: var(--font-ui); padding: 4px 12px; border-radius: 5px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; color: white; background: var(--lore-deep); }
+.toast.warn .toast-action  { background: var(--amber); }
+.toast.error .toast-action { background: var(--warn); }
 .toast-close { background: none; border: none; cursor: pointer; font-size: 16px; line-height: 1; color: inherit; opacity: 0.6; padding: 0 4px; }
 .toast-close:hover { opacity: 1; }
 
-/* Controls */
-.controls { background: white; border-bottom: 1px solid #e9ecef; padding: 11px 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+/* ── Controls ── */
+.controls { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 11px 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .pills { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-.pill { padding: 4px 12px; border-radius: 20px; border: 1.5px solid #dee2e6; background: white; color: #6c757d; font-size: 12px; cursor: pointer; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
-.pill:hover { border-color: #2a5298; color: #2a5298; }
-.pill.active { background: #1a3254; color: white; border-color: #1a3254; }
-.pill.agent-pill.active { background: #059669; border-color: #059669; }
-.search-wrap input { padding: 6px 14px; border: 1.5px solid #dee2e6; border-radius: 20px; font-size: 13px; outline: none; width: 200px; transition: border-color 0.15s; color: #1a1a2e; }
-.search-wrap input:focus { border-color: #2a5298; }
-.search-wrap input::placeholder { color: #adb5bd; }
+.pill { font-family: var(--font-ui); padding: 4px 12px; border-radius: 20px; border: 1.5px solid var(--border-strong); background: var(--bg-card); color: var(--text-secondary); font-size: 12px; cursor: pointer; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
+.pill:hover { border-color: var(--brand); color: var(--brand); }
+.pill.active { background: var(--brand); color: white; border-color: var(--brand); }
+.pill.lore-pill.active   { background: var(--lore-deep); border-color: var(--lore-deep); }
+.pill.agent-pill.active  { background: var(--spec-deep); border-color: var(--spec-deep); }
+.pill.stale-pill.active  { background: var(--warn); border-color: var(--warn); }
+.search-wrap input { font-family: var(--font-ui); padding: 6px 14px; border: 1.5px solid var(--border-strong); border-radius: 20px; font-size: 13px; outline: none; width: 200px; transition: border-color 0.15s; color: var(--text-primary); background: var(--bg-card); }
+.search-wrap input:focus { border-color: var(--brand); }
+.search-wrap input::placeholder { color: var(--text-faint); }
 
-/* Table */
+/* ── Table ── */
 .table-outer { padding: 16px 24px 4px; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-thead { background: #f8f9fa; }
-th { text-align: left; padding: 9px 14px; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: #6c757d; font-weight: 600; border-bottom: 2px solid #e9ecef; }
-th.agent-th { text-align: center; color: #059669; }
-td { padding: 10px 14px; border-bottom: 1px solid #f2f2f2; vertical-align: top; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--bg-card); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(60,40,30,0.06); border: 1px solid var(--border); }
+thead { background: var(--bg-soft); }
+th { font-family: var(--font-ui); text-align: left; padding: 9px 14px; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); font-weight: 600; border-bottom: 1.5px solid var(--border); }
+th.flags-th { text-align: center; color: var(--text-secondary); }
+td { padding: 10px 14px; border-bottom: 1px solid var(--bg-muted); vertical-align: top; }
 tbody tr:last-child td { border-bottom: none; }
-tbody tr:hover td { background: #fafbfc; }
+tbody tr:hover td { background: var(--bg-soft); }
 tbody tr:hover .archive-btn { opacity: 1; }
-tbody tr.agent-row td { background: #f0fdf4; }
-tbody tr.agent-row:hover td { background: #dcfce7; }
+tbody tr.flagged-row td { background: #FCFAF5; }
+tbody tr.flagged-row:hover td { background: #F8F4EA; }
 
-/* Badges */
-.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
-.b-overdue  { background: #fff0f0; color: #b91c1c; border: 1px solid #fca5a5; }
-.b-upcoming { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; }
-.b-asap     { background: #fce4ec; color: #9d174d; border: 1px solid #f9a8d4; }
-.b-soon     { background: #f3e8ff; color: #6d28d9; border: 1px solid #c4b5fd; }
-.b-thisweek { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
-.b-tbd      { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+/* ── Badges (warm priority colors) ── */
+.badge { font-family: var(--font-ui); display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+.b-overdue  { background: var(--warn-soft);   color: var(--warn);      border: 1px solid var(--warn-border); }
+.b-upcoming { background: var(--amber-soft);  color: var(--amber);     border: 1px solid var(--amber-border); }
+.b-asap     { background: #F8E7EE;            color: #A04063;          border: 1px solid #E5B6C6; }
+.b-soon     { background: #EFE9F5;            color: #6B4F8E;          border: 1px solid #C9B9D8; }
+.b-thisweek { background: var(--lore-soft);   color: var(--lore-deep); border: 1px solid var(--lore-border); }
+.b-tbd      { background: var(--bg-muted);    color: var(--text-muted);border: 1px solid var(--border-strong); }
 
-.due-display { cursor: pointer; border-radius: 4px; padding: 2px 5px; margin: -2px -5px; display: inline-block; transition: background 0.12s; font-size: 12.5px; }
-.due-display:hover { background: #eef2ff; }
-.due-display.overdue  { color: #b91c1c; font-weight: 600; }
-.due-display.upcoming { color: #c2410c; font-weight: 600; }
-.due-actual { font-size: 10.5px; color: #9ca3af; margin-top: 1px; }
+.due-display { cursor: pointer; border-radius: 4px; padding: 2px 5px; margin: -2px -5px; display: inline-block; transition: background 0.12s; font-size: 12.5px; font-family: var(--font-ui); }
+.due-display:hover { background: var(--brand-soft); }
+.due-display.overdue  { color: var(--warn); font-weight: 600; }
+.due-display.upcoming { color: var(--amber); font-weight: 600; }
+.due-actual { font-size: 10.5px; color: var(--text-faint); margin-top: 1px; font-family: var(--font-ui); }
 
 .due-cell-wrap { position: relative; }
-.due-popover { display: none; position: absolute; z-index: 200; top: calc(100% + 4px); left: 0; background: white; border: 1.5px solid #c7d2fe; border-radius: 10px; padding: 14px; width: 240px; box-shadow: 0 6px 24px rgba(0,0,0,0.13); }
+.due-popover { display: none; position: absolute; z-index: 200; top: calc(100% + 4px); left: 0; background: var(--bg-card); border: 1.5px solid var(--brand-soft-hover); border-radius: 10px; padding: 14px; width: 240px; box-shadow: 0 6px 24px rgba(60,40,30,0.13); }
 .due-popover.open { display: block; }
-.pop-label { font-size: 10.5px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 7px; }
+.pop-label { font-family: var(--font-ui); font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 7px; }
 .pop-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-.pop-preset { padding: 3px 10px; border-radius: 5px; border: 1.5px solid #dee2e6; background: white; color: #495057; font-size: 12px; cursor: pointer; font-weight: 500; }
-.pop-preset:hover { border-color: #2a5298; color: #2a5298; background: #eef2ff; }
-.pop-date-input { width: 100%; padding: 6px 10px; border: 1.5px solid #dee2e6; border-radius: 6px; font-size: 13px; color: #1a1a2e; outline: none; margin-bottom: 10px; }
-.pop-date-input:focus { border-color: #2a5298; }
+.pop-preset { font-family: var(--font-ui); padding: 3px 10px; border-radius: 5px; border: 1.5px solid var(--border-strong); background: var(--bg-card); color: var(--text-secondary); font-size: 12px; cursor: pointer; font-weight: 500; }
+.pop-preset:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+.pop-date-input { font-family: var(--font-ui); width: 100%; padding: 6px 10px; border: 1.5px solid var(--border-strong); border-radius: 6px; font-size: 13px; color: var(--text-primary); outline: none; margin-bottom: 10px; background: var(--bg-card); }
+.pop-date-input:focus { border-color: var(--brand); }
 .pop-custom-row { display: flex; gap: 6px; }
-.pop-custom-input { flex: 1; padding: 5px 9px; border: 1.5px solid #dee2e6; border-radius: 6px; font-size: 12px; color: #1a1a2e; outline: none; }
-.pop-set-btn { padding: 5px 11px; border-radius: 6px; border: none; background: #1a3254; color: white; font-size: 12px; font-weight: 600; cursor: pointer; }
+.pop-custom-input { font-family: var(--font-ui); flex: 1; padding: 5px 9px; border: 1.5px solid var(--border-strong); border-radius: 6px; font-size: 12px; color: var(--text-primary); outline: none; background: var(--bg-card); }
+.pop-set-btn { font-family: var(--font-ui); padding: 5px 11px; border-radius: 6px; border: none; background: var(--brand); color: white; font-size: 12px; font-weight: 600; cursor: pointer; }
+.pop-set-btn:hover { background: var(--brand-deep); }
 
-.editable { cursor: text; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; transition: background 0.12s; display: inline-block; min-width: 40px; line-height: 1.35; }
-.editable:hover { background: #eef2ff; }
+/* ── Editable cells ── */
+.editable { cursor: text; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; transition: background 0.12s; display: inline-block; min-width: 40px; line-height: 1.4; }
+.editable:hover { background: var(--brand-soft); }
 .editable.editing { display: none; }
-.edit-input { display: none; border: 1.5px solid #2a5298; border-radius: 5px; padding: 3px 7px; font-size: 13px; font-family: inherit; color: #1a1a2e; background: white; outline: none; width: 100%; }
+.edit-input { display: none; border: 1.5px solid var(--brand); border-radius: 5px; padding: 3px 7px; font-size: 13px; font-family: var(--font-body); color: var(--text-primary); background: var(--bg-card); outline: none; width: 100%; }
 .edit-input.visible { display: block; }
 .subject-row { display: flex; align-items: center; margin-bottom: 2px; }
-.subject-text { font-weight: 500; color: #1a1a2e; line-height: 1.35; }
-.details-text { color: #6c757d; font-size: 12px; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; cursor: pointer; margin-bottom: 3px; }
+.subject-text { font-family: var(--font-body); font-weight: 500; color: var(--text-primary); line-height: 1.4; }
+.details-text { font-family: var(--font-body); color: var(--text-secondary); font-size: 12.5px; line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; cursor: pointer; margin-bottom: 3px; }
 .details-text.expanded { display: block; }
 
-.age-line { font-size: 10.5px; color: #9ca3af; line-height: 1.3; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
-.age-line .age-pill { display: inline-block; padding: 1px 6px; border-radius: 8px; font-weight: 600; letter-spacing: 0.2px; }
-.age-line .age-pill.fresh    { background: #f3f4f6; color: #6b7280; }
-.age-line .age-pill.aging    { background: #fef3c7; color: #92400e; }
-.age-line .age-pill.stale    { background: #fee2e2; color: #b91c1c; }
-.age-line .age-pill.unknown  { background: #f9fafb; color: #c9ccd1; font-style: italic; font-weight: 500; }
-.age-line .age-added { color: #9ca3af; }
-.pill.stale-pill.active { background: #b91c1c; border-color: #b91c1c; }
+/* ── Age line ── */
+.age-line { font-family: var(--font-ui); font-size: 10.5px; color: var(--text-faint); line-height: 1.3; margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+.age-line .age-pill { display: inline-block; padding: 1px 7px; border-radius: 8px; font-weight: 600; letter-spacing: 0.2px; }
+.age-line .age-pill.fresh    { background: var(--bg-muted);   color: var(--text-secondary); }
+.age-line .age-pill.aging    { background: var(--amber-soft); color: var(--amber); }
+.age-line .age-pill.stale    { background: var(--warn-soft);  color: var(--warn); }
+.age-line .age-pill.unknown  { background: var(--bg-soft);    color: var(--text-faint); font-style: italic; font-weight: 500; }
+.age-line .age-added { color: var(--text-faint); }
 
-.notes-area { margin-top: 4px; }
-.notes-display { font-size: 11.5px; color: #6b7280; font-style: italic; line-height: 1.4; cursor: text; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; display: inline-block; }
-.notes-display:hover { background: #f3f4f6; }
-.notes-display.empty { color: #c9ccd1; font-style: normal; }
+/* ── Notes ── */
+.notes-area { margin-top: 5px; }
+.notes-display { font-family: var(--font-body); font-size: 12px; color: var(--text-muted); font-style: italic; line-height: 1.45; cursor: text; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; display: inline-block; }
+.notes-display:hover { background: var(--bg-muted); }
+.notes-display.empty { color: var(--text-faint); font-style: normal; }
 .notes-edit-wrap { display: none; margin-top: 4px; }
 .notes-edit-wrap.open { display: block; }
-.notes-textarea { width: 100%; padding: 5px 8px; border: 1.5px solid #2a5298; border-radius: 5px; font-size: 12px; font-family: inherit; color: #1a1a2e; background: white; outline: none; resize: vertical; min-height: 48px; line-height: 1.45; }
+.notes-textarea { font-family: var(--font-body); width: 100%; padding: 5px 8px; border: 1.5px solid var(--brand); border-radius: 5px; font-size: 12.5px; color: var(--text-primary); background: var(--bg-card); outline: none; resize: vertical; min-height: 48px; line-height: 1.5; }
 .notes-actions { display: flex; gap: 6px; margin-top: 5px; }
-.notes-save { padding: 3px 11px; border-radius: 5px; border: none; background: #1a3254; color: white; font-size: 11.5px; font-weight: 600; cursor: pointer; }
-.notes-save:hover { background: #2a5298; }
-.notes-cancel { padding: 3px 11px; border-radius: 5px; border: 1px solid #dee2e6; background: white; color: #6c757d; font-size: 11.5px; cursor: pointer; }
+.notes-save { font-family: var(--font-ui); padding: 3px 11px; border-radius: 5px; border: none; background: var(--brand); color: white; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.notes-save:hover { background: var(--brand-deep); }
+.notes-cancel { font-family: var(--font-ui); padding: 3px 11px; border-radius: 5px; border: 1px solid var(--border-strong); background: var(--bg-card); color: var(--text-secondary); font-size: 11.5px; cursor: pointer; }
 
-.agent-toggle { display: flex; align-items: center; justify-content: center; }
-.agent-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1.5px solid; transition: all 0.15s; white-space: nowrap; user-select: none; }
-.agent-chip.on  { background: #ecfdf5; color: #059669; border-color: #6ee7b7; }
-.agent-chip.off { background: #f9fafb; color: #d1d5db; border-color: #e5e7eb; }
-.agent-chip.on:hover  { background: #d1fae5; border-color: #34d399; }
-.agent-chip.off:hover { background: #f3f4f6; border-color: #9ca3af; color: #6b7280; }
-.agent-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+/* ── Flag chips (Lore + Specialist) ── */
+.flags-toggle { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+.flag-chip { font-family: var(--font-ui); display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 20px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1.5px solid; transition: all 0.15s; white-space: nowrap; user-select: none; justify-content: center; }
+.flag-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+/* Lore variant (warm blue) */
+.flag-chip.lore.on   { background: var(--lore-soft); color: var(--lore-deep); border-color: var(--lore-border); }
+.flag-chip.lore.off  { background: var(--bg-soft); color: var(--text-faint); border-color: var(--border); }
+.flag-chip.lore.on:hover  { background: var(--lore-soft-hover); border-color: var(--lore); }
+.flag-chip.lore.off:hover { background: var(--bg-muted); border-color: var(--border-strong); color: var(--text-muted); }
+/* Specialist variant (warm green) */
+.flag-chip.spec.on   { background: var(--spec-soft); color: var(--spec-deep); border-color: var(--spec-border); }
+.flag-chip.spec.off  { background: var(--bg-soft); color: var(--text-faint); border-color: var(--border); }
+.flag-chip.spec.on:hover  { background: var(--spec-soft-hover); border-color: var(--spec); }
+.flag-chip.spec.off:hover { background: var(--bg-muted); border-color: var(--border-strong); color: var(--text-muted); }
 
-.cb { width: 15px; height: 15px; cursor: pointer; accent-color: #1a3254; display: block; margin-top: 2px; }
-.confirm-strip { display: none; margin-top: 6px; padding: 5px 10px; background: #f0f4ff; border-radius: 6px; border: 1px solid #c7d2fe; align-items: center; gap: 8px; font-size: 12px; color: #374151; flex-wrap: wrap; }
+/* ── Confirm + archive ── */
+.cb { width: 15px; height: 15px; cursor: pointer; accent-color: var(--brand); display: block; margin-top: 2px; }
+.confirm-strip { display: none; margin-top: 6px; padding: 6px 11px; background: var(--brand-soft); border-radius: 6px; border: 1px solid var(--brand-soft-hover); align-items: center; gap: 8px; font-size: 12px; color: var(--text-primary); flex-wrap: wrap; font-family: var(--font-ui); }
 .confirm-strip.show { display: flex; }
-.btn-yes { padding: 3px 12px; border-radius: 5px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; background: #1a3254; color: white; }
-.btn-yes:hover { background: #2a5298; }
-.btn-no { padding: 3px 12px; border-radius: 5px; border: 1px solid #dee2e6; cursor: pointer; font-size: 12px; color: #6c757d; background: white; }
-.archive-btn { opacity: 0; transition: opacity 0.15s; padding: 2px 9px; border-radius: 5px; border: 1px solid #dee2e6; cursor: pointer; font-size: 11px; color: #6c757d; background: white; font-weight: 500; }
-.archive-btn:hover { border-color: #adb5bd; color: #374151; }
+.btn-yes { font-family: var(--font-ui); padding: 3px 12px; border-radius: 5px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; background: var(--brand); color: white; }
+.btn-yes:hover { background: var(--brand-deep); }
+.btn-no { font-family: var(--font-ui); padding: 3px 12px; border-radius: 5px; border: 1px solid var(--border-strong); cursor: pointer; font-size: 12px; color: var(--text-secondary); background: var(--bg-card); }
+.archive-btn { font-family: var(--font-ui); opacity: 0; transition: opacity 0.15s; padding: 2px 9px; border-radius: 5px; border: 1px solid var(--border-strong); cursor: pointer; font-size: 11px; color: var(--text-secondary); background: var(--bg-card); font-weight: 500; }
+.archive-btn:hover { border-color: var(--brand); color: var(--brand); }
 
+/* ── Quick add ── */
 .quick-add-outer { padding: 12px 24px 20px; }
-.quick-add-box { background: white; border-radius: 10px; border: 2px dashed #c7d2fe; box-shadow: 0 1px 4px rgba(0,0,0,0.05); overflow: hidden; transition: border-color 0.15s; }
-.quick-add-box:focus-within { border-color: #2a5298; }
-.quick-add-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0; font-size: 11.5px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
-.quick-add-plus { font-size: 16px; color: #2a5298; line-height: 1; }
+.quick-add-box { background: var(--bg-card); border-radius: 10px; border: 2px dashed var(--brand-soft-hover); box-shadow: 0 1px 4px rgba(60,40,30,0.05); overflow: hidden; transition: border-color 0.15s; }
+.quick-add-box:focus-within { border-color: var(--brand); }
+.quick-add-header { font-family: var(--font-ui); display: flex; align-items: center; gap: 8px; padding: 10px 14px 0; font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.quick-add-plus { font-size: 16px; color: var(--brand); line-height: 1; }
 .quick-add-fields { display: flex; gap: 10px; padding: 10px 14px; flex-wrap: wrap; align-items: flex-end; }
 .qa-field { display: flex; flex-direction: column; gap: 4px; }
-.qa-label { font-size: 10.5px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.4px; }
-.qa-input { padding: 6px 10px; border: 1.5px solid #dee2e6; border-radius: 6px; font-size: 13px; color: #1a1a2e; outline: none; font-family: inherit; background: white; transition: border-color 0.15s; }
-.qa-input:focus { border-color: #2a5298; }
-.qa-input::placeholder { color: #c9ccd1; }
+.qa-label { font-family: var(--font-ui); font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.qa-input { font-family: var(--font-ui); padding: 6px 10px; border: 1.5px solid var(--border-strong); border-radius: 6px; font-size: 13px; color: var(--text-primary); outline: none; background: var(--bg-card); transition: border-color 0.15s; }
+.qa-input:focus { border-color: var(--brand); }
+.qa-input::placeholder { color: var(--text-faint); }
 .qa-from { width: 130px; }
 .qa-due { width: 110px; }
 .qa-agent-wrap { display: flex; flex-direction: column; gap: 4px; }
-.qa-agent-toggle { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1.5px solid #dee2e6; border-radius: 6px; cursor: pointer; user-select: none; background: white; }
-.qa-agent-toggle.on { border-color: #6ee7b7; background: #ecfdf5; }
-.qa-dot { width: 8px; height: 8px; border-radius: 50%; background: #d1d5db; }
-.qa-agent-toggle.on .qa-dot { background: #059669; }
-.qa-agent-text { font-size: 12.5px; color: #6c757d; }
-.qa-agent-toggle.on .qa-agent-text { color: #059669; font-weight: 600; }
-.qa-add-btn { padding: 7px 18px; border-radius: 6px; border: none; background: #1a3254; color: white; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; align-self: flex-end; }
-.qa-add-btn:hover { background: #2a5298; }
+.qa-agent-toggle { font-family: var(--font-ui); display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1.5px solid var(--border-strong); border-radius: 6px; cursor: pointer; user-select: none; background: var(--bg-card); }
+.qa-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); }
+.qa-agent-text { font-size: 12.5px; color: var(--text-secondary); }
+/* Specialist (green) */
+.qa-specialist-toggle.on { border-color: var(--spec-border); background: var(--spec-soft); }
+.qa-specialist-toggle.on .qa-dot { background: var(--spec-deep); }
+.qa-specialist-toggle.on .qa-agent-text { color: var(--spec-deep); font-weight: 600; }
+/* Lore (blue) */
+.qa-lore-toggle.on { border-color: var(--lore-border); background: var(--lore-soft); }
+.qa-lore-toggle.on .qa-dot { background: var(--lore-deep); }
+.qa-lore-toggle.on .qa-agent-text { color: var(--lore-deep); font-weight: 600; }
+.qa-add-btn { font-family: var(--font-ui); padding: 7px 18px; border-radius: 6px; border: none; background: var(--brand); color: white; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; align-self: flex-end; }
+.qa-add-btn:hover { background: var(--brand-deep); }
 .qa-add-btn:disabled { opacity: 0.5; cursor: default; }
 
-.footer { padding: 6px 24px 16px; font-size: 12px; color: #9ca3af; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-.tip { font-size: 11.5px; color: #6b7280; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 5px 12px; }
-.no-results { background: white; border-radius: 10px; text-align: center; padding: 48px; color: #9ca3af; font-style: italic; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+/* ── Footer ── */
+.footer { font-family: var(--font-ui); padding: 6px 24px 16px; font-size: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.tip { font-size: 11.5px; color: var(--text-secondary); background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; }
+.no-results { font-family: var(--font-body); background: var(--bg-card); border-radius: 10px; text-align: center; padding: 48px; color: var(--text-muted); font-style: italic; box-shadow: 0 1px 4px rgba(60,40,30,0.06); border: 1px solid var(--border); }
 .hidden { display: none; }
 
 .menu-row { display: flex; gap: 8px; }
@@ -197,7 +266,10 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
 
 <div class="header">
   <div class="header-row">
-    <h1>Action Items</h1>
+    <div class="header-title-wrap">
+      <h1>Action Items</h1>
+      <div class="header-subtitle">by Lore <span class="scroll">📜</span></div>
+    </div>
     <div class="sync-wrap">
       <div class="sync-dot" id="sync-dot"></div>
       <span class="sync-label" id="sync-label">Loading...</span>
@@ -224,7 +296,8 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
     <button class="pill" data-filter="Soon">Soon</button>
     <button class="pill" data-filter="This week">This Week</button>
     <button class="pill" data-filter="TBD">TBD</button>
-    <button class="pill agent-pill" data-filter="agent">Agent-Ready</button>
+    <button class="pill lore-pill" data-filter="lore" title="Items Lore can plausibly do from inside the workspace">Lore-Ready</button>
+    <button class="pill agent-pill" data-filter="specialist" title="Items a sibling specialist agent (e.g., Sigil) can pick up">Specialist-Ready</button>
     <button class="pill stale-pill" data-filter="stale" title="Items added more than 30 days ago">Stale (&gt;30d)</button>
   </div>
   <div class="search-wrap">
@@ -241,7 +314,7 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
         <th>Action Item</th>
         <th style="width:140px">From</th>
         <th style="width:108px">Due</th>
-        <th class="agent-th" style="width:80px">Agent?</th>
+        <th class="flags-th" style="width:96px" title="Lore (blue) can do it from inside the workspace; Specialist (green) is for a sibling specialist agent like Sigil">Agents</th>
         <th style="width:68px"></th>
       </tr>
     </thead>
@@ -271,8 +344,15 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
         <input id="qa-notes" class="qa-input" placeholder="Optional context...">
       </div>
       <div class="qa-field qa-agent-wrap">
-        <div class="qa-label">Agent?</div>
-        <div class="qa-agent-toggle" id="qa-agent-toggle">
+        <div class="qa-label">Lore?</div>
+        <div class="qa-agent-toggle qa-lore-toggle" id="qa-lore-toggle" title="Lore could plausibly do this from inside the workspace">
+          <span class="qa-dot"></span>
+          <span class="qa-agent-text">No</span>
+        </div>
+      </div>
+      <div class="qa-field qa-agent-wrap">
+        <div class="qa-label">Specialist?</div>
+        <div class="qa-agent-toggle qa-specialist-toggle" id="qa-specialist-toggle" title="A sibling specialist agent (e.g., Sigil) could pick this up autonomously">
           <span class="qa-dot"></span>
           <span class="qa-agent-text">No</span>
         </div>
@@ -284,7 +364,7 @@ tbody tr.agent-row:hover td { background: #dcfce7; }
 
 <div class="footer">
   <span id="showing"></span>
-  <span class="tip" id="footer-tip">Click any cell to edit · <strong>Auto-save</strong> writes every change to a markdown file · <strong>Download snapshot</strong> exports a one-time copy</span>
+  <span class="tip" id="footer-tip">Click any cell to edit · Changes save automatically to this view · <strong>Download snapshot</strong> exports a markdown copy</span>
 </div>
 
 <script>
@@ -303,7 +383,7 @@ const TODAY_STR = (() => { const d = new Date(); return d.getFullYear() + '-' + 
 let activeItems = [], completedItems = [], archivedItems = [];
 let items = [];
 let recentlyCompleted = 0;
-const agentState = {}, notesState = {};
+const loreState = {}, specialistState = {}, notesState = {};
 let activeFilter = 'all', searchQuery = '';
 // lastSeenSeedVersion tracks the seedVersion we last consumed from the artifact's
 // embedded seed. On bootstrap, if the embedded seedVersion is different (newer),
@@ -472,8 +552,8 @@ function setSync(state, label) {
 // ── Markdown serializer (for backup file) ──────────────────────────────────
 function serializeMarkdown() {
   let out = '# Action Items\n\n> Live tracker. Source of truth is the artifact (IndexedDB). This file is an auto-saved backup written after every change.\n\n';
-  out += '## Active\n\n| Date | Created | From | Subject | Action Needed | Due | Agent | Notes |\n|------|---------|------|---------|---------------|-----|-------|-------|\n';
-  for (const it of activeItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.actionNeeded || ''} | ${it.due || 'TBD'} | ${it.agent || ''} | ${it.notes || ''} |\n`;
+  out += '## Active\n\n| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |\n|------|---------|------|---------|---------------|-----|------|------------|-------|\n';
+  for (const it of activeItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.actionNeeded || ''} | ${it.due || 'TBD'} | ${it.lore || ''} | ${it.specialist || ''} | ${it.notes || ''} |\n`;
   out += '\n## Completed\n\n| Date | Created | From | Subject | Resolution | Completed |\n|------|---------|------|---------|------------|-----------|\n';
   for (const it of completedItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.resolution || ''} | ${it.completed || ''} |\n`;
   out += '\n## Archived\n\n| Date | Created | From | Subject | Action Needed | Archived |\n|------|---------|------|---------|---------------|----------|\n';
@@ -504,13 +584,15 @@ function updateSyncState() {
 
 // ── Derive / render ────────────────────────────────────────────────────────
 function rebuildItems() {
-  for (const k in agentState) delete agentState[k];
+  for (const k in loreState) delete loreState[k];
+  for (const k in specialistState) delete specialistState[k];
   for (const k in notesState) delete notesState[k];
+  const yes = v => v === 'Y' || v === 'y' || v === true;
   items = activeItems.map((r, i) => {
     const p = getPriority(r.due);
-    return { id: i, date: r.date, created: r.created || '', from: r.from, subject: r.subject, details: r.actionNeeded || '', due: r.due || 'TBD', agentable: r.agent === 'Y' || r.agent === 'y' || r.agent === true, notes: r.notes || '', priority: p.label, order: p.order };
+    return { id: i, date: r.date, created: r.created || '', from: r.from, subject: r.subject, details: r.actionNeeded || '', due: r.due || 'TBD', loreable: yes(r.lore), specialistable: yes(r.specialist), notes: r.notes || '', priority: p.label, order: p.order };
   }).sort((a, b) => a.order - b.order || (a.subject||'').localeCompare(b.subject||''));
-  items.forEach(it => { agentState[it.id] = it.agentable; notesState[it.id] = it.notes; });
+  items.forEach(it => { loreState[it.id] = it.loreable; specialistState[it.id] = it.specialistable; notesState[it.id] = it.notes; });
 
   const thirtyDaysAgo = new Date(TODAY.getTime() - 30 * 86400000);
   recentlyCompleted = completedItems.filter(c => {
@@ -564,16 +646,18 @@ function ageInfo(createdStr) {
 
 function renderStats() {
   const counts = {}; items.forEach(it => { counts[it.priority] = (counts[it.priority] || 0) + 1; });
-  const agentCount = Object.values(agentState).filter(Boolean).length;
+  const loreCount = Object.values(loreState).filter(Boolean).length;
+  const specCount = Object.values(specialistState).filter(Boolean).length;
   let staleCount = 0;
   items.forEach(it => { const a = ageInfo(it.created); if (a.ageDays !== null && a.ageDays >= STALE_DAYS) staleCount++; });
   const el = document.getElementById('stats'); el.innerHTML = '';
   [
-    { label: 'Total',       val: items.length,         cls: '' },
-    { label: 'Overdue',     val: counts.OVERDUE  || 0, cls: 'danger' },
-    { label: 'Due Soon',    val: counts.UPCOMING || 0, cls: 'warning' },
-    { label: 'Stale',       val: staleCount,           cls: 'danger' },
-    { label: 'Agent-Ready', val: agentCount,           cls: 'agent' }
+    { label: 'Total',      val: items.length,         cls: '' },
+    { label: 'Overdue',    val: counts.OVERDUE  || 0, cls: 'danger' },
+    { label: 'Due Soon',   val: counts.UPCOMING || 0, cls: 'warning' },
+    { label: 'Stale',      val: staleCount,           cls: 'danger' },
+    { label: 'Lore',       val: loreCount,            cls: 'lore' },
+    { label: 'Specialist', val: specCount,            cls: 'agent' }
   ].forEach(s => {
     const div = document.createElement('div'); div.className = 'stat ' + s.cls;
     div.innerHTML = `<div class="stat-n">${s.val}</div><div class="stat-l">${s.label}</div>`;
@@ -654,22 +738,29 @@ function makeNotesArea(item) {
   return wrap;
 }
 
-function makeAgentToggle(item) {
-  const wrap = document.createElement('div'); wrap.className = 'agent-toggle';
-  function render() {
-    const on = agentState[item.id]; wrap.innerHTML = '';
-    const chip = document.createElement('span'); chip.className = 'agent-chip ' + (on ? 'on' : 'off');
-    chip.innerHTML = `<span class="dot"></span>${on ? 'Yes' : 'No'}`;
+function makeFlagsToggle(item) {
+  const wrap = document.createElement('div'); wrap.className = 'flags-toggle';
+  function buildChip(kind, stateMap, opType) {
+    const chip = document.createElement('span');
+    function render() {
+      const on = stateMap[item.id];
+      chip.className = 'flag-chip ' + kind + ' ' + (on ? 'on' : 'off');
+      chip.innerHTML = `<span class="dot"></span>${kind === 'lore' ? 'Lore' : 'Spec'}`;
+    }
     chip.addEventListener('click', e => {
       e.stopPropagation();
-      const nv = !agentState[item.id]; agentState[item.id] = nv;
-      const tr = document.getElementById('row-' + item.id); if (tr) tr.classList.toggle('agent-row', nv);
+      const nv = !stateMap[item.id]; stateMap[item.id] = nv;
+      const tr = document.getElementById('row-' + item.id);
+      if (tr) tr.classList.toggle('flagged-row', !!loreState[item.id] || !!specialistState[item.id]);
       render(); renderStats();
-      apply({ type: 'toggle-agent', subject: item.subject, value: nv });
+      apply({ type: opType, subject: item.subject, value: nv });
     });
-    wrap.appendChild(chip);
+    render();
+    return chip;
   }
-  render(); return wrap;
+  wrap.appendChild(buildChip('lore', loreState, 'toggle-lore'));
+  wrap.appendChild(buildChip('spec', specialistState, 'toggle-specialist'));
+  return wrap;
 }
 
 function renderRows(filtered) {
@@ -680,7 +771,7 @@ function renderRows(filtered) {
 
   filtered.forEach(item => {
     const tr = document.createElement('tr'); tr.id = 'row-' + item.id;
-    if (agentState[item.id]) tr.classList.add('agent-row');
+    if (loreState[item.id] || specialistState[item.id]) tr.classList.add('flagged-row');
 
     const tdCb = document.createElement('td'); tdCb.style.cssText = 'width:30px;vertical-align:top;padding-top:13px';
     const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'cb';
@@ -738,8 +829,8 @@ function renderRows(filtered) {
     dueDisplay.addEventListener('click', e => { e.stopPropagation(); const o = pop.classList.contains('open'); closeAllPopovers(); if (!o) pop.classList.add('open'); });
     dueWrap.appendChild(dueDisplay); if (rel.actual) dueWrap.appendChild(dueActual); dueWrap.appendChild(pop); tdDue.appendChild(dueWrap);
 
-    const tdAgent = document.createElement('td'); tdAgent.style.cssText = 'width:80px;text-align:center;vertical-align:top;padding-top:11px';
-    tdAgent.appendChild(makeAgentToggle(item));
+    const tdAgent = document.createElement('td'); tdAgent.style.cssText = 'width:96px;text-align:center;vertical-align:top;padding-top:9px';
+    tdAgent.appendChild(makeFlagsToggle(item));
 
     const tdArc = document.createElement('td'); tdArc.style.cssText = 'width:68px;vertical-align:top;padding-top:11px';
     const arcBtn = document.createElement('button'); arcBtn.className = 'archive-btn'; arcBtn.textContent = 'Archive';
@@ -756,7 +847,8 @@ function renderRows(filtered) {
 
 function applyFilters() {
   let f = items;
-  if (activeFilter === 'agent') f = f.filter(it => agentState[it.id]);
+  if (activeFilter === 'lore') f = f.filter(it => loreState[it.id]);
+  else if (activeFilter === 'specialist') f = f.filter(it => specialistState[it.id]);
   else if (activeFilter === 'stale') f = f.filter(it => { const a = ageInfo(it.created); return a.ageDays !== null && a.ageDays >= STALE_DAYS; });
   else if (activeFilter !== 'all') f = f.filter(it => it.priority === activeFilter);
   if (searchQuery) {
@@ -778,11 +870,12 @@ function applyMutationToState(op) {
   const findActive = subj => activeItems.find(it => it.subject === subj);
   const findActiveIdx = subj => activeItems.findIndex(it => it.subject === subj);
   switch (op.type) {
-    case 'set-due':         { const it = findActive(op.subject); if (it) it.due = op.value; break; }
-    case 'set-notes':       { const it = findActive(op.subject); if (it) it.notes = op.value; break; }
-    case 'toggle-agent':    { const it = findActive(op.subject); if (it) it.agent = op.value ? 'Y' : 'N'; break; }
-    case 'rename-subject':  { const it = findActive(op.subject); if (it) it.subject = op.value; break; }
-    case 'set-from':        { const it = findActive(op.subject); if (it) it.from = op.value; break; }
+    case 'set-due':           { const it = findActive(op.subject); if (it) it.due = op.value; break; }
+    case 'set-notes':         { const it = findActive(op.subject); if (it) it.notes = op.value; break; }
+    case 'toggle-lore':       { const it = findActive(op.subject); if (it) it.lore = op.value ? 'Y' : ''; break; }
+    case 'toggle-specialist': { const it = findActive(op.subject); if (it) it.specialist = op.value ? 'Y' : ''; break; }
+    case 'rename-subject':    { const it = findActive(op.subject); if (it) it.subject = op.value; break; }
+    case 'set-from':          { const it = findActive(op.subject); if (it) it.from = op.value; break; }
     case 'mark-complete': {
       const idx = findActiveIdx(op.subject);
       if (idx >= 0) {
@@ -800,7 +893,7 @@ function applyMutationToState(op) {
       break;
     }
     case 'add-item': {
-      activeItems.unshift({ date: op.date || TODAY_STR, created: op.created || TODAY_STR, from: op.from, subject: op.subject, actionNeeded: op.actionNeeded || op.subject, due: op.due, agent: op.agent, notes: op.notes });
+      activeItems.unshift({ date: op.date || TODAY_STR, created: op.created || TODAY_STR, from: op.from, subject: op.subject, actionNeeded: op.actionNeeded || op.subject, due: op.due, lore: op.lore || '', specialist: op.specialist || '', notes: op.notes });
       break;
     }
   }
@@ -822,27 +915,37 @@ function apply(op) {
 }
 
 // ── Quick-add ──────────────────────────────────────────────────────────────
-let qaAgentOn = false;
-document.getElementById('qa-agent-toggle').addEventListener('click', () => {
-  qaAgentOn = !qaAgentOn;
-  const tog = document.getElementById('qa-agent-toggle');
-  tog.classList.toggle('on', qaAgentOn);
-  tog.querySelector('.qa-agent-text').textContent = qaAgentOn ? 'Yes — Agent' : 'No';
-});
+let qaLoreOn = false, qaSpecOn = false;
+function bindQaToggle(id, getOn, setOn) {
+  const tog = document.getElementById(id);
+  tog.addEventListener('click', () => {
+    setOn(!getOn());
+    tog.classList.toggle('on', getOn());
+    tog.querySelector('.qa-agent-text').textContent = getOn() ? 'Yes' : 'No';
+  });
+}
+bindQaToggle('qa-lore-toggle',       () => qaLoreOn, v => qaLoreOn = v);
+bindQaToggle('qa-specialist-toggle', () => qaSpecOn, v => qaSpecOn = v);
+
 document.getElementById('qa-add-btn').addEventListener('click', () => {
   const subject = document.getElementById('qa-subject').value.trim();
   if (!subject) { document.getElementById('qa-subject').focus(); return; }
   const from = document.getElementById('qa-from').value.trim() || 'Self';
   const due = document.getElementById('qa-due').value.trim() || 'TBD';
   const notes = document.getElementById('qa-notes').value.trim();
-  const agent = qaAgentOn ? 'Y' : 'N';
-  apply({ type: 'add-item', date: TODAY_STR, created: TODAY_STR, from, subject, actionNeeded: subject, due, agent, notes });
+  const lore = qaLoreOn ? 'Y' : '';
+  const specialist = qaSpecOn ? 'Y' : '';
+  apply({ type: 'add-item', date: TODAY_STR, created: TODAY_STR, from, subject, actionNeeded: subject, due, lore, specialist, notes });
   document.getElementById('qa-subject').value = '';
   document.getElementById('qa-from').value = 'Self';
   document.getElementById('qa-due').value = 'TBD';
   document.getElementById('qa-notes').value = '';
-  qaAgentOn = false;
-  const tog = document.getElementById('qa-agent-toggle'); tog.classList.remove('on'); tog.querySelector('.qa-agent-text').textContent = 'No';
+  qaLoreOn = false; qaSpecOn = false;
+  for (const id of ['qa-lore-toggle','qa-specialist-toggle']) {
+    const tog = document.getElementById(id);
+    tog.classList.remove('on');
+    tog.querySelector('.qa-agent-text').textContent = 'No';
+  }
 });
 document.getElementById('qa-subject').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('qa-add-btn').click(); });
 
