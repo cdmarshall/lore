@@ -19,7 +19,7 @@ Prepare for a recurring team roundtable / leadership meeting.
 ### 1. Read Source Files
 
 Read the following files in parallel:
-- `inbox/action-items.md` — completed items this week + active blockers
+- `inbox/action-items.md` — completed items this week, active blockers, and the `## Delegated` section (items delegated to each team member)
 - `context.md` — current priorities, active initiatives, and the user's team list
 - `strategy/roadmap.md` if it exists — current initiative statuses
 - One file per direct report under `team/` — each team member's recent observations
@@ -43,6 +43,8 @@ For each direct report (named in `context.md`), scan their `team/[name].md` file
 - **Recap**: What they probably finished or progressed this week
 - **Focus**: What they're likely heads-down on next week
 - **Blockers**: Any known dependencies or blockers mentioned in observations
+
+Also scan the `## Delegated` section of `inbox/action-items.md` for any items delegated to this person. These become **Follow-up** prompts — the user should close the loop on them during the Round-Robin. Apply this to all team members including Jax where relevant.
 
 Use hedged language (e.g., "likely to mention", "may flag") — these are prompts to help the user listen and respond, not authoritative summaries.
 
@@ -87,11 +89,13 @@ Output a structured prep brief:
 - **Likely Recap**: [Inferred from observations]
 - **Likely Focus**: [Inferred from current projects]
 - **Watch for**: [Any blockers or dependencies to be ready to address]
+- **Follow up on** *(delegated items)*: [List any items from `## Delegated` assigned to this person, with subject and when delegated — omit section if none]
 
 ### [Direct report 2]
 - **Likely Recap**: [Inferred from observations]
 - **Likely Focus**: [Inferred from current projects]
 - **Watch for**: [Any blockers or dependencies to be ready to address]
+- **Follow up on** *(delegated items)*: [List any items from `## Delegated` assigned to this person — omit section if none]
 
 (Repeat for each direct report named in context.md)
 

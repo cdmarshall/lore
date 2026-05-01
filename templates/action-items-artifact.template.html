@@ -46,6 +46,12 @@
   --spec-soft-hover: #DCE3CC;
   --spec-border: #B7C49E;
 
+  --delegate: #8B6BA8;       /* soft purple for delegation */
+  --delegate-deep: #6B4F8E;
+  --delegate-soft: #F3EEF9;
+  --delegate-soft-hover: #E8DFF3;
+  --delegate-border: #CAB8E0;
+
   --warn: #B5524A;           /* warm red */
   --warn-soft: #FAEEEC;
   --warn-border: #E8B5AB;
@@ -95,6 +101,7 @@ body {
 .stat.warning { background: rgba(168,107,61,0.5); border-color: rgba(255,255,255,0.22); }
 .stat.agent   { background: rgba(120,140,93,0.5); border-color: rgba(255,255,255,0.22); }
 .stat.lore    { background: rgba(106,155,204,0.5); border-color: rgba(255,255,255,0.22); }
+.stat.delegate { background: rgba(139,107,168,0.5); border-color: rgba(255,255,255,0.22); }
 .stat-n { font-family: var(--font-ui); font-size: 20px; font-weight: 600; line-height: 1.15; }
 .stat-l { font-family: var(--font-ui); font-size: 10px; opacity: 0.92; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
 
@@ -117,9 +124,10 @@ body {
 .pill { font-family: var(--font-ui); padding: 4px 12px; border-radius: 20px; border: 1.5px solid var(--border-strong); background: var(--bg-card); color: var(--text-secondary); font-size: 12px; cursor: pointer; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
 .pill:hover { border-color: var(--brand); color: var(--brand); }
 .pill.active { background: var(--brand); color: white; border-color: var(--brand); }
-.pill.lore-pill.active   { background: var(--lore-deep); border-color: var(--lore-deep); }
-.pill.agent-pill.active  { background: var(--spec-deep); border-color: var(--spec-deep); }
-.pill.stale-pill.active  { background: var(--warn); border-color: var(--warn); }
+.pill.lore-pill.active     { background: var(--lore-deep); border-color: var(--lore-deep); }
+.pill.agent-pill.active    { background: var(--spec-deep); border-color: var(--spec-deep); }
+.pill.stale-pill.active    { background: var(--warn); border-color: var(--warn); }
+.pill.delegate-pill.active { background: var(--delegate-deep); border-color: var(--delegate-deep); }
 .search-wrap input { font-family: var(--font-ui); padding: 6px 14px; border: 1.5px solid var(--border-strong); border-radius: 20px; font-size: 13px; outline: none; width: 200px; transition: border-color 0.15s; color: var(--text-primary); background: var(--bg-card); }
 .search-wrap input:focus { border-color: var(--brand); }
 .search-wrap input::placeholder { color: var(--text-faint); }
@@ -224,6 +232,38 @@ tbody tr.flagged-row:hover td { background: #F8F4EA; }
 .archive-btn { font-family: var(--font-ui); opacity: 0; transition: opacity 0.15s; padding: 2px 9px; border-radius: 5px; border: 1px solid var(--border-strong); cursor: pointer; font-size: 11px; color: var(--text-secondary); background: var(--bg-card); font-weight: 500; }
 .archive-btn:hover { border-color: var(--brand); color: var(--brand); }
 
+/* ── Delegate button + popover ── */
+.delegate-wrap { position: relative; display: inline-block; margin-bottom: 4px; }
+.delegate-btn { font-family: var(--font-ui); opacity: 0; transition: opacity 0.15s; padding: 2px 9px; border-radius: 5px; border: 1px solid var(--border-strong); cursor: pointer; font-size: 11px; color: var(--text-secondary); background: var(--bg-card); font-weight: 500; display: block; width: 100%; text-align: left; }
+.delegate-btn:hover { border-color: var(--delegate); color: var(--delegate-deep); }
+tbody tr:hover .delegate-btn { opacity: 1; }
+.delegate-popover { display: none; position: absolute; z-index: 200; top: calc(100% + 4px); right: 0; background: var(--bg-card); border: 1.5px solid var(--delegate-border); border-radius: 10px; padding: 12px 14px; min-width: 155px; box-shadow: 0 6px 24px rgba(60,40,30,0.14); }
+.delegate-popover.open { display: block; }
+.delegate-pop-label { font-family: var(--font-ui); font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.delegate-people { display: flex; flex-direction: column; gap: 5px; }
+.delegate-person-btn { font-family: var(--font-ui); padding: 6px 12px; border-radius: 6px; border: 1.5px solid var(--border-strong); background: var(--bg-card); color: var(--text-secondary); font-size: 12.5px; cursor: pointer; font-weight: 500; text-align: left; transition: all 0.12s; }
+.delegate-person-btn:hover { border-color: var(--delegate); color: var(--delegate-deep); background: var(--delegate-soft); }
+
+/* ── Delegated items section ── */
+.delegated-outer { padding: 0 24px 24px; }
+.delegated-section-header { display: flex; align-items: center; gap: 8px; padding: 8px 0 10px; cursor: pointer; user-select: none; border-top: 1px solid var(--border); margin-top: 4px; }
+.delegated-section-title { font-family: var(--font-ui); font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; }
+.delegated-count-badge { font-family: var(--font-ui); padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: var(--delegate-soft); color: var(--delegate-deep); border: 1px solid var(--delegate-border); }
+.delegated-chevron { font-size: 11px; color: var(--text-muted); transition: transform 0.15s; display: inline-block; }
+.delegated-chevron.closed { transform: rotate(-90deg); }
+.delegated-body.closed { display: none; }
+.delegated-table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--bg-card); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(60,40,30,0.06); border: 1px solid var(--delegate-border); }
+.delegated-table thead { background: var(--delegate-soft); }
+.delegated-table th { font-family: var(--font-ui); text-align: left; padding: 8px 14px; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--delegate-deep); font-weight: 600; border-bottom: 1.5px solid var(--delegate-border); }
+.delegated-table td { padding: 9px 14px; border-bottom: 1px solid var(--bg-muted); vertical-align: top; }
+.delegated-table tbody tr:last-child td { border-bottom: none; }
+.delegated-table tbody tr:hover td { background: var(--delegate-soft); }
+.delegate-to-chip { font-family: var(--font-ui); display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; background: var(--delegate-soft); color: var(--delegate-deep); border: 1px solid var(--delegate-border); white-space: nowrap; }
+.del-action-btn { font-family: var(--font-ui); padding: 2px 8px; border-radius: 5px; border: 1px solid var(--border-strong); cursor: pointer; font-size: 11px; color: var(--text-secondary); background: var(--bg-card); font-weight: 500; margin-left: 4px; }
+.del-action-btn:hover { border-color: var(--brand); color: var(--brand); }
+.del-done-btn:hover { border-color: var(--spec); color: var(--spec-deep); background: var(--spec-soft); }
+.delegated-empty { font-family: var(--font-body); padding: 20px 0; color: var(--text-faint); font-style: italic; font-size: 13px; text-align: center; }
+
 /* ── Quick add ── */
 .quick-add-outer { padding: 12px 24px 20px; }
 .quick-add-box { background: var(--bg-card); border-radius: 10px; border: 2px dashed var(--brand-soft-hover); box-shadow: 0 1px 4px rgba(60,40,30,0.05); overflow: hidden; transition: border-color 0.15s; }
@@ -307,6 +347,7 @@ tbody tr.flagged-row:hover td { background: #F8F4EA; }
     <button class="pill lore-pill" data-filter="lore" title="Items Lore can plausibly do from inside the workspace">Lore-Ready</button>
     <button class="pill agent-pill" data-filter="specialist" title="Items a sibling specialist agent (e.g., Sigil) can pick up">Specialist-Ready</button>
     <button class="pill stale-pill" data-filter="stale" title="Items added more than 30 days ago">Stale (&gt;30d)</button>
+    <button class="pill delegate-pill" id="delegated-pill" data-filter="delegated" title="Items delegated to your team — shown in the section below">Delegated</button>
   </div>
   <div class="search-wrap">
     <input type="text" id="search" placeholder="Search items...">
@@ -370,6 +411,15 @@ tbody tr.flagged-row:hover td { background: #F8F4EA; }
   </div>
 </div>
 
+<div class="delegated-outer" id="delegated-outer">
+  <div class="delegated-section-header" id="delegated-section-header">
+    <span class="delegated-section-title">Delegated to Team</span>
+    <span class="delegated-count-badge" id="delegated-count-badge">0</span>
+    <span class="delegated-chevron" id="delegated-chevron">▾</span>
+  </div>
+  <div class="delegated-body" id="delegated-body"></div>
+</div>
+
 <div class="footer">
   <span id="showing"></span>
   <span class="tip" id="footer-tip">Click any cell to edit · Changes save automatically to this view · <strong>Download snapshot</strong> exports a markdown copy</span>
@@ -388,7 +438,7 @@ const TODAY = (() => { const d = new Date(); d.setHours(12,0,0,0); return d; })(
 const TODAY_STR = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })();
 
 // ── State ──────────────────────────────────────────────────────────────────
-let activeItems = [], completedItems = [], archivedItems = [];
+let activeItems = [], completedItems = [], archivedItems = [], delegatedItems = [];
 let items = [];
 let recentlyCompleted = 0;
 const loreState = {}, specialistState = {}, notesState = {};
@@ -490,6 +540,7 @@ async function loadStored() {
     activeItems         = stored.activeItems    || [];
     completedItems      = stored.completedItems || [];
     archivedItems       = stored.archivedItems  || [];
+    delegatedItems      = stored.delegatedItems || [];
     lastSeenSeedVersion = stored.lastSeenSeedVersion || null;
     return true;
   } catch (_) { return false; }
@@ -497,7 +548,7 @@ async function loadStored() {
 async function saveStored() {
   if (!storage) return;
   try {
-    await storage.setItem('items', { activeItems, completedItems, archivedItems, lastSeenSeedVersion, savedAt: new Date().toISOString() });
+    await storage.setItem('items', { activeItems, completedItems, archivedItems, delegatedItems, lastSeenSeedVersion, savedAt: new Date().toISOString() });
   } catch (e) {
     showToast('warn', `Local save failed (${storage.kind}): ${e.message}. Changes are in memory only — use Download snapshot to back up.`, null, null);
   }
@@ -530,6 +581,7 @@ function adoptSeed(seed) {
   activeItems    = seed.active    || [];
   completedItems = seed.completed || [];
   archivedItems  = seed.archived  || [];
+  delegatedItems = seed.delegated || [];
   lastSeenSeedVersion = seed.seedVersion || null;
 }
 
@@ -564,6 +616,8 @@ function serializeMarkdown() {
   for (const it of activeItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.actionNeeded || ''} | ${it.due || 'TBD'} | ${it.lore || ''} | ${it.specialist || ''} | ${it.notes || ''} |\n`;
   out += '\n## Completed\n\n| Date | Created | From | Subject | Resolution | Completed |\n|------|---------|------|---------|------------|-----------|\n';
   for (const it of completedItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.resolution || ''} | ${it.completed || ''} |\n`;
+  out += '\n## Delegated\n\n| Date | Created | From | Subject | Delegated To | Action Needed | Delegated | Notes |\n|------|---------|------|---------|-------------|---------------|-----------|-------|\n';
+  for (const it of delegatedItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.delegatedTo || ''} | ${it.actionNeeded || ''} | ${it.delegated || ''} | ${it.notes || ''} |\n`;
   out += '\n## Archived\n\n| Date | Created | From | Subject | Action Needed | Archived |\n|------|---------|------|---------|---------------|----------|\n';
   for (const it of archivedItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.actionNeeded || ''} | ${it.archived || ''} |\n`;
   out += '\n';
@@ -660,12 +714,13 @@ function renderStats() {
   items.forEach(it => { const a = ageInfo(it.created); if (a.ageDays !== null && a.ageDays >= STALE_DAYS) staleCount++; });
   const el = document.getElementById('stats'); el.innerHTML = '';
   [
-    { label: 'Total',      val: items.length,         cls: '' },
+    { label: 'Total',      val: items.length,          cls: '' },
     { label: 'Overdue',    val: counts.OVERDUE  || 0, cls: 'danger' },
     { label: 'Due Soon',   val: counts.UPCOMING || 0, cls: 'warning' },
-    { label: 'Stale',      val: staleCount,           cls: 'danger' },
-    { label: 'Lore',       val: loreCount,            cls: 'lore' },
-    { label: 'Specialist', val: specCount,            cls: 'agent' }
+    { label: 'Stale',      val: staleCount,            cls: 'danger' },
+    ...(TEAM_MEMBERS.length > 0 || delegatedItems.length > 0 ? [{ label: 'Delegated', val: delegatedItems.length, cls: 'delegate' }] : []),
+    { label: 'Lore',       val: loreCount,             cls: 'lore' },
+    { label: 'Specialist', val: specCount,             cls: 'agent' }
   ].forEach(s => {
     const div = document.createElement('div'); div.className = 'stat ' + s.cls;
     div.innerHTML = `<div class="stat-n">${s.val}</div><div class="stat-l">${s.label}</div>`;
@@ -676,7 +731,10 @@ function renderStats() {
 const badgeCls = { OVERDUE: 'b-overdue', UPCOMING: 'b-upcoming', ASAP: 'b-asap', Soon: 'b-soon', 'This week': 'b-thisweek', TBD: 'b-tbd' };
 
 function closeAllPopovers() { document.querySelectorAll('.due-popover.open').forEach(p => p.classList.remove('open')); }
-document.addEventListener('click', e => { if (!e.target.closest('.due-cell-wrap')) closeAllPopovers(); });
+document.addEventListener('click', e => {
+  if (!e.target.closest('.due-cell-wrap')) closeAllPopovers();
+  if (!e.target.closest('.delegate-wrap')) closeAllDelegatePopovers();
+});
 
 function makeDuePopover(item, container) {
   const pop = document.createElement('div'); pop.className = 'due-popover';
@@ -690,6 +748,110 @@ function makeDuePopover(item, container) {
   pop.querySelector('.pop-set-btn').addEventListener('click', e => { e.stopPropagation(); const v = pop.querySelector('.pop-custom-input').value.trim(); if (v) applyDue(v); });
   pop.addEventListener('click', e => e.stopPropagation());
   return pop;
+}
+
+// ── Delegate popover ──────────────────────────────────────────────────────
+// Team members are read from the embedded seed (stamped at build time by
+// reading the team/ directory). Empty array = no team files = delegate
+// functionality is hidden entirely.
+const TEAM_MEMBERS = (() => {
+  try {
+    const tag = document.getElementById('seed-data');
+    const seed = tag ? JSON.parse(tag.textContent.trim()) : null;
+    return (seed && Array.isArray(seed.teamMembers)) ? seed.teamMembers : [];
+  } catch (_) { return []; }
+})();
+
+function makeDelegatePopover(item) {
+  const pop = document.createElement('div'); pop.className = 'delegate-popover';
+  const lbl = document.createElement('div'); lbl.className = 'delegate-pop-label'; lbl.textContent = 'Delegate to';
+  const people = document.createElement('div'); people.className = 'delegate-people';
+  TEAM_MEMBERS.forEach(name => {
+    const btn = document.createElement('button'); btn.className = 'delegate-person-btn'; btn.textContent = name;
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      closeAllDelegatePopovers();
+      apply({ type: 'delegate', subject: item.subject, delegatedTo: name });
+    });
+    people.appendChild(btn);
+  });
+  pop.appendChild(lbl); pop.appendChild(people);
+  pop.addEventListener('click', e => e.stopPropagation());
+  return pop;
+}
+
+function closeAllDelegatePopovers() { document.querySelectorAll('.delegate-popover.open').forEach(p => p.classList.remove('open')); }
+
+// ── Delegated section rendering ───────────────────────────────────────────
+let delegatedBodyOpen = true;
+
+function renderDelegatedSection() {
+  const badge = document.getElementById('delegated-count-badge');
+  const body = document.getElementById('delegated-body');
+  if (badge) badge.textContent = delegatedItems.length;
+  if (!body) return;
+  body.innerHTML = '';
+
+  if (delegatedItems.length === 0) {
+    const empty = document.createElement('div'); empty.className = 'delegated-empty';
+    empty.textContent = 'No delegated items yet. Use the Delegate… button on any active item to hand it off to your team.';
+    body.appendChild(empty);
+    return;
+  }
+
+  const tbl = document.createElement('table'); tbl.className = 'delegated-table';
+  tbl.innerHTML = `<thead><tr>
+    <th style="width:110px">Delegated To</th>
+    <th>Item</th>
+    <th style="width:120px">From</th>
+    <th style="width:85px">Since</th>
+    <th style="width:120px"></th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+
+  const sorted = [...delegatedItems].sort((a, b) =>
+    (a.delegatedTo || '').localeCompare(b.delegatedTo || '') ||
+    (a.delegated || '').localeCompare(b.delegated || '')
+  );
+
+  sorted.forEach(it => {
+    const tr = document.createElement('tr');
+
+    const tdWho = document.createElement('td'); tdWho.style.width = '110px';
+    tdWho.innerHTML = `<span class="delegate-to-chip">${it.delegatedTo || '—'}</span>`;
+
+    const tdItem = document.createElement('td');
+    const subjectDiv = document.createElement('div'); subjectDiv.style.cssText = 'font-family:var(--font-body);font-weight:500;color:var(--text-primary);line-height:1.4;margin-bottom:3px'; subjectDiv.textContent = it.subject;
+    const detailDiv = document.createElement('div'); detailDiv.style.cssText = 'font-family:var(--font-body);color:var(--text-secondary);font-size:12.5px;line-height:1.45'; detailDiv.textContent = it.actionNeeded || '';
+    tdItem.appendChild(subjectDiv); if (it.actionNeeded && it.actionNeeded !== it.subject) tdItem.appendChild(detailDiv);
+    if (it.notes) {
+      const notesDiv = document.createElement('div'); notesDiv.style.cssText = 'font-family:var(--font-body);color:var(--text-muted);font-size:12px;font-style:italic;margin-top:3px'; notesDiv.textContent = it.notes;
+      tdItem.appendChild(notesDiv);
+    }
+
+    const tdFrom = document.createElement('td'); tdFrom.style.width = '120px';
+    tdFrom.innerHTML = `<span style="font-family:var(--font-ui);font-size:12.5px;color:var(--text-secondary)">${it.from || ''}</span>`;
+
+    const tdSince = document.createElement('td'); tdSince.style.width = '85px';
+    const sinceDate = it.delegated ? new Date(it.delegated + 'T12:00:00') : null;
+    const sinceText = sinceDate && !isNaN(sinceDate) ? sinceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+    tdSince.innerHTML = `<span style="font-family:var(--font-ui);font-size:12px;color:var(--text-muted)">${sinceText}</span>`;
+
+    const tdActions = document.createElement('td'); tdActions.style.cssText = 'width:120px;white-space:nowrap;padding-top:10px';
+    const reopenBtn = document.createElement('button'); reopenBtn.className = 'del-action-btn'; reopenBtn.textContent = 'Re-open';
+    reopenBtn.title = 'Move back to Active';
+    reopenBtn.addEventListener('click', () => apply({ type: 'undelegate', subject: it.subject }));
+    const doneBtn = document.createElement('button'); doneBtn.className = 'del-action-btn del-done-btn'; doneBtn.textContent = 'Done ✓';
+    doneBtn.title = 'Mark as complete';
+    doneBtn.addEventListener('click', () => apply({ type: 'delegate-complete', subject: it.subject }));
+    tdActions.appendChild(reopenBtn); tdActions.appendChild(doneBtn);
+
+    tr.appendChild(tdWho); tr.appendChild(tdItem); tr.appendChild(tdFrom); tr.appendChild(tdSince); tr.appendChild(tdActions);
+    tbody.appendChild(tr);
+  });
+
+  tbl.appendChild(tbody);
+  body.appendChild(tbl);
 }
 
 function makeEditableCell(value, onCommit) {
@@ -840,7 +1002,16 @@ function renderRows(filtered) {
     const tdAgent = document.createElement('td'); tdAgent.style.cssText = 'width:96px;text-align:center;vertical-align:top;padding-top:9px';
     tdAgent.appendChild(makeFlagsToggle(item));
 
-    const tdArc = document.createElement('td'); tdArc.style.cssText = 'width:68px;vertical-align:top;padding-top:11px';
+    const hasDelegation = TEAM_MEMBERS.length > 0;
+    const tdArc = document.createElement('td'); tdArc.style.cssText = `width:${hasDelegation ? 100 : 68}px;vertical-align:top;padding-top:11px;position:relative`;
+    if (hasDelegation) {
+      const delegateWrap = document.createElement('div'); delegateWrap.className = 'delegate-wrap';
+      const delBtn = document.createElement('button'); delBtn.className = 'delegate-btn'; delBtn.textContent = 'Delegate…';
+      const delPop = makeDelegatePopover(item);
+      delBtn.addEventListener('click', e => { e.stopPropagation(); const isOpen = delPop.classList.contains('open'); closeAllDelegatePopovers(); if (!isOpen) delPop.classList.add('open'); });
+      delegateWrap.appendChild(delBtn); delegateWrap.appendChild(delPop);
+      tdArc.appendChild(delegateWrap);
+    }
     const arcBtn = document.createElement('button'); arcBtn.className = 'archive-btn'; arcBtn.textContent = 'Archive';
     arcBtn.addEventListener('click', () => { apply({ type: 'archive', subject: item.subject }); });
     tdArc.appendChild(arcBtn);
@@ -868,8 +1039,25 @@ function applyFilters() {
 document.querySelectorAll('.pill').forEach(pill => {
   pill.addEventListener('click', () => {
     document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
-    pill.classList.add('active'); activeFilter = pill.dataset.filter; applyFilters();
+    pill.classList.add('active'); activeFilter = pill.dataset.filter;
+    // When the Delegated pill is selected, scroll to and expand the delegated section
+    if (activeFilter === 'delegated') {
+      delegatedBodyOpen = true;
+      const body = document.getElementById('delegated-body');
+      const chev = document.getElementById('delegated-chevron');
+      if (body) body.classList.remove('closed');
+      if (chev) chev.classList.remove('closed');
+      setTimeout(() => document.getElementById('delegated-outer').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+    applyFilters();
   });
+});
+
+// Delegated section toggle
+document.getElementById('delegated-section-header').addEventListener('click', () => {
+  delegatedBodyOpen = !delegatedBodyOpen;
+  document.getElementById('delegated-body').classList.toggle('closed', !delegatedBodyOpen);
+  document.getElementById('delegated-chevron').classList.toggle('closed', !delegatedBodyOpen);
 });
 document.getElementById('search').addEventListener('input', e => { searchQuery = e.target.value; applyFilters(); });
 
@@ -892,6 +1080,30 @@ function applyMutationToState(op) {
       }
       break;
     }
+    case 'delegate': {
+      const idx = findActiveIdx(op.subject);
+      if (idx >= 0) {
+        const it = activeItems.splice(idx, 1)[0];
+        delegatedItems.unshift({ date: it.date, created: it.created || '', from: it.from, subject: it.subject, delegatedTo: op.delegatedTo, actionNeeded: it.actionNeeded, delegated: TODAY_STR, notes: it.notes || '' });
+      }
+      break;
+    }
+    case 'undelegate': {
+      const didx = delegatedItems.findIndex(it => it.subject === op.subject);
+      if (didx >= 0) {
+        const it = delegatedItems.splice(didx, 1)[0];
+        activeItems.unshift({ date: it.date, created: it.created || '', from: it.from, subject: it.subject, actionNeeded: it.actionNeeded, due: 'TBD', lore: '', specialist: '', notes: it.notes || '' });
+      }
+      break;
+    }
+    case 'delegate-complete': {
+      const didx = delegatedItems.findIndex(it => it.subject === op.subject);
+      if (didx >= 0) {
+        const it = delegatedItems.splice(didx, 1)[0];
+        completedItems.unshift({ date: it.date, created: it.created || '', from: it.from, subject: it.subject, resolution: `Delegated to ${it.delegatedTo} — ${it.actionNeeded || '(complete)'}`, completed: TODAY_STR });
+      }
+      break;
+    }
     case 'archive': {
       const idx = findActiveIdx(op.subject);
       if (idx >= 0) {
@@ -910,7 +1122,7 @@ function applyMutationToState(op) {
 let saveQueue = Promise.resolve();
 function apply(op) {
   applyMutationToState(op);
-  rebuildItems(); renderStats(); applyFilters();
+  rebuildItems(); renderStats(); applyFilters(); renderDelegatedSection();
   saveQueue = saveQueue.then(async () => {
     try {
       await saveStored();
@@ -988,7 +1200,14 @@ async function init() {
       showToast('info', 'Action items updated by Lore.', null, null, 4000);
     }
 
-    rebuildItems(); renderStats(); applyFilters();
+    rebuildItems(); renderStats(); applyFilters(); renderDelegatedSection();
+    // Hide delegation UI entirely if no team members and no existing delegated items
+    if (TEAM_MEMBERS.length === 0 && delegatedItems.length === 0) {
+      const pill = document.getElementById('delegated-pill');
+      const outer = document.getElementById('delegated-outer');
+      if (pill) pill.classList.add('hidden');
+      if (outer) outer.classList.add('hidden');
+    }
     updateSyncState();
   } catch (err) {
     setSync('error', 'Init failed');
@@ -1006,7 +1225,8 @@ async function init() {
         activeItems    = seed.active    || [];
         completedItems = seed.completed || [];
         archivedItems  = seed.archived  || [];
-        rebuildItems(); renderStats(); applyFilters();
+        delegatedItems = seed.delegated || [];
+        rebuildItems(); renderStats(); applyFilters(); renderDelegatedSection();
       }
     } catch (_) {}
   }
