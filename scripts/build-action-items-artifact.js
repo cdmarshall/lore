@@ -51,8 +51,9 @@ function parseMarkdown(content) {
         subject: cells[3] || '',
         actionNeeded: cells[4] || '',
         due: cells[5] || 'TBD',
-        agent: cells[6] || '',
-        notes: cells[7] || ''
+        lore: cells[6] || '',
+        specialist: cells[7] || '',
+        notes: cells[8] || ''
       });
     } else if (section === 'completed' && cells.length >= 4) {
       completed.push({

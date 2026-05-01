@@ -61,6 +61,9 @@
 /inbox/*.html
 /outbox/*.html
 
+# --- Working files (commit message drafts, etc.) ---
+/COMMIT_MSG.txt
+
 # --- System ---
 .DS_Store
 Thumbs.db
