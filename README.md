@@ -98,6 +98,55 @@ Personal files (everything in `inbox/`, `outbox/`, `team/`, `stakeholders/`, `me
 
 ---
 
+## Action items
+
+Lore's most-used surface is its action items tracker. It's the front door for *"what should I work on,"* the backbone of meeting follow-through, and the routing layer for delegating work to Lore itself or to a sibling specialist agent.
+
+![Action items artifact](assets/action-items.png)
+*This is a mock screenshot showing Lore's action items app.*
+
+The artifact is styled to Anthropic's design system, warm terra-cotta on Pampas with Poppins for chrome and Lora for body text, so it feels at home when opened inside the Claude Cowork desktop app rather than reading as a foreign widget pinned to the sidebar.
+
+The tracker exists in two synchronized forms:
+
+- **`inbox/action-items.md`** — the canonical markdown file. Plain text, schema-checked, gitignored. Lore reads and writes it, and so can specialist agents.
+- **The live artifact** — a rich, interactive view in Cowork's sidebar (pictured above). IndexedDB-backed, instant edits, no server.
+
+If you run Lore in **Cowork**, both forms stay in lockstep automatically. If you run Lore in **Claude Code** or another agent that can't render Cowork artifacts, you work directly against the markdown file; everything else is identical.
+
+### What the artifact gives you
+
+- **Priority-sorted rows** with badges for Overdue, Due Soon, ASAP, Soon, This Week, and TBD.
+- **Two delegation flags per row**, each independently toggleable:
+  - **Lore** (blue chip) for items Lore can do from inside the workspace.
+  - **Specialist** (green chip) for items a sibling specialist agent (e.g., Sigil) can pick up autonomously off-session.
+- **Age tracking.** Each row shows when it was added (e.g. *"92d ago · added Jan 29"*). A **Stale (>30d)** filter pill surfaces items aging in your backlog as candidates for archiving or follow-up.
+- **Inline editing.** Click any cell to rename, change due dates via a date popover, edit notes, toggle flags, mark complete with a checkbox confirmation, or archive a row.
+- **Quick-add at the bottom** for fast capture, with both delegation toggles built in so new items get classified the moment they're created.
+- **Search and stats** across the top: live counts for Total, Overdue, Due Soon, Stale, Lore-Ready, and Specialist-Ready.
+- **Download snapshot** exports a markdown copy you can save over `inbox/action-items.md` when you've been editing in the artifact and want the agent to pick up your changes.
+
+### How the two forms stay in sync
+
+The artifact's IndexedDB is the live source of truth. Edits in the artifact are instant and persist locally; you don't need an agent running for the artifact to function.
+
+When you ask Lore to do something that changes action items (process a transcript, add an item by request, mark something complete), Lore writes the markdown file and pushes a fresh snapshot to the artifact at the same time. Both end up in lockstep.
+
+If you've been editing the artifact directly and want the agent to see your changes, click **Download snapshot** and save the resulting `action-items.md` over `inbox/action-items.md`. Otherwise, the next agent push will overwrite the artifact's state with whatever Lore last saw on disk.
+
+### The two delegation flags in practice
+
+Each Active row has two booleans that say "who could do this":
+
+- **Lore = `Y`** — Lore can do or substantially advance this item from inside the workspace, in chat. Drafting docs, summarizing threads, generating prep briefs, querying connectors, building small artifacts.
+- **Specialist = `Y`** — A sibling specialist agent (e.g., Sigil) can pick this up autonomously, off-session. Writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data from production systems.
+
+The flags are independent. Both can be `Y` (either could do it), or both blank (you do it yourself), or one of each. When Lore adds an item, it sets these flags reflectively: "Could I do this? Could the specialist?" When you flag an item `Specialist: Y` and run your specialist, it scans for those rows, does the work, and writes the row directly into the Completed table. Lore picks up the change on its next run and reflects it in the live artifact.
+
+See `workflows/action-items.md` for the full delegation contract, and the **Companion specialist agents** section below for how to wire one up.
+
+---
+
 ## How this system works
 
 1. **`context.md`** — Lore reads this to understand your role, company, team, priorities, and preferred communication style. Update it regularly.
@@ -109,24 +158,6 @@ Personal files (everything in `inbox/`, `outbox/`, `team/`, `stakeholders/`, `me
 4. **Weekly reviews** — Structured reflection to maintain visibility and catch issues early.
 
 5. **Workflows** — Each common task has a workflow file in `workflows/`. Lore reads the relevant one and follows its instructions when you ask.
-
-6. **Live action items artifact** — see below.
-
----
-
-## The action items artifact (Cowork only)
-
-If you run Lore in **Cowork**, the agent automatically builds a live action items tracker as a sidebar artifact during onboarding. From then on, every time the agent makes changes to your action items via chat (processing a transcript, adding items by request, marking something complete), it pushes the new state to the artifact at the same time it writes `inbox/action-items.md`.
-
-The artifact is fully interactive:
-- Click any cell to edit. Edits are instant and persist locally via IndexedDB across Cowork restarts.
-- Mark items complete with a checkbox confirm, change due dates via a date popover, toggle the **Agent** flag, edit notes, archive items, or add new items via the quick-add row.
-- Filter by priority pill (Overdue / Due Soon / ASAP / Soon / This week / TBD / Agent-Ready) or search across all fields.
-- Click **Download snapshot** to export a markdown copy of the current state. If you've been editing in the artifact and want the agent to pick up your changes on its next operation, save the downloaded file over `inbox/action-items.md`.
-
-If you run Lore in **Claude Code** (or anywhere else), the artifact isn't available — Claude Code can't render Cowork artifacts. You interact with action items via `inbox/action-items.md` directly: read it, edit it, ask the agent to update it.
-
-The same delegation contract applies in either environment: rows where the **Agent** column is `Y` are flagged for a specialist agent to pick up. See `workflows/action-items.md` for the full contract, and the **Companion specialist agents** section below for how to wire one up.
 
 ---
 
@@ -177,11 +208,16 @@ If you want a different tone or a different workflow, just edit the file. Lore r
 
 Lore is designed to work with sibling specialist agents that handle role-specific execution. The pattern is: Lore is the generalist context layer, specialists are the executors that read from Lore and act.
 
-The action items file (`inbox/action-items.md`) doubles as a delegation bus. Its **Agent** column flags items as agent-eligible (`Y`); a specialist agent can scan for those, do the work, and write the row back into the Completed table directly. Lore picks up the change on its next run and reflects it in the live artifact. See `workflows/action-items.md` for the full delegation contract.
+The action items file (`inbox/action-items.md`) doubles as a delegation bus. Each Active row carries two independent boolean flags that say who could plausibly do the work:
 
-A reference example: the Rate Insurance Product team uses a specialist agent called **Sigil** for product-engineering tasks (writing Jira tickets, drafting PRDs, scoping work). Sigil reads Lore's `context.md`, `team/`, `stakeholders/`, and `inbox/action-items.md` for context, picks up `Agent: Y` items autonomously, and writes results back. Lore knows about Sigil as a delegation target; Sigil knows about Lore as a context source. Neither requires the other to function.
+- **Lore (`Y`)** — Lore can do the item from inside this workspace, in chat. Examples: drafting documents, summarizing threads, generating prep briefs, querying connectors, building small artifacts.
+- **Specialist (`Y`)** — a sibling specialist agent (e.g., Sigil) can pick the item up autonomously, off-session. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data.
 
-If you have a specialist agent of your own (call it whatever you want), the integration is just shared filesystem reads. Point it at `~/src/lore/` and tell it the convention. The specialist needs no special integration plumbing — just instructions, which can include a graceful "if Lore isn't installed for this user, ignore" check so the specialist works for teammates who don't run Lore.
+Both flags can be `Y` on the same row. Both can be blank (the user does it themselves). The specialist scans for `Specialist: Y` items, does the work, and writes the row back into the Completed table directly. Lore picks up the change on its next run and reflects it in the live artifact. See `workflows/action-items.md` for the full delegation contract.
+
+A reference example: the Rate Insurance Product team uses a specialist agent called **Sigil** for product-engineering tasks. Sigil reads Lore's `context.md`, `team/`, `stakeholders/`, and `inbox/action-items.md` for context, picks up `Specialist: Y` items autonomously, and writes results back. Lore knows about Sigil as a delegation target; Sigil knows about Lore as a context source. Neither requires the other to function.
+
+If you have a specialist agent of your own (call it whatever you want), the integration is just shared filesystem reads. Point it at `~/src/lore/` and tell it the convention. The specialist needs no special integration plumbing, just instructions, which can include a graceful "if Lore isn't installed for this user, ignore" check so the specialist works for teammates who don't run Lore.
 
 ### Wiring up a specialist: the integration prompt
 
@@ -202,25 +238,30 @@ The example uses the name **Sigil**; substitute your specialist's name if it dif
 >
 > **Files you can read for context:**
 > - `~/src/lore/context.md` — role, team, current priorities, active initiatives, key stakeholders, tools.
-> - `~/src/lore/inbox/action-items.md` — canonical action items list. Active table schema: `| Date | From | Subject | Action Needed | Due | Agent | Notes |`.
+> - `~/src/lore/inbox/action-items.md` — canonical action items list. Active table schema: `| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |`.
 > - `~/src/lore/team/*.md` — direct report profiles.
 > - `~/src/lore/stakeholders/*.md` — stakeholder profiles.
 > - `~/src/lore/decisions/log.md` — past decisions with context and rationale.
 > - `~/src/lore/meetings/notes/*.md` — structured meeting summaries.
 >
-> **The `Agent: Y` convention.** Rows in `inbox/action-items.md` where the **Agent** column is `Y` are explicitly flagged for a specialist agent (you) to pick up. When the user asks "what should I work on" or you're proposing work, prefer those.
+> **The two delegation flags.** Each Active row in `inbox/action-items.md` has two independent booleans:
+> - **Lore** is `Y` if Lore could plausibly do the item from inside its workspace (drafting docs, summarizing threads, building small artifacts, querying connectors).
+> - **Specialist** is `Y` if a specialist agent (you) could pick it up autonomously.
+>
+> **You only act on items where `Specialist: Y`.** When the user asks "what should I work on" or you're proposing work to take on, prefer those rows. Ignore the `Lore` flag for your own scoping; it tells the user (and Lore) what Lore could do, not what you should do. If a row is flagged `Specialist: Y` AND `Lore: Y`, it just means either of you could handle it — whoever is in front of the user wins.
 >
 > **When you complete an item from Lore's action items list:**
 > 1. Do the work.
 > 2. Edit `~/src/lore/inbox/action-items.md`: move the row from `## Active` to `## Completed`. Set **Resolution** to a one-line description of what you did and **Completed** to today's date in `YYYY-MM-DD` format. Preserve schemas exactly:
->    - Active: `| Date | From | Subject | Action Needed | Due | Agent | Notes |`
->    - Completed: `| Date | From | Subject | Resolution | Completed |`
+>    - Active: `| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |`
+>    - Completed: `| Date | Created | From | Subject | Resolution | Completed |`
+>    - When moving the row, drop the `Due`, `Lore`, `Specialist`, and `Notes` columns; keep `Date` and `Created` as-is. (Created stays attached to the row through completion.)
 > 3. Mention to the user that you moved the item to Completed in Lore.
-> 4. Don't try to update Lore's live artifact — Lore handles that on its next run.
+> 4. Don't try to update Lore's live artifact; Lore handles that on its next run.
 >
-> **When you start trackable work that ISN'T from a flagged item.** Ask the user *"Want me to log this in Lore's action items?"* If yes, append a row to `~/src/lore/inbox/action-items.md` under `## Active`. Set **Agent: Y** if a specialist could keep iterating on it.
+> **When you start trackable work that ISN'T from a flagged item.** Ask the user *"Want me to log this in Lore's action items?"* If yes, append a row to `~/src/lore/inbox/action-items.md` under `## Active`. Set `Specialist: Y` since you're the one taking it on; set `Lore: Y` only if Lore could also plausibly handle it. Set `Created` to today's date.
 >
-> **Don't try to be Lore.** If the user asks for things outside your specialist scope (process a meeting transcript, prep for a 1:1, write a stakeholder talk track, do a weekly review), tell them: *"That's a Lore task — open Cowork or run `claude` from `~/src/lore`."*
+> **Don't try to be Lore.** If the user asks for things outside your specialist scope (process a meeting transcript, prep for a 1:1, write a stakeholder talk track, do a weekly review), tell them: *"That's a Lore task; open Cowork or run `claude` from `~/src/lore`."* Lore items are flagged `Lore: Y`, which is also a hint that the work belongs over there even if you could in principle do it.
 
 #### Persistent addition to your specialist's `CLAUDE.md`
 
@@ -250,17 +291,27 @@ test -f ~/src/lore/CLAUDE.md && test -f ~/src/lore/context.md
 - `~/src/lore/decisions/log.md` — decision history.
 - `~/src/lore/meetings/notes/*.md` — meeting summaries.
 
-**Action items convention.** In `~/src/lore/inbox/action-items.md`, rows where the **Agent** column is `Y` are explicitly delegatable to a specialist agent. When the user asks "what should I work on" or you're looking for work to take on, prefer items with `Agent = Y`.
+**Action items convention.** `~/src/lore/inbox/action-items.md` Active table schema:
 
-**Completing an item from Lore.** When you finish work that came from a flagged action item:
+` ` `
+| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |
+` ` `
+
+Each row has two independent delegation booleans:
+- **Lore = `Y`**: Lore can plausibly do it from inside its workspace (docs, summaries, prep briefs, connector queries, small artifacts).
+- **Specialist = `Y`**: a specialist agent (you) can pick it up autonomously.
+
+You only act on `Specialist: Y` items. When the user asks "what should I work on" or you're picking work to take on, prefer those. The `Lore` flag is informational for you; rows flagged `Lore: Y` belong with Lore even if you could in principle do them.
+
+**Completing an item from Lore.** When you finish work that came from a `Specialist: Y` row:
 1. Do the work.
-2. Edit `~/src/lore/inbox/action-items.md` directly: move the row from `## Active` to `## Completed`. Set **Resolution** to a one-line description and **Completed** to today's date (`YYYY-MM-DD`). Preserve the table schemas.
+2. Edit `~/src/lore/inbox/action-items.md` directly: move the row from `## Active` to `## Completed`. Preserve `Date` and `Created`; drop `Due`, `Lore`, `Specialist`, and `Notes`. Set **Resolution** to a one-line description and **Completed** to today's date (`YYYY-MM-DD`).
 3. Mention in your reply that you moved the item to Completed in Lore.
-4. Don't try to update Lore's live artifact — Lore handles that on its next run.
+4. Don't try to update Lore's live artifact; Lore handles that on its next run.
 
-**Adding a new trackable item.** If you start work the user wants tracked, ask them whether to log it in Lore. If yes, append a row to `~/src/lore/inbox/action-items.md` under `## Active`.
+**Adding a new trackable item.** If you start work the user wants tracked, ask them whether to log it in Lore. If yes, append a row to `~/src/lore/inbox/action-items.md` under `## Active`. Set `Created` to today; set `Specialist: Y` since you're the one doing it; set `Lore: Y` only if Lore could also plausibly handle it.
 
-**Scope boundary.** Lore handles general executive-assistant work (transcripts, 1:1 prep, talk tracks, weekly reviews, stakeholder management). When users ask you for those, redirect them to Lore: *"That's a Lore task — open Cowork or run `claude` from `~/src/lore`."*
+**Scope boundary.** Lore handles general executive-assistant work (transcripts, 1:1 prep, talk tracks, weekly reviews, stakeholder management). When users ask you for those, redirect them to Lore: *"That's a Lore task; open Cowork or run `claude` from `~/src/lore`."*
 
 ### If Lore is not present
 

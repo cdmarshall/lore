@@ -8,34 +8,51 @@ Display current action items from the inbox in a single consolidated table.
 
 ### Active table schema
 ```
-| Date | Created | From | Subject | Action Needed | Due | Agent | Notes |
-|------|---------|------|---------|---------------|-----|-------|-------|
+| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |
+|------|---------|------|---------|---------------|-----|------|------------|-------|
 ```
 
-- **Date** — ISO date (YYYY-MM-DD) or blank. Source date — the meeting, email, or moment the item came from. Stays attached to the originating event even when the item lingers.
+- **Date** — ISO date (YYYY-MM-DD) or blank. Source date, the meeting, email, or moment the item came from. Stays attached to the originating event even when the item lingers.
 - **Created** — ISO date (YYYY-MM-DD). When the row was added to the list. Always populated for new rows; should equal the date the agent (or user) wrote the row, regardless of how old the originating Date is. Used to surface stale items in the artifact.
 - **From** — source context (person, meeting, email thread)
 - **Subject** — short title for the action item
 - **Action Needed** — full description of what to do
 - **Due** — one of: `ASAP`, `Soon`, `This week`, `TBD`, or `YYYY-MM-DD`
-- **Agent** — `Y` if this task can be delegated to a product agent; `N` or blank otherwise
+- **Lore** — `Y` if Lore (this agent) could plausibly do or substantially advance this item from inside the workspace; `N` or blank otherwise. See "The two delegation flags" below.
+- **Specialist** — `Y` if a sibling specialist agent (e.g., Sigil) could pick this up autonomously; `N` or blank otherwise.
 - **Notes** — free-text notes; blank by default
 
 > **Why both Date and Created?** When a transcript from three weeks ago is processed today, the resulting action items have a `Date` of three weeks ago (the meeting) and a `Created` of today (when they entered the list). This separation lets the artifact show "added 0d ago" for genuinely fresh items while preserving the original meeting/source date for context. For items entered live ("Self" notes, in-meeting captures), Date and Created will typically be the same.
 
+### The two delegation flags
+
+The Active table has two independent boolean flags. They answer two different questions:
+
+- **Lore (`Y`)**: "Could the Lore agent plausibly do this from inside the workspace, with the context it already has?" Use for things like drafting a doc, summarizing a thread, generating a prep brief, building a small artifact, querying a connector for data the user wants surfaced. The work happens in chat with Lore.
+- **Specialist (`Y`)**: "Could a sibling specialist agent (e.g., Sigil) pick this up autonomously?" Use for engineering-flavored or domain-specific execution: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data from production systems. The work happens outside the Lore session, with the specialist reading `inbox/action-items.md` directly.
+
+The flags are **not mutually exclusive**. An item can be:
+- `Lore: Y, Specialist: Y` — either could do it; whichever is sitting in front of the user wins.
+- `Lore: Y, Specialist: blank` — Lore can do it now; no specialist hand-off needed.
+- `Lore: blank, Specialist: Y` — better suited for the specialist; Lore should flag and route.
+- both blank — needs human judgment, in-person conversation, or context only the user has.
+
+Lore should set these flags reflectively when adding items: "Could I do this if asked? Could the specialist?"
+
 ### Adding a new action item
 
-Append a new row to the Active table with all 8 columns:
+Append a new row to the Active table with all 9 columns:
 
 ```
-| YYYY-MM-DD | YYYY-MM-DD | From | Subject | Action Needed | Due | Agent | Notes |
+| YYYY-MM-DD | YYYY-MM-DD | From | Subject | Action Needed | Due | Lore | Specialist | Notes |
 ```
 
 - **Date** = source date. Use the meeting date, email date, or whenever the item originated. If unknown, use today.
 - **Created** = today's date in YYYY-MM-DD. Always populated; never leave blank when adding a new row.
-- Agent should be `Y` or `N` (or blank if unknown)
+- **Lore** = `Y` if Lore could do or substantially advance the item from inside the workspace.
+- **Specialist** = `Y` if a sibling specialist agent (e.g., Sigil) could autonomously pick it up.
 - Notes should be blank unless the user provides them
-- Always preserve the exact column order: Date, Created, From, Subject, Action Needed, Due, Agent, Notes
+- Always preserve the exact column order: Date, Created, From, Subject, Action Needed, Due, Lore, Specialist, Notes
 
 ### Completed table schema
 ```
@@ -78,7 +95,7 @@ Run this whenever you need to add or modify action items on the user's behalf (t
 1. **Read** `inbox/action-items.md` for the current state. This is your baseline.
 2. **Duplicate check (REQUIRED before appending any new item)**.
    - For every candidate new item, scan the existing Active table for likely matches before writing anything.
-   - Compare on **Subject + Action Needed + From + Agent**. Wording will differ; intent and ownership are what matter. Use fuzzy judgment:
+   - Compare on **Subject + Action Needed + From + delegation flags (Lore / Specialist)**. Wording will differ; intent and ownership are what matter. Use fuzzy judgment:
      - Same person/topic + same delegation/ownership + same outcome = duplicate.
      - Examples that should match:
        - "Talk to Mike Tumpane about renewal ops filtering criteria" ≈ "Renewal ops: talk to Mike Tumpane about filtering criteria"
@@ -100,7 +117,7 @@ Run this whenever you need to add or modify action items on the user's behalf (t
    - Adding new items → append rows to the `## Active` table. Always populate `Created` with today's date (YYYY-MM-DD).
    - Marking complete → move the row from Active to Completed, preserve the original `Created` value, fill in the Resolution and Completed columns.
    - Archiving → move the row from Active to Archived, preserve the original `Created` value, fill in the Archived date.
-   - Editing existing items → update the relevant cells in place. Preserve the schema `| Date | Created | From | Subject | Action Needed | Due | Agent | Notes |`. Do not change `Created` on an existing row even when other fields are revised.
+   - Editing existing items → update the relevant cells in place. Preserve the schema `| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |`. Do not change `Created` on an existing row even when other fields are revised.
 4. **Write** the updated content back to `inbox/action-items.md`.
 5. **Run** the build script: `node scripts/build-action-items-artifact.js`. This reads the file, stamps a fresh `seedVersion` (ISO timestamp), and writes the substituted HTML to `outbox/action-items-artifact-built.html`.
 6. **Push** to the artifact:
@@ -123,21 +140,27 @@ The user is taking a manual snapshot. They'll typically save the result over `in
 
 Before processing a transcript or adding items via chat, scan `inbox/action-items.md`. If you suspect it's out of date relative to what the user has been doing in the artifact (e.g., the file looks weeks old or doesn't contain items the user just mentioned), say something like: *"Before I add these, click Download snapshot in your action items artifact and save it over inbox/action-items.md so I have your latest state. Otherwise edits you've made in the artifact since the last sync will be overwritten."* Then wait for confirmation.
 
-### Delegation contract: the `Agent: Y` flag
+### Delegation contract: the `Lore` and `Specialist` flags
 
-The Active table's **Agent** column means "this item can be picked up by a specialist agent." Lore is not necessarily the agent that does the work — it could be a sibling specialist the user runs separately. The canonical example is **Sigil**, a product-engineering specialist that lives outside the Lore workspace and can read `inbox/action-items.md` directly. Other users may have other specialists (or none).
+The Active table has two delegation flags, used independently. Each row can be claimed by Lore, by a specialist, by both, or by neither (in which case the user does it themselves).
 
-**When Lore adds an item with `Agent: Y`:**
-- Set it when the item is the kind of work a specialist agent could plausibly do autonomously. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling data, summarizing documents.
-- Leave it blank or `N` when the item needs human judgment, in-person conversation, or context only the user has.
+**When Lore adds or updates an item, set both flags reflectively:**
+
+- **Lore = `Y`** when Lore could plausibly do or substantially advance the item from inside the workspace. Examples: drafting a memo, summarizing a thread, generating a prep brief, building a small artifact, querying a connector and surfacing the result, writing a stakeholder talk track.
+- **Specialist = `Y`** when a sibling specialist agent could pick it up autonomously. The canonical example is **Sigil**, a product-engineering specialist that reads `inbox/action-items.md` directly. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data from production systems.
+- Both blank when the item needs human judgment, in-person conversation, or context only the user has.
+
+These are not mutually exclusive. Many items are doable by either; flag both `Y` and let context decide who does it.
 
 **Lore is not the only writer of `inbox/action-items.md`.**
 - Specialist agents may also append rows (when starting fresh work the user wants tracked) and modify rows (when completing items they were delegated).
 - When a specialist agent completes an item, it moves the row from `## Active` to `## Completed` directly. Lore picks up that change next time it reads the file and pushes the artifact.
 - Don't assume an item is still active just because it was active last time you read the file. Always re-read before acting.
 
-**Pointing users at the right agent.**
-If the user asks Lore for something clearly in a specialist's wheelhouse (e.g., "write Jira tickets for these", "scope this engineering work"), Lore should suggest delegating: *"This looks like work for Sigil if you have it set up. I can flag this as Agent: Y in your action items, then you can run Sigil and it'll pick it up."* Then add the item with `Agent: Y` and a clear Action Needed description. Don't assume the user has Sigil — phrase the suggestion conditionally.
+**Pointing users at the right doer.**
+- If the user asks Lore for something clearly in a specialist's wheelhouse (e.g., "write Jira tickets for these", "scope this engineering work"), Lore should suggest delegating: *"This looks like work for Sigil if you have it set up. I can flag this as Specialist: Y in your action items, then you can run Sigil and it'll pick it up."* Then add the item with `Specialist: Y` and a clear Action Needed description. Don't assume the user has Sigil; phrase the suggestion conditionally.
+- If the user asks for something Lore can do directly, just do it. Optionally log it after the fact with `Lore: Y` if it was substantial work the user might want tracked.
+- If both flags would apply, set both. The user can pick where to run it.
 
 
 ---
