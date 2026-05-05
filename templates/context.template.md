@@ -84,6 +84,14 @@
 **Things to avoid**:
 -
 
+## Terminology & Corrections
+
+> Company- or role-specific terms that transcription software frequently mangles. Lore will silently correct these when processing transcripts and ingesting documents.
+
+| Correct term | Common misspellings / variants to fix |
+|--------------|--------------------------------------|
+| | |
+
 ## Notes for Lore
 
 > Anything else Lore should know about your situation, preferences, or working environment.
