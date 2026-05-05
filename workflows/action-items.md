@@ -109,7 +109,11 @@ When archiving, preserve the original `Created` value. The `Archived` column cap
 
 The action items are also available as a live Cowork artifact (id: `action-items`) that renders in the Cowork sidebar. It shows all active items with priority badges, filter pills, search, inline edits, due date picker, agent toggle, notes, quick-add row, and a Refresh button.
 
-**Where it lives:** Cowork's artifact system (HTML stored at `~/Documents/Claude/Artifacts/action-items/index.html`). The canonical template ships at `templates/action-items-artifact.template.html`.
+**Where it lives:** Cowork's artifact system. The HTML file is stored at:
+- Mac/Linux: `~/Documents/Claude/Artifacts/action-items/index.html`
+- Windows: `$HOME\Documents\Claude\Artifacts\action-items\index.html` (e.g. `C:\Users\username\Documents\Claude\Artifacts\action-items\index.html`)
+
+The canonical template ships at `templates/action-items-artifact.template.html`.
 
 ### Source-of-truth model (read this before doing anything)
 
