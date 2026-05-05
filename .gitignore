@@ -26,6 +26,10 @@
 # --- Weekly reviews (personal reflections) ---
 /weekly-reviews/*.md
 
+# --- Performance reviews (personal to each individual) ---
+/reviews/*
+!/reviews/.gitkeep
+
 # --- Personal meeting history ---
 /meetings/notes/*
 !/meetings/notes/.gitkeep
