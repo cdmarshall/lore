@@ -12,12 +12,20 @@ Lore's signet is the scroll: 📜. You'll see it on the agent's signed outputs (
 
 ### 1. Clone the repo
 
-Clone to `~/src/lore` specifically. Companion specialist agents (see below) reference this path; using a different location means you'll have to edit their instructions to match.
+Clone to `~/src/lore` (Mac/Linux) or `$HOME\src\lore` (Windows). Companion specialist agents reference this path; using a different location means you'll have to edit their instructions to match.
 
+**Mac / Linux:**
 ```bash
 mkdir -p ~/src
 git clone https://github.com/Guaranteed-Rate/lore.git ~/src/lore
 cd ~/src/lore
+```
+
+**Windows (PowerShell):**
+```powershell
+New-Item -ItemType Directory -Force "$HOME\src"
+git clone https://github.com/Guaranteed-Rate/lore.git "$HOME\src\lore"
+cd "$HOME\src\lore"
 ```
 
 ### 2. Open the folder in your AI agent
@@ -217,7 +225,7 @@ Both flags can be `Y` on the same row. Both can be blank (the user does it thems
 
 A reference example: the Rate Insurance Product team uses a specialist agent called **Sigil** for product-engineering tasks. Sigil reads Lore's `context.md`, `team/`, `stakeholders/`, and `inbox/action-items.md` for context, picks up `Specialist: Y` items autonomously, and writes results back. Lore knows about Sigil as a delegation target; Sigil knows about Lore as a context source. Neither requires the other to function.
 
-If you have a specialist agent of your own (call it whatever you want), the integration is just shared filesystem reads. Point it at `~/src/lore/` and tell it the convention. The specialist needs no special integration plumbing, just instructions, which can include a graceful "if Lore isn't installed for this user, ignore" check so the specialist works for teammates who don't run Lore.
+If you have a specialist agent of your own (call it whatever you want), the integration is just shared filesystem reads. Point it at your Lore folder (`~/src/lore` on Mac/Linux, `$HOME\src\lore` on Windows) and tell it the convention. The specialist needs no special integration plumbing, just instructions, which can include a graceful "if Lore isn't installed for this user, ignore" check so the specialist works for teammates who don't run Lore.
 
 ### Wiring up a specialist: the integration prompt
 
@@ -229,20 +237,17 @@ The example uses the name **Sigil**; substitute your specialist's name if it dif
 
 > You may optionally have access to a sibling agent named **Lore**, which is a generalist personal-assistant / second-brain agent that some users run alongside you. Lore tracks the user's role, team, stakeholders, action items, decisions, and meeting notes.
 >
-> **First check whether Lore is present.** Run this once at the start of the session:
-> ```
-> test -f ~/src/lore/CLAUDE.md && test -f ~/src/lore/context.md
-> ```
-> - If both files exist, the user has Lore installed. Use the integration described below.
+> **First check whether Lore is present.** Lore lives at `~/src/lore` on Mac/Linux or `$HOME\src\lore` on Windows (e.g. `C:\Users\username\src\lore`). Use whichever matches the user's OS. Try reading `LORE_PATH/CLAUDE.md` and `LORE_PATH/context.md` using your file tools.
+> - If both files are readable, the user has Lore installed. Use the integration described below.
 > - If either is missing, the user does **not** have Lore. Ignore everything below this line and operate normally. Do not mention Lore to the user.
 >
-> **Files you can read for context:**
-> - `~/src/lore/context.md` — role, team, current priorities, active initiatives, key stakeholders, tools.
-> - `~/src/lore/inbox/action-items.md` — canonical action items list. Active table schema: `| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |`.
-> - `~/src/lore/team/*.md` — direct report profiles.
-> - `~/src/lore/stakeholders/*.md` — stakeholder profiles.
-> - `~/src/lore/decisions/log.md` — past decisions with context and rationale.
-> - `~/src/lore/meetings/notes/*.md` — structured meeting summaries.
+> **Files you can read for context** (paths relative to `LORE_PATH`):
+> - `context.md` — role, team, current priorities, active initiatives, key stakeholders, tools.
+> - `inbox/action-items.md` — canonical action items list. Active table schema: `| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |`.
+> - `team/*.md` — direct report profiles.
+> - `stakeholders/*.md` — stakeholder profiles.
+> - `decisions/log.md` — past decisions with context and rationale.
+> - `meetings/notes/*.md` — structured meeting summaries.
 >
 > **The two delegation flags.** Each Active row in `inbox/action-items.md` has two independent booleans:
 > - **Lore** is `Y` if Lore could plausibly do the item from inside its workspace (drafting docs, summarizing threads, building small artifacts, querying connectors).
@@ -252,16 +257,16 @@ The example uses the name **Sigil**; substitute your specialist's name if it dif
 >
 > **When you complete an item from Lore's action items list:**
 > 1. Do the work.
-> 2. Edit `~/src/lore/inbox/action-items.md`: move the row from `## Active` to `## Completed`. Set **Resolution** to a one-line description of what you did and **Completed** to today's date in `YYYY-MM-DD` format. Preserve schemas exactly:
+> 2. Edit `LORE_PATH/inbox/action-items.md`: move the row from `## Active` to `## Completed`. Set **Resolution** to a one-line description of what you did and **Completed** to today's date in `YYYY-MM-DD` format. Preserve schemas exactly:
 >    - Active: `| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |`
 >    - Completed: `| Date | Created | From | Subject | Resolution | Completed |`
 >    - When moving the row, drop the `Due`, `Lore`, `Specialist`, and `Notes` columns; keep `Date` and `Created` as-is. (Created stays attached to the row through completion.)
 > 3. Mention to the user that you moved the item to Completed in Lore.
 > 4. Don't try to update Lore's live artifact; Lore handles that on its next run.
 >
-> **When you start trackable work that ISN'T from a flagged item.** Ask the user *"Want me to log this in Lore's action items?"* If yes, append a row to `~/src/lore/inbox/action-items.md` under `## Active`. Set `Specialist: Y` since you're the one taking it on; set `Lore: Y` only if Lore could also plausibly handle it. Set `Created` to today's date.
+> **When you start trackable work that ISN'T from a flagged item.** Ask the user *"Want me to log this in Lore's action items?"* If yes, append a row to `LORE_PATH/inbox/action-items.md` under `## Active`. Set `Specialist: Y` since you're the one taking it on; set `Lore: Y` only if Lore could also plausibly handle it. Set `Created` to today's date.
 >
-> **Don't try to be Lore.** If the user asks for things outside your specialist scope (process a meeting transcript, prep for a 1:1, write a stakeholder talk track, do a weekly review), tell them: *"That's a Lore task; open Cowork or run `claude` from `~/src/lore`."* Lore items are flagged `Lore: Y`, which is also a hint that the work belongs over there even if you could in principle do it.
+> **Don't try to be Lore.** If the user asks for things outside your specialist scope (process a meeting transcript, prep for a 1:1, write a stakeholder talk track, do a weekly review), tell them: *"That's a Lore task — open Cowork and work in your Lore folder."* Lore items are flagged `Lore: Y`, which is also a hint that the work belongs over there even if you could in principle do it.
 
 #### Persistent addition to your specialist's `CLAUDE.md`
 
@@ -272,26 +277,23 @@ Add a section like this to your specialist's `CLAUDE.md` so the awareness persis
 
 ## Optional sibling agent: Lore
 
-Some users run a generalist personal-assistant agent named **Lore** (`~/src/lore`) alongside this one. Lore tracks the user's role, team, stakeholders, action items, decisions, and meeting notes. If a user has Lore installed, you can read from it for richer context and consume action items Lore has flagged for specialist agents.
+Some users run a generalist personal-assistant agent named **Lore** alongside this one. Lore lives at `~/src/lore` on Mac/Linux or `$HOME\src\lore` on Windows. Lore tracks the user's role, team, stakeholders, action items, decisions, and meeting notes. If a user has Lore installed, you can read from it for richer context and consume action items Lore has flagged for specialist agents.
 
-**Detect at session start.** Run:
-` ` `
-test -f ~/src/lore/CLAUDE.md && test -f ~/src/lore/context.md
-` ` `
-- Both files present → Lore is installed; use the integration below.
+**Detect at session start.** Lore lives at `~/src/lore` (Mac/Linux) or `$HOME\src\lore` (Windows). Try reading `LORE_PATH/CLAUDE.md` and `LORE_PATH/context.md` using your file tools.
+- Both files readable → Lore is installed; use the integration below.
 - Either missing → Lore is not installed for this user. **Ignore the rest of this section.** Do not mention Lore.
 
 ### If Lore is present
 
-**Files you may read for context:**
-- `~/src/lore/context.md` — role, team, priorities, tools.
-- `~/src/lore/inbox/action-items.md` — canonical action items list.
-- `~/src/lore/team/*.md` — direct report profiles.
-- `~/src/lore/stakeholders/*.md` — stakeholder profiles.
-- `~/src/lore/decisions/log.md` — decision history.
-- `~/src/lore/meetings/notes/*.md` — meeting summaries.
+**Files you may read for context** (paths relative to `LORE_PATH`):
+- `context.md` — role, team, priorities, tools.
+- `inbox/action-items.md` — canonical action items list.
+- `team/*.md` — direct report profiles.
+- `stakeholders/*.md` — stakeholder profiles.
+- `decisions/log.md` — decision history.
+- `meetings/notes/*.md` — meeting summaries.
 
-**Action items convention.** `~/src/lore/inbox/action-items.md` Active table schema:
+**Action items convention.** `LORE_PATH/inbox/action-items.md` Active table schema:
 
 ` ` `
 | Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |
@@ -305,17 +307,17 @@ You only act on `Specialist: Y` items. When the user asks "what should I work on
 
 **Completing an item from Lore.** When you finish work that came from a `Specialist: Y` row:
 1. Do the work.
-2. Edit `~/src/lore/inbox/action-items.md` directly: move the row from `## Active` to `## Completed`. Preserve `Date` and `Created`; drop `Due`, `Lore`, `Specialist`, and `Notes`. Set **Resolution** to a one-line description and **Completed** to today's date (`YYYY-MM-DD`).
+2. Edit `LORE_PATH/inbox/action-items.md` directly: move the row from `## Active` to `## Completed`. Preserve `Date` and `Created`; drop `Due`, `Lore`, `Specialist`, and `Notes`. Set **Resolution** to a one-line description and **Completed** to today's date (`YYYY-MM-DD`).
 3. Mention in your reply that you moved the item to Completed in Lore.
 4. Don't try to update Lore's live artifact; Lore handles that on its next run.
 
-**Adding a new trackable item.** If you start work the user wants tracked, ask them whether to log it in Lore. If yes, append a row to `~/src/lore/inbox/action-items.md` under `## Active`. Set `Created` to today; set `Specialist: Y` since you're the one doing it; set `Lore: Y` only if Lore could also plausibly handle it.
+**Adding a new trackable item.** If you start work the user wants tracked, ask them whether to log it in Lore. If yes, append a row to `LORE_PATH/inbox/action-items.md` under `## Active`. Set `Created` to today; set `Specialist: Y` since you're the one doing it; set `Lore: Y` only if Lore could also plausibly handle it.
 
-**Scope boundary.** Lore handles general executive-assistant work (transcripts, 1:1 prep, talk tracks, weekly reviews, stakeholder management). When users ask you for those, redirect them to Lore: *"That's a Lore task; open Cowork or run `claude` from `~/src/lore`."*
+**Scope boundary.** Lore handles general executive-assistant work (transcripts, 1:1 prep, talk tracks, weekly reviews, stakeholder management). When users ask you for those, redirect them to Lore: *"That's a Lore task — open Cowork and work in your Lore folder."*
 
 ### If Lore is not present
 
-Operate normally. Don't mention Lore. Don't try to read or write `~/src/lore/`.
+Operate normally. Don't mention Lore. Don't try to read or write the Lore folder.
 ```
 
 > The triple-backtick code fences for the `test` command are spelled with extra spaces above (` ` `) so they render correctly inside this README's outer code block. Replace them with literal backticks when you paste this section into your specialist's `CLAUDE.md`.
