@@ -62,6 +62,7 @@ Once onboarding is done, try any of these:
 |------|--------|
 | See open tasks | "Show my action items" |
 | Process a meeting | "Process this transcript:" then paste, or drop a file in `meetings/transcripts/` |
+| Process raw notes | "I have some notes to process" then paste or upload — works for typed notes, OneNote exports, and photos of handwritten notes |
 | Prep for a 1:1 | "Help me prepare for my 1:1 with [name]" |
 | Start the day | "Morning sync" |
 | End the week | "Run my weekly review" |
@@ -178,6 +179,7 @@ See `workflows/action-items.md` for the full delegation contract, and the **Comp
 | Weekly (Friday) | Run weekly review; prep for any roundtable / leadership meeting. |
 | Before 1:1s | Prep with Lore using the team member's profile. |
 | After meetings | Drop the transcript in `meetings/transcripts/`; let Lore extract action items, decisions, and observations. |
+| After taking notes | Say "I have some notes to process" and paste or upload your notes — Lore will ask a few quick questions and file everything in the right place. |
 | Monthly | Update `context.md` priorities, review team development goals, update strategy docs. |
 | Quarterly | Full strategy review, team performance conversations, OKR/goal setting. |
 
