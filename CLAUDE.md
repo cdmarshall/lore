@@ -42,6 +42,7 @@ Tasks that MUST follow workflows — never trigger a skill for these:
 - Processing meeting transcripts → `workflows/process-transcript.md`
 - Action item display → `workflows/action-items.md`
 - Document ingestion → `workflows/ingest.md`
+- Note ingestion (raw/unstructured notes) → `workflows/ingest-notes.md`
 - Roundtable prep → `workflows/roundtable-prep.md`
 - Morning sync → `workflows/morning-sync.md`
 
@@ -96,6 +97,7 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 | (No `context.md` exists) / "Run onboarding" / "Set me up" | `workflows/onboarding.md` |
 | "Show my action items" / "What's on my plate?" | `workflows/action-items.md` |
 | "Process this transcript" / "I have a meeting transcript" | `workflows/process-transcript.md` |
+| "I have some notes" / "Ingest these notes" / user pastes raw unstructured notes | `workflows/ingest-notes.md` |
 | "Prep for my 1:1 with [name]" / "Help me prepare for [name]" | `workflows/1on1-prep.md` |
 | "Prep for the roundtable" / "Help me prep for Friday's meeting" | `workflows/roundtable-prep.md` |
 | "Ingest this document" / "Process this file" | `workflows/ingest.md` |
