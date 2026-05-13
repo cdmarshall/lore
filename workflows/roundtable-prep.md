@@ -19,23 +19,33 @@ Prepare for a recurring team roundtable / leadership meeting.
 ### 1. Read Source Files
 
 Read the following files in parallel:
-- `inbox/action-items.md` — completed items this week, active blockers, and the `## Delegated` section (items delegated to each team member)
 - `context.md` — current priorities, active initiatives, and the user's team list
 - `strategy/roadmap.md` if it exists — current initiative statuses
 - One file per direct report under `team/` — each team member's recent observations
 
+For action items (completed-this-week, active blockers, delegated items), try the read paths in order:
+
+1. **Check `inbox/action-items.snapshot.md`** (`bash ls inbox/action-items.snapshot.md`). If present, parse it once at the start of prep and use it for sections 2, 3, and 4. Primary path.
+2. **Check `inbox/action-items-state.json`** (future-proof; rarely exists today). Same purpose, JSON shape.
+3. **If neither file exists**, ask the user: *"Want roundtable prep to include this week's completed items, active blockers, and delegated follow-ups? If yes, click Download snapshot in your action items artifact and save the file to `inbox/action-items.snapshot.md` (or paste it here)."*
+4. **If they decline**, skip sections that depend on action items state and leave placeholders.
+
+Never read `inbox/action-items.md` (legacy backup, distinct from `action-items.snapshot.md`).
+
 ### 2. Identify This Week's Completed Items
 
-From `inbox/action-items.md` Completed section, extract all items completed **this week** (current Mon-Fri). These form the **Milestone Celebrations** segment and the user's personal **Recap**.
+If you have a view of state, scan the `completed` items for entries where `completed` falls in this week (current Mon-Fri). These form the **Milestone Celebrations** segment and the user's personal **Recap**.
+
+If no view is available, leave the section as a placeholder: *"(Fill in from the action items artifact: items completed this week.)"*
 
 ### 3. Identify Active Blockers
 
-From `inbox/action-items.md` Active section, surface:
-- Any OVERDUE items
-- Any items explicitly waiting on another person or team
-- Any items marked ASAP or Urgent
+If you have a view of state, scan the `active` items and surface:
+- Any OVERDUE items (due date is in the past)
+- Any items explicitly waiting on another person or team (notes / actionNeeded)
+- Any items marked ASAP
 
-These are candidates for the **Parking Lot**.
+These are candidates for the **Parking Lot**. If no view is available, add a placeholder.
 
 ### 4. Anticipate Team Round-Robin Updates
 
@@ -44,9 +54,9 @@ For each direct report (named in `context.md`), scan their `team/[name].md` file
 - **Focus**: What they're likely heads-down on next week
 - **Blockers**: Any known dependencies or blockers mentioned in observations
 
-Also scan the `## Delegated` section of `inbox/action-items.md` for any items delegated to this person. These become **Follow-up** prompts — the user should close the loop on them during the Round-Robin. Apply this to all team members including Jax where relevant.
+If you have a view of state, also scan the `delegated` items for any assigned to this person. Surface them as **Follow-up** prompts so the user can close the loop during the Round-Robin. If no view is available, add a placeholder line under each team member's Follow-up section.
 
-Use hedged language (e.g., "likely to mention", "may flag") — these are prompts to help the user listen and respond, not authoritative summaries.
+Use hedged language (e.g., "likely to mention", "may flag") for the inferred parts — these are prompts to help the user listen and respond, not authoritative summaries.
 
 ### 5. Generate Prep Output
 
@@ -81,7 +91,7 @@ Output a structured prep brief:
 ## 3. Team Round-Robin
 
 ### You
-- **Recap**: [Items completed this week from action-items.md]
+- **Recap**: [Items completed this week, from the artifact snapshot if provided]
 - **Focus**: [Top 1-2 active priorities for next week]
 - **Blockers**: [Any items where you're waiting on someone]
 

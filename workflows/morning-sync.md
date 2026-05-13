@@ -41,7 +41,13 @@ If they have an MCP connector for email or calendar, use it. Otherwise, work fro
 
 ### 4. Check Tracked Action Items
 
-Read `inbox/action-items.md` and surface any items that are due today or overdue.
+Try the read paths in order:
+
+1. **Check `inbox/action-items.snapshot.md`** (`bash ls inbox/action-items.snapshot.md`). If present, parse its `## Active` table and surface any items where `Due` is today or in the past. Note the file's mtime so the briefing reflects freshness honestly.
+2. **Check `inbox/action-items-state.json`** (future-proof; rarely exists today). Same purpose, JSON shape.
+3. **If neither file exists**, point the user at the live action items artifact for due-today and overdue items, and remind them they can drop a fresh `inbox/action-items.snapshot.md` for next morning's briefing.
+
+Never read `inbox/action-items.md` (legacy restore-only backup, distinct from `action-items.snapshot.md`).
 
 ### 5. Check Current Priorities
 
@@ -60,7 +66,8 @@ Output a structured morning briefing:
 | 9:00 AM | 1:1 with [Name] | Review their recent observations |
 | 10:30 AM | [Meeting] | [Prep, if any] |
 
-## Tracked Action Items (from inbox/action-items.md)
+## Tracked Action Items
+[If `inbox/action-items.snapshot.md` (or `inbox/action-items-state.json`) is present, list due-today and overdue items. Note the snapshot's age. Otherwise: "No fresh snapshot available. Click Download snapshot in your action items artifact and save to inbox/action-items.snapshot.md for tomorrow's briefing."]
 - [ ] **[Sender]**: [Action needed] - due [date]
 
 ## New Action Items from Email

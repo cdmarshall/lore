@@ -74,7 +74,7 @@ Extract insights from meeting transcripts (especially Plaud AI exports) and upda
 
 **For the user:**
 - Extract their action items and commitments
-- These will be added to `inbox/action-items.md`
+- These will be pushed to the live action items artifact as `add` operations. **Do not** write to `inbox/action-items.md` (see `workflows/action-items.md`).
 
 ### 4. Identify Projects/Initiatives
 
@@ -107,22 +107,22 @@ Should I:
 - Add significant decisions to `decisions/log.md` using the format from `templates/decision-log-entry.template.md`
 
 **For the user's action items:**
-- **Duplicate check first (REQUIRED).** Before appending anything, follow the duplicate-check procedure in `workflows/action-items.md` → "Procedure for agent-driven changes," step 2. Compare each candidate against existing Active rows (and recently Completed/Archived rows) on Subject + Action Needed + From + delegation flags. Wording will differ; intent and ownership are what matter.
-- If a candidate is a duplicate, do NOT append. Either skip it or consolidate the new context into the existing row's Notes / Action Needed.
-- If a candidate is genuinely new, add to `inbox/action-items.md` under Active section. Format:
+- **Push as `add` operations to the live artifact.** Build one `add` operation per new action item, then push via the procedure in `workflows/action-items.md` → "Procedure for agent-driven changes." Do NOT write to `inbox/action-items.md`.
+- For each `add` op:
+  - `item.date` = meeting/source date (the date the item originated)
+  - `item.created` = today's date (`YYYY-MM-DD`)
+  - `item.from` = meeting name or context
+  - `item.subject` = short title
+  - `item.actionNeeded` = full description of what needs to happen
+  - `item.due` = `ASAP`, `Soon`, `This week`, `TBD`, or `YYYY-MM-DD`
+  - `item.lore` = `"Y"` if Lore could plausibly do or substantially advance the item from inside the workspace, else `""`
+  - `item.specialist` = `"Y"` if a sibling specialist agent (e.g., Sigil) could pick it up autonomously, else `""`
+  - `item.notes` = blank unless the transcript provides notes-worthy context
+- **Dedup is handled by the artifact** on `subject + from` (normalized). The artifact will no-op an `add` if the key already exists. For consolidation (the new context adds real value to an existing item), emit an `update` op on the existing item instead of a duplicate `add`, and report it in the summary:
   ```
-  | [Source date YYYY-MM-DD] | [Today YYYY-MM-DD] | [From/Meeting] | [Subject] | [Action Needed] | [Due Date or TBD] | [Lore Y/blank] | [Specialist Y/blank] | [Notes] |
+  Consolidated: "[Proposed item]" → updated existing item "[Existing Subject]" with [new context].
   ```
-  - First column (`Date`) is the meeting/source date, the date the item originated. For transcript processing, use the meeting date.
-  - Second column (`Created`) is today's date, when the row was added to the list. Always populate; never leave blank.
-  - Set `Lore: Y` if Lore could plausibly do or substantially advance the item from inside the workspace.
-  - Set `Specialist: Y` if a sibling specialist agent (e.g., Sigil) could pick it up autonomously. Both flags can be `Y` on the same row.
-- **Report all skip / consolidate decisions in the Output Summary** under "Your Action Items." Use the format defined in `workflows/action-items.md`:
-  ```
-  Skipped (duplicate): "[Proposed item]"
-    → Matches existing row: YYYY-MM-DD | [From] | [Existing Subject]
-    → Reasoning: [why it's the same item]
-  ```
+- After pushing, surface every operation to the user in the Output Summary so they can verify (the artifact's bootstrap toast also confirms how many ops applied).
 
 **For meeting notes:**
 - Save comprehensive summary to `meetings/notes/{date}-{meeting-name}.md`
@@ -152,18 +152,17 @@ After processing, provide:
 - meetings/transcripts/{date}-{meeting-name}.md - Raw transcript saved
 - team/{person}.md - Added observations
 - stakeholders/{person}.md - Added observations
-- inbox/action-items.md - Added [N] action items
+- Action items artifact - Pushed [N] operations ([X] add, [Y] update, [Z] complete)
 - decisions/log.md - Added decision on [topic]
 
-### Your Action Items (Added to inbox/action-items.md)
+### Your Action Items (pushed to the artifact)
 - [ ] [Action 1] - Due: [date/TBD]
 - [ ] [Action 2] - Due: [date/TBD]
 
-**Skipped as duplicates / consolidated** (only include if any):
-- Skipped (duplicate): "[Proposed item]"
-  → Matches existing row: YYYY-MM-DD | [From] | [Existing Subject]
-  → Reasoning: [why it's the same item]
-- Consolidated: "[Proposed item]" → updated existing row "[Existing Subject]" Notes with [new context].
+**Consolidated into existing items** (only include if any):
+- Consolidated: "[Proposed item]" → updated existing item "[Existing Subject]" with [new context]
+
+(The artifact also dedupes `add` ops authoritatively on subject + from, so any exact duplicates are silently no-oped.)
 
 ### Others' Action Items (Tracked in meeting notes)
 - [ ] [Person]: [Action] - Due: [date]

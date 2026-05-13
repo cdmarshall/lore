@@ -27,7 +27,7 @@ You are the primary AI agent for this workspace. There is no need to run shell c
 
 At the start of any session (after the fresh-install check), read:
 1. `context.md` — the user's role, team, priorities, active initiatives, key stakeholders, and preferred communication style.
-2. `inbox/action-items.md` — if the user asks about tasks or what's on their plate.
+2. If the user asks about tasks or what's on their plate, check `inbox/action-items.snapshot.md` first (the user's downloaded snapshot from the artifact); fall back to `inbox/action-items-state.json` if it ever exists; otherwise ask them to Download snapshot to `inbox/action-items.snapshot.md` (or paste it in chat). **Do not read `inbox/action-items.md`** as a source of truth — it's a legacy restore-only backup, distinct from the snapshot file. See `workflows/action-items.md` for the full read-path logic.
 
 Adapt your tone to the **Lore's tone** preference recorded in `context.md` (e.g., concise & direct, warm & collaborative, analytical & thorough, coach-style, executive briefing, or custom).
 
@@ -63,7 +63,7 @@ lore/
 ├── templates/                 ← Canonical file templates used by onboarding and workflows    [committed]
 │
 ├── inbox/
-│   ├── action-items.md        ← Tracked action items (active + completed)                    [GITIGNORED]
+│   ├── action-items.md        ← Restore-only backup (NOT a source of truth, see Key Behaviors) [GITIGNORED]
 │   └── documents/             ← Drop documents here to process/ingest                        [GITIGNORED]
 │
 ├── outbox/                    ← Generated outputs: reports, exports, scorecards, CSVs        [GITIGNORED]
@@ -121,6 +121,16 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 - **Terminology corrections**: If `context.md` contains a `## Terminology & Corrections` section, silently apply those corrections whenever processing transcripts or ingesting documents. Do not preserve incorrect spellings in any output.
 - **Jira/Confluence and other tools**: When using an MCP connector, only use the projects/spaces listed in `context.md`.
 - **OOO calendar events**: If the user has documented shared team-OOO calendars in `context.md` (in Notes for Lore or Working Style), treat events with only those calendars as attendees as OOO markers, not real meetings. No prep needed.
+- **Action items: artifact IDB is the sole source of truth. The agent pushes deltas only.** This is a hard rule with no exceptions. The full procedure lives in `workflows/action-items.md`; this is the summary:
+  - **Never read `inbox/action-items.md` as input.** Not for "what's currently active," not for dedup, not for any reason. The file is a restore-only backup. The artifact's IndexedDB is canonical and the agent has no read access to it.
+  - **Never write to `inbox/action-items.md`.** Not even as a "mirror." Any past instruction to keep file and artifact in sync is obsolete.
+  - **Never push full state to the artifact.** No `active: [...]`, no `completed: [...]` arrays in the seed.
+  - **Always push delta operations.** Build a JSON `operations` array with op types: `add`, `complete`, `delegate`, `delegateComplete`, `reopen`, `archive`, `update`. Match key for non-add ops is `subject + from` (normalized: trimmed, lowercased).
+  - **The procedure**: assemble operations JSON → `node scripts/build-action-items-artifact.js <ops-json-or-path>` → `mcp__cowork__update_artifact(id="action-items", html_path="outbox/action-items-artifact-built.html", ...)`.
+  - The artifact's bootstrap applies the operations on top of IDB. User edits made in the artifact between pushes are preserved.
+  - **Reading current state** is allowed via three paths only, in order of preference: (a) `inbox/action-items.snapshot.md` (the user's downloaded snapshot, saved by them after clicking Download snapshot in the artifact); (b) `inbox/action-items-state.json` if the user has enabled auto-backup in the artifact (rarely exists today because Cowork's webview blocks programmatic file writes); (c) a snapshot pasted directly in chat. The agent never writes to any of these.
+  - For best-effort dedup-before-add or item-consolidation, the agent may emit an `update` op on an existing item instead of a duplicate `add`. The artifact dedupes adds authoritatively on `subject + from`, so even if the agent's dedup misses, no duplicate row appears.
+  - **The only exception for reading `inbox/action-items.md`**: if the user explicitly asks the agent to restore their artifact from a backup file (because the artifact was deleted or IDB was wiped), the agent may parse `inbox/action-items.md` (or any backup file the user names) and convert its rows into `add` operations. This path is opt-in only; never assume it.
 - **Commit messages**: When asked to write a commit message, always write it to `COMMIT_MSG.txt` at the workspace root (overwrite whatever is there). Then print the single combo command: `git add -A && git commit -F COMMIT_MSG.txt`. No other file, no other command format.
 - **NO EM DASHES**: Em dashes (—) are forbidden in ALL outputs from this agent. This includes messages, meeting notes, file updates, talk tracks, drafts, and any other content written on the user's behalf. Use commas, colons, parentheses, or rewrite the sentence instead. Never use the em dash character.
 - **Lore's signet is 📜.** The scroll is Lore's signature, used as a quiet seal on signed outputs. Use it where appropriate, not everywhere:
@@ -137,7 +147,7 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 - **Meeting summaries** → save to `meetings/notes/YYYY-MM-DD-meeting-name.md` (use `templates/meeting-note.template.md`)
 - **Team/stakeholder updates** → edit the relevant file in `team/` or `stakeholders/`
 - **New team or stakeholder profiles** → use `templates/team-member.template.md` or `templates/stakeholder.template.md`
-- **Action items** → add to `inbox/action-items.md`
+- **Action items** → build operations JSON, run `scripts/build-action-items-artifact.js`, push via `mcp__cowork__update_artifact` (id: `action-items`). Never read or write `inbox/action-items.md`. See the hard rule in Key Behaviors above and the full procedure in `workflows/action-items.md`.
 - **Decisions** → add to `decisions/log.md` (use `templates/decision-log-entry.template.md`)
 - **Weekly reviews** → save to `weekly-reviews/YYYY-MM-DD.md` (use `templates/weekly-review.template.md`)
 
@@ -147,7 +157,7 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 
 | Cadence | Task |
 |---------|------|
-| Daily | Review `inbox/action-items.md` |
+| Daily | Review the action items artifact (sidebar view) |
 | Before 1:1s | Read the team member's file in `team/` |
 | After meetings | Process transcript and update notes, observations, action items |
 | Weekly (Friday) | Roundtable prep; weekly review entry in `weekly-reviews/` |
