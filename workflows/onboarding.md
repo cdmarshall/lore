@@ -1,6 +1,6 @@
 # Onboarding
 
-The first-run interview. Run this when `context.md` does not exist at the workspace root. Your job is to interview the user through a guided conversation, then generate their personal files (`context.md`, `team/*.md`, `stakeholders/*.md`, `inbox/action-items.md`) from the canonical templates in `templates/`.
+The first-run interview. Run this when `context.md` does not exist at the workspace root. Your job is to interview the user through a guided conversation, then generate their personal files (`context.md`, `team/*.md`, `stakeholders/*.md`) from the canonical templates in `templates/`, and create the live action items artifact in their Cowork sidebar.
 
 ## When to run this workflow
 
@@ -170,29 +170,34 @@ Capture the choice (and any custom description) under **Lore's tone** in the **W
 
 1. Confirm `context.md` is fully written. Show the user a brief summary of what was captured (3 to 5 lines).
 
-2. Copy `templates/action-items.template.md` to `inbox/action-items.md` if it doesn't already exist. This gives the user an empty action items tracker.
-
-3. **Create the live action items artifact.** This gives the user a sidebar widget that shows their action items, lets them add and complete items, and surfaces overdue work.
+2. **Create the live action items artifact.** This is the user's canonical action items tracker, a sidebar widget where they can add, complete, delegate, and search items. The artifact's IndexedDB is the sole source of truth (see `workflows/action-items.md`).
 
    Steps:
-   - Read `templates/action-items-artifact.template.html`.
-   - Substitute the three placeholders:
-     - `__TODAY__` → today's date in `YYYY-MM-DD` format
-     - `__RECENTLY_COMPLETED__` → `0` (a fresh install has no completed items yet)
-     - `__RAW__` → `[]` (a fresh install has no active items yet)
-   - Write the substituted HTML to a temporary file.
+   - Run the build script with an empty operations array to produce a fresh artifact HTML:
+     ```bash
+     node scripts/build-action-items-artifact.js '[]'
+     ```
+     This writes `outbox/action-items-artifact-built.html` with no seeded items.
    - Call `mcp__cowork__create_artifact` with:
      - `id`: `action-items`
-     - `html_path`: absolute path to your written file
+     - `html_path`: absolute path to `outbox/action-items-artifact-built.html`
      - `mcp_tools`: `[]`
-   - If the create call fails (e.g., the artifact tool isn't available in the current environment), don't block onboarding — just note that the artifact wasn't created and the user can ask for it later by saying "create my action items artifact."
+   - If the create call fails (e.g., the artifact tool isn't available in the current environment), don't block onboarding. Note that the artifact wasn't created and the user can ask for it later by saying "create my action items artifact."
 
-   See `workflows/action-items.md` for full details on the substitution format and how to refresh the artifact later.
+   Do NOT create or populate `inbox/action-items.md`. The artifact's IDB is canonical; the file is only a restore-only backup that the artifact's own Download snapshot button writes when the user wants one. See `workflows/action-items.md` for the full procedure.
+
+3. **Teach the snapshot ritual.** Tell the user how Lore reads their current state (since the agent can't read the artifact's IDB directly):
+
+   > "Whenever you want me to know what's currently on your plate (for prep, planning, dedup, or just 'what should I work on'), click **Download snapshot** in the action items artifact and save the file to `inbox/action-items.snapshot.md` in this Lore workspace. I'll read it. You only need to do this when you want me to have a fresh view; for adding new items or marking things complete, I push changes to the artifact directly and don't need to read first.
+   >
+   > If you'd rather not save the file, you can paste the snapshot content directly in chat and I'll use that."
+
+   This is the only manual ritual in the system. Everything else is automatic.
 
 4. Tell the user the workspace is ready. Suggest a few first actions based on what they shared:
-   - "Try saying: 'Show my action items' to see your tracked items."
-   - "When you have a meeting transcript, drop it in `meetings/transcripts/` or paste it here, and I'll process it."
-   - "Say 'morning sync' to start your day with a briefing."
+   - "Open the action items artifact in your sidebar to start tracking work."
+   - "When you have a meeting transcript, drop it in `meetings/transcripts/` or paste it here, and I'll process it (new items get pushed to the artifact)."
+   - "Say 'morning sync' to start your day with a briefing (works best with a fresh `inbox/action-items.snapshot.md`)."
    - If they have direct reports: "Before your next 1:1, say 'help me prep for my 1:1 with [name]' and I'll pull their profile."
 
 5. Remind them they can edit `context.md` anytime, and that workflows live in `workflows/` if they want to see what Lore can do.
@@ -207,12 +212,11 @@ By the end of onboarding, the workspace should contain (at minimum):
 
 ```
 context.md                              ← fully populated
-inbox/action-items.md                   ← empty tracker, ready to use
 team/[firstname].md                     ← one per direct report (if any)
 stakeholders/[firstname-lastname].md    ← one per stakeholder
 ```
 
-The user should also have a live `action-items` artifact in their Cowork sidebar (created in Phase 8 step 3).
+The user should also have a live `action-items` artifact in their Cowork sidebar (created in Phase 8 step 2). That artifact, not any local file, is the source of truth for action items.
 
 All other folders (decisions/, meetings/notes/, meetings/transcripts/, weekly-reviews/, outbox/, inbox/documents/) remain empty until they're populated by normal workflows.
 

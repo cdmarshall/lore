@@ -1,258 +1,229 @@
 # Action Items
 
-Display current action items from the inbox in a single consolidated table.
+The action items live in a single Cowork artifact (id: `action-items`). The artifact's IndexedDB is the sole source of truth. Agent-driven changes are pushed as delta operations on top of IDB; the agent never replaces IDB wholesale.
 
-## File Schema
+## Source-of-truth model (read this first)
 
-`inbox/action-items.md` has four sections: **Active**, **Delegated**, **Completed**, and **Archived**.
+**The artifact's IndexedDB is canonical.** All edits made in the artifact UI (mark complete, edit due date, delegate, quick-add, etc.) are instant and persist across Cowork restarts. The agent has no direct read access to IDB.
 
-### Active table schema
-```
-| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |
-|------|---------|------|---------|---------------|-----|------|------------|-------|
-```
+**The agent's only role is to push delta operations.** Each push is a JSON seed embedded in the artifact HTML containing an `operations` array. Each operation is one of: `add`, `complete`, `delegate`, `delegateComplete`, `reopen`, `archive`, `update`. The artifact's bootstrap applies the operations on top of whatever's already in IDB. User edits made in the artifact between pushes are preserved.
 
-- **Date** — ISO date (YYYY-MM-DD) or blank. Source date, the meeting, email, or moment the item came from. Stays attached to the originating event even when the item lingers.
-- **Created** — ISO date (YYYY-MM-DD). When the row was added to the list. Always populated for new rows; should equal the date the agent (or user) wrote the row, regardless of how old the originating Date is. Used to surface stale items in the artifact.
-- **From** — source context (person, meeting, email thread)
-- **Subject** — short title for the action item
-- **Action Needed** — full description of what to do
-- **Due** — one of: `ASAP`, `Soon`, `This week`, `TBD`, or `YYYY-MM-DD`
-- **Lore** — `Y` if Lore (this agent) could plausibly do or substantially advance this item from inside the workspace; `N` or blank otherwise. See "The two delegation flags" below.
-- **Specialist** — `Y` if a sibling specialist agent (e.g., Sigil) could pick this up autonomously; `N` or blank otherwise.
-- **Notes** — free-text notes; blank by default
+**The snapshot ritual.** Lore has no direct read access to the artifact's IndexedDB. To give Lore a current view, the user clicks **Download snapshot** in the artifact and saves the resulting file to `inbox/action-items.snapshot.md`. The agent reads that file when it needs state for dedup, "what's on my plate," 1:1 prep, roundtable prep, morning sync, etc. The user can also paste the snapshot content directly in chat instead of saving the file. This is the only manual step; everything else is automatic.
 
-> **Why both Date and Created?** When a transcript from three weeks ago is processed today, the resulting action items have a `Date` of three weeks ago (the meeting) and a `Created` of today (when they entered the list). This separation lets the artifact show "added 0d ago" for genuinely fresh items while preserving the original meeting/source date for context. For items entered live ("Self" notes, in-meeting captures), Date and Created will typically be the same.
+**`inbox/action-items.md` is not used as agent input.** It's a legacy restore-only backup. **The agent must never read it as a source of truth.**
 
-### The two delegation flags
+## Reading current state
 
-The Active table has two independent boolean flags. They answer two different questions:
+The agent has three possible read paths, in order of preference:
 
-- **Lore (`Y`)**: "Could the Lore agent plausibly do this from inside the workspace, with the context it already has?" Use for things like drafting a doc, summarizing a thread, generating a prep brief, building a small artifact, querying a connector for data the user wants surfaced. The work happens in chat with Lore.
-- **Specialist (`Y`)**: "Could a sibling specialist agent (e.g., Sigil) pick this up autonomously?" Use for engineering-flavored or domain-specific execution: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data from production systems. The work happens outside the Lore session, with the specialist reading `inbox/action-items.md` directly.
+1. **`inbox/action-items.snapshot.md`** — the user's downloaded snapshot, saved by them via the artifact's Download snapshot button. Markdown format with `## Active`, `## Completed`, `## Delegated`, `## Archived` sections. Check first with `bash ls inbox/action-items.snapshot.md`; if present, parse it. Note the file's mtime in your response so the user knows how fresh the read is.
 
-The flags are **not mutually exclusive**. An item can be:
-- `Lore: Y, Specialist: Y` — either could do it; whichever is sitting in front of the user wins.
-- `Lore: Y, Specialist: blank` — Lore can do it now; no specialist hand-off needed.
-- `Lore: blank, Specialist: Y` — better suited for the specialist; Lore should flag and route.
-- both blank — needs human judgment, in-person conversation, or context only the user has.
-
-Lore should set these flags reflectively when adding items: "Could I do this if asked? Could the specialist?"
-
-### Adding a new action item
-
-Append a new row to the Active table with all 9 columns:
-
-```
-| YYYY-MM-DD | YYYY-MM-DD | From | Subject | Action Needed | Due | Lore | Specialist | Notes |
-```
-
-- **Date** = source date. Use the meeting date, email date, or whenever the item originated. If unknown, use today.
-- **Created** = today's date in YYYY-MM-DD. Always populated; never leave blank when adding a new row.
-- **Lore** = `Y` if Lore could do or substantially advance the item from inside the workspace.
-- **Specialist** = `Y` if a sibling specialist agent (e.g., Sigil) could autonomously pick it up.
-- Notes should be blank unless the user provides them
-- Always preserve the exact column order: Date, Created, From, Subject, Action Needed, Due, Lore, Specialist, Notes
-
-### Delegated table schema
-```
-| Date | Created | From | Subject | Delegated To | Action Needed | Delegated | Notes |
-|------|---------|------|---------|-------------|---------------|-----------|-------|
-```
-
-- **Date** — original source date (preserved from the Active row)
-- **Created** — preserved from the Active row; never updated when delegating
-- **From** — original source context (preserved)
-- **Subject** — preserved from the Active row
-- **Delegated To** — team member name: `Danelle`, `Hannah`, or `April`
-- **Action Needed** — preserved from the Active row
-- **Delegated** — ISO date (YYYY-MM-DD) when the item was delegated
-- **Notes** — any context or instructions for the delegatee; preserved from the Active row
-
-Delegated items are **in-flight work owned by a team member**. They stay visible (not buried in Completed) so the user can follow up. When the work is confirmed done, move to Completed with a resolution note. To re-open, move back to Active.
-
-**When delegating an item:**
-1. Remove it from the `## Active` table
-2. Append it to the `## Delegated` table, preserving `Date`, `Created`, `From`, `Subject`, `Action Needed`, and `Notes` from the Active row
-3. Populate `Delegated To` with the team member's name
-4. Populate `Delegated` with today's date
-
-**When a delegated item is confirmed complete:**
-1. Remove it from the `## Delegated` table
-2. Append to `## Completed` with a `Resolution` of `Delegated to [Name] — [brief outcome]`
-
-**When re-opening a delegated item:**
-1. Remove it from the `## Delegated` table
-2. Restore to `## Active` with the original fields intact; set `Due` to `TBD`
-
-### Meeting prep integration
-
-Delegated items surface automatically during prep for that team member. When running roundtable prep or a 1:1 prep (via `workflows/roundtable-prep.md`), Lore reads the `## Delegated` section and groups any items delegated to that person into a "Follow-up" block in the prep brief. This is the primary mechanism for the user to close the loop on delegated work.
-
-### Completed table schema
-```
-| Date | Created | From | Subject | Resolution | Completed |
-```
-
-When moving a row from Active to Completed, preserve the original `Created` value. The `Completed` column captures the resolution date.
-
-### Archived table schema
-```
-| Date | Created | From | Subject | Action Needed | Archived |
-```
-
-When archiving, preserve the original `Created` value. The `Archived` column captures the archive date.
-
----
-
-## Live Artifact (Cowork Sidebar)
-
-The action items are also available as a live Cowork artifact (id: `action-items`) that renders in the Cowork sidebar. It shows all active items with priority badges, filter pills, search, inline edits, due date picker, agent toggle, notes, quick-add row, and a Refresh button.
-
-**Where it lives:** Cowork's artifact system. The HTML file is stored at:
-- Mac/Linux: `~/Documents/Claude/Artifacts/action-items/index.html`
-- Windows: `$HOME\Documents\Claude\Artifacts\action-items\index.html` (e.g. `C:\Users\username\Documents\Claude\Artifacts\action-items\index.html`)
-
-The canonical template ships at `templates/action-items-artifact.template.html`.
-
-### Source-of-truth model (read this before doing anything)
-
-The **artifact's IndexedDB is the live source of truth** for action items. The user makes edits in the artifact directly (mark complete, set due, etc.) — those are instant and persist across Cowork restarts. They do not write back to disk on their own (Cowork's webview blocks file writes from artifacts).
-
-The **`inbox/action-items.md` file is the agent's window** and a recoverable backup. **The agent always writes the file and the artifact in lockstep** — every agent-driven change goes to both at the same time, so the file is always in sync with whatever the artifact had when the agent last operated.
-
-User-only edits (mark complete in the artifact, edit a due date, etc.) drift the file out of sync until either:
-- The user manually clicks **Download snapshot** and saves it over `inbox/action-items.md`, OR
-- The agent next operates, at which point the agent's push replaces the artifact's IDB with the new state and writes the same state to the file.
-
-**Important consequence**: if the user has been making changes in the artifact AND THEN asks the agent to add items via chat without first clicking Download snapshot, those user edits will be clobbered by the agent's push. To avoid this, the agent should ask the user to Download snapshot first when there's reason to suspect drift (e.g., the file timestamp is much older than the artifact was last updated, or the user mentions edits the file doesn't reflect).
-
-### Procedure for agent-driven changes
-
-Run this whenever you need to add or modify action items on the user's behalf (transcript processing, "Lore, add X to my list", "Mark X as complete", etc.):
-
-1. **Read** `inbox/action-items.md` for the current state. This is your baseline.
-2. **Duplicate check (REQUIRED before appending any new item)**.
-   - For every candidate new item, scan the existing Active table for likely matches before writing anything.
-   - Compare on **Subject + Action Needed + From + delegation flags (Lore / Specialist)**. Wording will differ; intent and ownership are what matter. Use fuzzy judgment:
-     - Same person/topic + same delegation/ownership + same outcome = duplicate.
-     - Examples that should match:
-       - "Talk to Mike Tumpane about renewal ops filtering criteria" ≈ "Renewal ops: talk to Mike Tumpane about filtering criteria"
-       - "Write Lead Source Differentiation tickets" ≈ "Lead Source Differentiation Tickets"
-       - "Follow up with Danelle on billing carrier IDs" ≈ "Billing Carrier IDs — Ops Coordination" (delegated to Danelle)
-   - Also scan the **Completed** and **Archived** tables. If a candidate matches a recently completed item, surface that to the user rather than re-adding it ("This looks like the item completed on YYYY-MM-DD — re-open it, or skip?").
-   - **Decision rules**:
-     - Clear duplicate → do NOT append. Optionally update the existing row's Notes or Action Needed if the new context adds something (new date, new sub-task, new due). Never create a parallel row for the same work.
-     - Likely duplicate but uncertain → lean toward consolidation. Update the existing row and flag the decision for the user.
-     - Genuinely new → proceed to step 3.
-   - **Reporting (REQUIRED)**: in the response to the user, list every skipped or consolidated candidate explicitly. Format:
-     ```
-     Skipped (duplicate): "[Proposed item subject]"
-       → Matches existing row: YYYY-MM-DD | [From] | [Existing Subject]
-       → Reasoning: [why you believe it's the same item]
-     ```
-     If consolidating, say so: `Consolidated into existing row [Subject]; updated Notes to add [new context].`
-3. **Apply** the change(s):
-   - Adding new items → append rows to the `## Active` table. Always populate `Created` with today's date (YYYY-MM-DD).
-   - Marking complete → move the row from Active to Completed, preserve the original `Created` value, fill in the Resolution and Completed columns.
-   - Delegating → move the row from Active to Delegated, preserve original fields, set `Delegated To` and `Delegated` date. See "Delegated table schema" above.
-   - Completing a delegated item → move from Delegated to Completed with resolution note.
-   - Re-opening a delegated item → move from Delegated back to Active with `Due` reset to `TBD`.
-   - Archiving → move the row from Active to Archived, preserve the original `Created` value, fill in the Archived date.
-   - Editing existing items → update the relevant cells in place. Preserve the schema. Do not change `Created` on an existing row even when other fields are revised.
-4. **Write** the updated content back to `inbox/action-items.md`.
-5. **Run** the build script: `node scripts/build-action-items-artifact.js`. This reads the file, stamps a fresh `seedVersion` (ISO timestamp), and writes the substituted HTML to `outbox/action-items-artifact-built.html`.
-6. **Push** to the artifact:
-   ```
-   mcp__cowork__update_artifact(
-     id: "action-items",
-     html_path: "<absolute path to outbox/action-items-artifact-built.html>",
-     mcp_tools: [],
-     update_summary: "<short description of what changed>"
-   )
+2. **`inbox/action-items-state.json`** — written automatically by the artifact's auto-backup feature, IF the user enabled it. **Currently this won't exist** because Cowork's webview blocks the artifact from writing files programmatically. The plumbing remains in place in case a future Cowork build enables it. If the file ever exists, prefer it over the markdown snapshot (it's fresher and machine-readable). JSON shape:
+   ```json
+   {
+     "writtenAt": "ISO timestamp (use to detect freshness)",
+     "schemaVersion": 2,
+     "active": [ {date, created, from, subject, actionNeeded, due, lore, specialist, notes}, ... ],
+     "completed": [ {date, created, from, subject, resolution, completed}, ... ],
+     "delegated": [ {date, created, from, subject, delegatedTo, actionNeeded, delegated, notes}, ... ],
+     "archived": [ {date, created, from, subject, actionNeeded, archived}, ... ]
+   }
    ```
 
-After step 6, the file and the artifact are in sync. The artifact's bootstrap detects the new `seedVersion` and adopts the seed, replacing its IDB.
+3. **A snapshot pasted directly in chat** — if no file is present and the user wants to give the agent a view right now without leaving chat. Same markdown format as #1.
 
-### When the user clicks "Download snapshot"
+4. **None** — the agent has no view of state. Push operations blindly (the artifact handles dedup). Tell the user honestly: "I don't have a view of your current list. If you want me to dedup or list items, click Download snapshot in your artifact and save it to `inbox/action-items.snapshot.md` (or paste it here)."
 
-The user is taking a manual snapshot. They'll typically save the result over `inbox/action-items.md` to bring the agent's view in sync with their current artifact state. The agent doesn't need to do anything special when this happens; just trust `inbox/action-items.md` next time you read it.
+Never read `inbox/action-items.md` for state. That file is a legacy restore-only markdown backup, distinct from `action-items.snapshot.md`.
 
-### Pre-flight check before agent operations
+## Operations seed schema
 
-Before processing a transcript or adding items via chat, scan `inbox/action-items.md`. If you suspect it's out of date relative to what the user has been doing in the artifact (e.g., the file looks weeks old or doesn't contain items the user just mentioned), say something like: *"Before I add these, click Download snapshot in your action items artifact and save it over inbox/action-items.md so I have your latest state. Otherwise edits you've made in the artifact since the last sync will be overwritten."* Then wait for confirmation.
+When pushing changes, the agent builds a JSON of operations and runs the build script. The seed schema is:
 
-### Delegation contract: the `Lore` and `Specialist` flags
-
-The Active table has two delegation flags, used independently. Each row can be claimed by Lore, by a specialist, by both, or by neither (in which case the user does it themselves).
-
-**When Lore adds or updates an item, set both flags reflectively:**
-
-- **Lore = `Y`** when Lore could plausibly do or substantially advance the item from inside the workspace. Examples: drafting a memo, summarizing a thread, generating a prep brief, building a small artifact, querying a connector and surfacing the result, writing a stakeholder talk track.
-- **Specialist = `Y`** when a sibling specialist agent could pick it up autonomously. The canonical example is **Sigil**, a product-engineering specialist that reads `inbox/action-items.md` directly. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data from production systems.
-- Both blank when the item needs human judgment, in-person conversation, or context only the user has.
-
-These are not mutually exclusive. Many items are doable by either; flag both `Y` and let context decide who does it.
-
-**Lore is not the only writer of `inbox/action-items.md`.**
-- Specialist agents may also append rows (when starting fresh work the user wants tracked) and modify rows (when completing items they were delegated).
-- When a specialist agent completes an item, it moves the row from `## Active` to `## Completed` directly. Lore picks up that change next time it reads the file and pushes the artifact.
-- Don't assume an item is still active just because it was active last time you read the file. Always re-read before acting.
-
-**Pointing users at the right doer.**
-- If the user asks Lore for something clearly in a specialist's wheelhouse (e.g., "write Jira tickets for these", "scope this engineering work"), Lore should suggest delegating: *"This looks like work for Sigil if you have it set up. I can flag this as Specialist: Y in your action items, then you can run Sigil and it'll pick it up."* Then add the item with `Specialist: Y` and a clear Action Needed description. Don't assume the user has Sigil; phrase the suggestion conditionally.
-- If the user asks for something Lore can do directly, just do it. Optionally log it after the fact with `Lore: Y` if it was substantial work the user might want tracked.
-- If both flags would apply, set both. The user can pick where to run it.
-
-
----
-
-## Instructions
-
-1. Read the file `inbox/action-items.md`
-2. Display **ALL** active action items in ONE table, sorted by priority:
-   - OVERDUE items first (past due date)
-   - URGENT / ASAP items second
-   - All other items after (TBD, conditional triggers)
-3. Show count of total active items in header
-4. Show count of recently completed items at the end
-5. If an item has `Agent = Y`, indicate it is agent-eligible (e.g., with a ⚡ marker or note)
-
-## Output Format
-
-IMPORTANT: Use a single consolidated table with a Priority column. Do NOT use multiple tables.
-
-```
-## Action Items (X active)
-
-| Priority | Action | From | Due | Details |
-|----------|--------|------|-----|---------|
-| OVERDUE | Item name | Person | Date | Short description |
-| URGENT | Item name | Person | - | Short description |
-| ASAP | Item name | Person | - | Short description |
-| TBD | Item name | Person | - | Short description |
-| Before travel | Item name | Person | - | Short description |
-| When X starts | Item name | Person | - | Short description |
-
----
-Recently completed: X items
+```json
+{
+  "seedVersion": "2026-05-12T18:30:00.000Z",
+  "schemaVersion": 2,
+  "teamMembers": ["Danelle", "Hannah", "April"],
+  "operations": [ ... ]
+}
 ```
 
-Priority column values:
-- "OVERDUE" - for items past their due date
-- "URGENT" - for items marked Urgent
-- "ASAP" - for items marked ASAP
-- "TBD" - for items with no specific due date
-- Keep conditional triggers as-is (e.g., "Before travel", "When [name] starts")
+The build script (`scripts/build-action-items-artifact.js`) stamps `seedVersion` and `teamMembers` for you. You only construct the `operations` array.
 
-Keep Details column concise - abbreviate long descriptions.
+### Operation types
 
-If the user says "show completed action items", also show the completed items table:
+**`add`** — adds a new item to the Active list. Dedup happens in the artifact on `subject + from` (normalized: trimmed, lowercased); if the same key already exists in any list, the op is a no-op.
+
+```json
+{
+  "op": "add",
+  "item": {
+    "date": "2026-05-12",
+    "created": "2026-05-12",
+    "from": "Ryan Mulvaney Sync",
+    "subject": "Confirm White Coat API key config",
+    "actionNeeded": "Verify reuse of existing key and reply to Ryan",
+    "due": "TBD",
+    "lore": "Y",
+    "specialist": "",
+    "notes": ""
+  }
+}
+```
+
+Field meanings: `date` is the source date (meeting / email / origin). `created` is today's date (when the row was added to the list); always populate. `due` is one of `ASAP`, `Soon`, `This week`, `TBD`, or `YYYY-MM-DD`. `lore: "Y"` if Lore could plausibly do or substantially advance the item from inside the workspace; `specialist: "Y"` if a sibling specialist agent (e.g., Sigil) could pick it up autonomously. Both can be `Y` on the same row.
+
+**`complete`** — moves an active or delegated item to Completed.
+
+```json
+{ "op": "complete", "subject": "...", "from": "...", "resolution": "optional resolution text" }
+```
+
+`from` is part of the match key. `resolution` is optional; defaults to the item's existing `actionNeeded`. No-ops if the item is already completed or doesn't exist.
+
+**`delegate`** — moves an active item to the Delegated list and assigns it.
+
+```json
+{ "op": "delegate", "subject": "...", "from": "...", "delegatedTo": "Danelle" }
+```
+
+**`reopen`** — moves an item from Delegated, Completed, or Archived back to Active (searched in that order). Resets `due` to `TBD`.
+
+```json
+{ "op": "reopen", "subject": "...", "from": "..." }
+```
+
+**`archive`** — moves an active item to the Archived list.
+
+```json
+{ "op": "archive", "subject": "...", "from": "..." }
+```
+
+**`update`** — edits fields of an existing active item in place. Allowed fields: `date`, `created`, `from`, `subject`, `actionNeeded`, `due`, `lore`, `specialist`, `notes`.
+
+```json
+{ "op": "update", "subject": "...", "from": "...", "fields": { "due": "2026-06-01", "notes": "..." } }
+```
+
+### Match-key normalization
+
+For every op that references an existing item (everything except `add`), the artifact matches by `subject + from` after trimming whitespace and lowercasing. Wording must be precise — if the user previously marked an item complete with a slightly different subject, the match will fail and the op will no-op.
+
+If a match fails, the operation is silently skipped (counted as "skipped" in the toast on the user's side). That's acceptable: the artifact dedupes adds, ignores re-completions, and any genuine mismatch shows up as a stale push the agent can correct on the next operation.
+
+## Procedure for agent-driven changes
+
+Whenever the user asks the agent to add, complete, delegate, reopen, archive, or update action items (directly, or as part of processing a transcript / ingesting notes), do this:
+
+### 1. Build the operations JSON
+
+In your head or in a scratch file, assemble the list of operations the user's request maps to. Examples:
+
+- "Add this item from the Ryan sync" → one `add` op
+- "Mark X and Y complete" → two `complete` ops
+- "Delegate the renewal ops thing to Danelle" → one `delegate` op
+- Processing a transcript that produces 4 new action items → four `add` ops
+- "Move my due date for the engagement score explainer to next Friday" → one `update` op
+
+### 2. Best-effort dedup and consolidation before adding
+
+The artifact dedupes `add` ops authoritatively on `subject + from`. But for cases where the agent should consolidate rather than skip (e.g., the new context adds something useful to an existing item's notes), use an `update` op on the existing item instead of a redundant `add`.
+
+Read current state via the preferred read path:
+
+1. **Check `inbox/action-items.snapshot.md`** first (`bash ls inbox/action-items.snapshot.md`). If present, parse the `## Active` table for the candidates' `subject + from` collisions (normalize: trim + lowercase). If a near-match exists with the same intent but different wording, emit an `update` op on the existing item; otherwise the artifact will silently dedup the exact-match `add`.
+2. **Check `inbox/action-items-state.json`** (future-proof; rarely exists today). Same logic against its `active` array.
+3. **If neither file exists**, push the adds blindly. The artifact will dedup on the way in. Note to the user that you don't have a current view; if they want consolidation rather than raw dedup, suggest they Download snapshot to `inbox/action-items.snapshot.md` first.
+
+If you decide a candidate is a likely duplicate that warrants consolidation rather than skipping, emit an `update` op on the existing item with new notes. Report the consolidation to the user explicitly:
 
 ```
-### Completed (Recent)
-
-| Action | From | Resolution | Completed |
-|--------|------|------------|-----------|
-| Item name | Person | What was done | Date |
+Consolidated: "Proposed item subject"
+  → Existing item updated: "Existing Subject" (Notes appended with new context)
 ```
+
+If you decide to skip outright, report that too:
+
+```
+Skipped (likely duplicate): "Proposed item subject"
+  → Reasoning: same subject and from as existing active item
+```
+
+### 3. Run the build script
+
+Pass the operations JSON to `scripts/build-action-items-artifact.js`. Either inline JSON or a path to a JSON file works:
+
+```bash
+# Inline (small ops lists)
+node scripts/build-action-items-artifact.js '[{"op":"add","item":{"subject":"...","from":"...","actionNeeded":"...","due":"TBD","created":"2026-05-12","date":"2026-05-12"}}]'
+
+# Or write the ops to a temp JSON file first (cleaner for many ops)
+node scripts/build-action-items-artifact.js /tmp/action-items-ops.json
+```
+
+The script writes the substituted HTML to `outbox/action-items-artifact-built.html` and stamps a fresh `seedVersion`.
+
+### 4. Push to the artifact
+
+```
+mcp__cowork__update_artifact(
+  id: "action-items",
+  html_path: "<absolute path to outbox/action-items-artifact-built.html>",
+  mcp_tools: [],
+  update_summary: "<short description of what changed>"
+)
+```
+
+After step 4, the artifact's bootstrap will detect the new `seedVersion`, apply each operation as a delta, and persist the resulting IDB state. User edits in IDB are preserved.
+
+### 5. Report to the user
+
+In your response, summarize what was pushed. If anything was skipped or consolidated, list those explicitly (format above). Don't claim "X was added" without confirmation; the artifact has the final word on dedup. If the user wants confirmation, they can check the artifact directly.
+
+## What never happens
+
+- The agent never reads `inbox/action-items.md` as input.
+- The agent never writes to `inbox/action-items.md`.
+- The build script never reads `inbox/action-items.md`.
+- The seed never contains a `active`, `completed`, `archived`, or `delegated` array of full state. Only an `operations` array.
+
+If you find yourself wanting to do any of the above, stop. The artifact is the source of truth and the only legitimate path is operations.
+
+## The local backup file (`inbox/action-items.md`)
+
+This file may exist as a historical artifact or a one-time snapshot the user saved over. **It is not read by the agent under any circumstance** except the explicit restore scenario, where the user is asking the agent to help recover from a deleted/wiped artifact. In that case, the user typically uses the artifact's own "Restore from backup" button (which reads any markdown snapshot they uploaded) rather than involving the agent.
+
+If the user explicitly says "restore the artifact from the backup file at path X," the agent can read that file, parse it, convert it to a series of `add` operations, and push via the build script. This is the only path where the file is consumed.
+
+## Delegation contract: the `Lore` and `Specialist` flags
+
+The Active list has two delegation flags per row. They answer two different questions:
+
+- **`lore: "Y"`** — Lore (this agent) could plausibly do or substantially advance the item from inside the workspace. Examples: drafting a memo, summarizing a thread, generating a prep brief, building a small artifact, querying a connector and surfacing the result, writing a stakeholder talk track.
+- **`specialist: "Y"`** — a sibling specialist agent (e.g., Sigil) could pick it up autonomously. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data from production systems.
+
+Both blank when the item needs human judgment, in-person conversation, or context only the user has.
+
+Flags are not mutually exclusive. Many items are doable by either. When the agent emits `add` ops, set both flags reflectively based on the same questions.
+
+**Specialist agents (e.g., Sigil) may also push operations to this artifact.** Sigil's path is the same: build operations, run the build script, push via `update_artifact`. The artifact dedupes regardless of which agent pushed.
+
+## Pre-existing items: there is no "Active table to scan"
+
+You may see references in older notes or commits to "scan the Active table before appending." That guidance applied to the old file-as-source-of-truth model and no longer applies. In the operations model, the artifact handles dedup. The agent only needs best-effort dedup for the consolidation case described above.
+
+If the user asks "what's currently active?", the canonical answer is: **open the artifact**. If they want a chat-rendered list, use the read paths above: prefer `inbox/action-items-state.json` if present; otherwise ask for a Downloaded snapshot.
+
+## Display in chat (when user asks "what's on my plate?")
+
+When the user asks for their action items in chat, follow this order:
+
+1. **Check for `inbox/action-items.snapshot.md`** (`bash ls inbox/action-items.snapshot.md`). If present, parse the `## Active` table and render sorted by priority. Note the file's mtime in the response so the user knows how fresh it is.
+2. **Check for `inbox/action-items-state.json`** (future-proof; rarely present today). If it exists, parse the `active` array, use the `writtenAt` timestamp.
+3. **If neither file exists**, tell the user: "Click Download snapshot in your action items artifact and save the file to `inbox/action-items.snapshot.md` (or paste the contents here), and I'll render the list."
+4. **If they prefer**, suggest just opening the artifact directly — it's already the live view.
+
+Priority sorting (when rendering): OVERDUE → URGENT/ASAP → UPCOMING → other due dates → TBD/conditional.
+
+Always be honest about the source: "from your snapshot file (saved 12 min ago)" or "from the snapshot you just pasted" or "open the artifact for the live view, I don't have a read path right now."

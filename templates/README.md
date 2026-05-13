@@ -12,7 +12,7 @@ Canonical file templates used by Lore's onboarding workflow and ongoing operatio
 | `meeting-note.template.md` | process-transcript workflow | Standardized meeting note format |
 | `decision-log-entry.template.md` | process-transcript workflow | Single decision entry format for `decisions/log.md` |
 | `weekly-review.template.md` | weekly review ritual | Format for `weekly-reviews/YYYY-MM-DD.md` |
-| `action-items.template.md` | onboarding + email-triage | Format for `inbox/action-items.md` |
+| `action-items-artifact.template.html` | onboarding, all action-item pushes | Canonical artifact HTML template. Used by `scripts/build-action-items-artifact.js` to substitute the operations seed. |
 
 ## Conventions
 

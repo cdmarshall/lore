@@ -32,7 +32,7 @@ Process a document and extract relevant information to update the knowledge base
 
 ### Input locations (where source documents live):
 - `inbox/documents/` - Drop documents here for processing
-- `inbox/action-items.md` - Action item tracking
+- The action items artifact (Cowork sidebar) is the canonical action items tracker; the agent pushes to it via operations rather than reading any local file. See `workflows/action-items.md`.
 - User can also provide any file path on their system
 
 ### Output locations (where generated files go):
