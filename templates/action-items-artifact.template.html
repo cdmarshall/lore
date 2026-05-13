@@ -2,8 +2,8 @@
 <script type="application/json" id="cowork-artifact-meta">
 {
   "name": "Action Items",
-  "schemaVersion": 1,
-  "description": "Live action items tracker. IndexedDB is the source of truth — all edits are instant and require no agent involvement. An optional 'backup to file' target (via showSaveFilePicker) writes a markdown snapshot to disk after every change. The artifact is seeded from inbox/action-items.md on first run; thereafter the artifact is canonical."
+  "schemaVersion": 2,
+  "description": "Live action items tracker. The artifact's IndexedDB is the sole source of truth. Agent pushes apply as delta operations (add, complete, delegate, reopen, archive, update) on top of IDB; full-state replacement is never used. The Download snapshot file is a restore-only backup."
 }
 </script>
 <html>
@@ -89,6 +89,10 @@ body {
 
 .header-btn { font-family: var(--font-ui); padding: 5px 13px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.16); color: white; font-size: 12px; cursor: pointer; font-weight: 500; transition: background 0.15s; align-self: center; }
 .header-btn:hover { background: rgba(255,255,255,0.26); }
+.header-btn.on { background: rgba(200,224,166,0.36); border-color: rgba(200,224,166,0.7); }
+.header-btn.on:hover { background: rgba(200,224,166,0.5); }
+.header-btn.paused { background: rgba(242,205,142,0.34); border-color: rgba(242,205,142,0.7); }
+.header-btn.paused:hover { background: rgba(242,205,142,0.48); }
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .spinner { display: inline-block; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.65s linear infinite; flex-shrink: 0; }
@@ -306,10 +310,12 @@ tbody tr:hover .delegate-btn { opacity: 1; }
 <body>
 
 <!-- Embedded seed data (substituted by the agent at create/update time).
-     This is ONLY used to populate IndexedDB on first run. After that, IDB
-     is canonical and the embedded data is ignored. The placeholder string
-     below is intentionally only mentioned in this one place so the build
-     script's global replace can't accidentally hit any other code. -->
+     Contains: { seedVersion, schemaVersion, teamMembers, operations[] }.
+     The operations array is a delta applied on top of whatever is already in
+     IDB. Full state is never embedded; the artifact's IDB is the sole source
+     of truth. The placeholder string below is intentionally only mentioned
+     in this one place so the build script's global replace can't accidentally
+     hit any other code. -->
 <script type="application/json" id="seed-data">/*__LORE_ACTION_ITEMS_SEED_PLACEHOLDER__*/</script>
 
 <div class="header">
@@ -323,7 +329,19 @@ tbody tr:hover .delegate-btn { opacity: 1; }
       <span class="sync-label" id="sync-label">Loading...</span>
     </div>
     <div class="menu-row">
-      <button class="header-btn" id="export-btn" title="Download a one-time snapshot of the current items as a .md file. Save it as inbox/action-items.md so Lore can see your latest state when you ask in chat.">Download snapshot</button>
+      <!--
+        Auto-backup button (id "backup-btn") was here. It depended on
+        FileSystemFileHandle.createWritable(), which Cowork's current webview
+        blocks (platform policy: programmatic file writes from artifact JS
+        aren't allowed). The supporting JS (enableAutoBackup, writeAutoBackup,
+        ensureBackupPermission, buildStateSnapshot, etc.) is intentionally
+        left intact below. If a future Cowork build allows createWritable,
+        re-add a header-btn element with id="backup-btn" here and the click
+        handler will auto-bind on next load.
+      -->
+      <button class="header-btn" id="export-btn" title="Download a markdown snapshot of the current items. Save it to inbox/action-items.snapshot.md in your Lore workspace so Lore can read your current state when you ask.">Download snapshot</button>
+      <button class="header-btn" id="restore-btn" title="Restore items from a previously downloaded snapshot. Replaces all current items in this artifact.">Restore from backup</button>
+      <input type="file" id="restore-file-input" accept=".md,text/markdown,text/plain" style="display:none">
     </div>
   </div>
   <div class="stats" id="stats"></div>
@@ -422,16 +440,22 @@ tbody tr:hover .delegate-btn { opacity: 1; }
 
 <div class="footer">
   <span id="showing"></span>
-  <span class="tip" id="footer-tip">Click any cell to edit · Changes save automatically to this view · <strong>Download snapshot</strong> exports a markdown copy</span>
+  <span class="tip" id="footer-tip">Click any cell to edit · This view is the source of truth · <strong>Download snapshot</strong> → save to <code>inbox/action-items.snapshot.md</code> so Lore can read current state</span>
 </div>
 
 <script>
 // ─────────────────────────────────────────────────────────────────────────────
 // Action Items Artifact (IndexedDB-backed)
-// IndexedDB is the source of truth. All edits are instant and require no
-// agent involvement. An optional auto-saved backup file (showSaveFilePicker)
-// writes a markdown snapshot to disk after every change so the data is
-// recoverable. Manual Export download is always available as a fallback.
+// IndexedDB is the sole source of truth. All edits in this view are instant
+// and persist across reloads. Agent pushes arrive as delta operations (add,
+// complete, delegate, reopen, archive, update) in the embedded seed and are
+// applied on top of IDB; the agent never replaces IDB wholesale.
+//
+// Two manual escape hatches exist:
+//   - Download snapshot: writes the current IDB state to a markdown file
+//     (restore-only backup; never used as agent source-of-truth).
+//   - Restore from backup: replaces IDB content from a previously downloaded
+//     snapshot. Use only if the artifact was deleted or IDB was wiped.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TODAY = (() => { const d = new Date(); d.setHours(12,0,0,0); return d; })();
@@ -443,9 +467,10 @@ let items = [];
 let recentlyCompleted = 0;
 const loreState = {}, specialistState = {}, notesState = {};
 let activeFilter = 'all', searchQuery = '';
-// lastSeenSeedVersion tracks the seedVersion we last consumed from the artifact's
-// embedded seed. On bootstrap, if the embedded seedVersion is different (newer),
-// the agent has pushed an update and we adopt it. Otherwise we keep IDB.
+// lastSeenSeedVersion tracks the seedVersion we last consumed. On bootstrap,
+// if the embedded seedVersion is different, the agent has pushed new
+// operations and we apply them as a delta on top of IDB. IDB is never
+// wholesale replaced; it's the source of truth.
 let lastSeenSeedVersion = null;
 
 // ── Storage layer ──────────────────────────────────────────────────────────
@@ -572,17 +597,215 @@ function readEmbeddedSeed() {
   try { return JSON.parse(txt); } catch (_) { return null; }
 }
 
-// Adopt the agent's seed wholesale: replaces IDB with the seed contents.
-// Called when bootstrap detects a new seedVersion (i.e., the agent has pushed
-// an update since we last saw the artifact). The artifact is the source of
-// truth at the IDB level; agent pushes are simply the canonical way for
-// agent-driven changes to land here.
-function adoptSeed(seed) {
-  activeItems    = seed.active    || [];
-  completedItems = seed.completed || [];
-  archivedItems  = seed.archived  || [];
-  delegatedItems = seed.delegated || [];
+// ── Operations-based seed application (artifact-as-source-of-truth) ─────────
+// The agent's seed contains an operations[] array. Each operation is a delta:
+// add, complete, delegate, delegateComplete, reopen, archive, or update.
+// Operations are applied on top of whatever is already in IDB. The artifact's
+// IDB is never wholesale replaced; user-driven edits made in this view are
+// preserved across agent pushes.
+//
+// Item-matching key for operations targeting an existing item is subject+from,
+// normalized (trim + lowercase). For 'add' ops, the same key is used to dedup
+// against existing items in any list before insertion.
+const norm = s => (s == null ? '' : String(s)).trim().toLowerCase();
+const keyOf = it => `${norm(it && it.subject)}|${norm(it && it.from)}`;
+
+function applyOperations(seed) {
+  if (!seed || !Array.isArray(seed.operations)) {
+    lastSeenSeedVersion = seed && seed.seedVersion || lastSeenSeedVersion;
+    return { applied: 0, skipped: 0 };
+  }
+
+  // Build lookup sets for dedup. These mutate as we apply ops so a later op
+  // in the same batch sees the effect of earlier ops.
+  const activeKeys    = new Set(activeItems.map(keyOf));
+  const completedKeys = new Set(completedItems.map(keyOf));
+  const archivedKeys  = new Set(archivedItems.map(keyOf));
+  const delegatedKeys = new Set(delegatedItems.map(keyOf));
+
+  let applied = 0, skipped = 0;
+
+  for (const op of seed.operations) {
+    if (!op || typeof op !== 'object') { skipped++; continue; }
+    try {
+      switch (op.op) {
+        case 'add': {
+          const src = op.item || {};
+          const k = `${norm(src.subject)}|${norm(src.from)}`;
+          if (!src.subject) { skipped++; break; }
+          // Dedup: if any list already has this subject+from, no-op.
+          if (activeKeys.has(k) || completedKeys.has(k) || archivedKeys.has(k) || delegatedKeys.has(k)) {
+            skipped++; break;
+          }
+          activeItems.unshift({
+            date: src.date || TODAY_STR,
+            created: src.created || TODAY_STR,
+            from: src.from || '',
+            subject: src.subject,
+            actionNeeded: src.actionNeeded || src.subject,
+            due: src.due || 'TBD',
+            lore: src.lore || '',
+            specialist: src.specialist || '',
+            notes: src.notes || ''
+          });
+          activeKeys.add(k);
+          applied++;
+          break;
+        }
+        case 'complete': {
+          const k = `${norm(op.subject)}|${norm(op.from)}`;
+          if (!op.subject) { skipped++; break; }
+          let idx = activeItems.findIndex(it => keyOf(it) === k);
+          if (idx >= 0) {
+            const it = activeItems.splice(idx, 1)[0];
+            activeKeys.delete(k);
+            if (!completedKeys.has(k)) {
+              completedItems.unshift({
+                date: it.date,
+                created: it.created || '',
+                from: it.from,
+                subject: it.subject,
+                resolution: op.resolution || it.actionNeeded || '(complete)',
+                completed: op.completedDate || TODAY_STR
+              });
+              completedKeys.add(k);
+            }
+            applied++;
+            break;
+          }
+          idx = delegatedItems.findIndex(it => keyOf(it) === k);
+          if (idx >= 0) {
+            const it = delegatedItems.splice(idx, 1)[0];
+            delegatedKeys.delete(k);
+            if (!completedKeys.has(k)) {
+              completedItems.unshift({
+                date: it.date,
+                created: it.created || '',
+                from: it.from,
+                subject: it.subject,
+                resolution: op.resolution || `Delegated to ${it.delegatedTo}: ${it.actionNeeded || '(complete)'}`,
+                completed: op.completedDate || TODAY_STR
+              });
+              completedKeys.add(k);
+            }
+            applied++;
+            break;
+          }
+          // Already completed or doesn't exist: no-op
+          skipped++;
+          break;
+        }
+        case 'delegate': {
+          const k = `${norm(op.subject)}|${norm(op.from)}`;
+          if (!op.subject || !op.delegatedTo) { skipped++; break; }
+          const idx = activeItems.findIndex(it => keyOf(it) === k);
+          if (idx < 0) { skipped++; break; }
+          const it = activeItems.splice(idx, 1)[0];
+          activeKeys.delete(k);
+          delegatedItems.unshift({
+            date: it.date,
+            created: it.created || '',
+            from: it.from,
+            subject: it.subject,
+            delegatedTo: op.delegatedTo,
+            actionNeeded: it.actionNeeded,
+            delegated: op.delegatedDate || TODAY_STR,
+            notes: it.notes || ''
+          });
+          delegatedKeys.add(k);
+          applied++;
+          break;
+        }
+        case 'reopen': {
+          const k = `${norm(op.subject)}|${norm(op.from)}`;
+          if (!op.subject) { skipped++; break; }
+          // Search delegated → completed → archived (in that order)
+          let idx = delegatedItems.findIndex(it => keyOf(it) === k);
+          if (idx >= 0) {
+            const it = delegatedItems.splice(idx, 1)[0];
+            delegatedKeys.delete(k);
+            if (!activeKeys.has(k)) {
+              activeItems.unshift({
+                date: it.date, created: it.created || '', from: it.from,
+                subject: it.subject, actionNeeded: it.actionNeeded, due: 'TBD',
+                lore: '', specialist: '', notes: it.notes || ''
+              });
+              activeKeys.add(k);
+            }
+            applied++; break;
+          }
+          idx = completedItems.findIndex(it => keyOf(it) === k);
+          if (idx >= 0) {
+            const it = completedItems.splice(idx, 1)[0];
+            completedKeys.delete(k);
+            if (!activeKeys.has(k)) {
+              activeItems.unshift({
+                date: it.date, created: it.created || '', from: it.from,
+                subject: it.subject, actionNeeded: it.resolution || '', due: 'TBD',
+                lore: '', specialist: '', notes: ''
+              });
+              activeKeys.add(k);
+            }
+            applied++; break;
+          }
+          idx = archivedItems.findIndex(it => keyOf(it) === k);
+          if (idx >= 0) {
+            const it = archivedItems.splice(idx, 1)[0];
+            archivedKeys.delete(k);
+            if (!activeKeys.has(k)) {
+              activeItems.unshift({
+                date: it.date, created: it.created || '', from: it.from,
+                subject: it.subject, actionNeeded: it.actionNeeded, due: 'TBD',
+                lore: '', specialist: '', notes: ''
+              });
+              activeKeys.add(k);
+            }
+            applied++; break;
+          }
+          skipped++;
+          break;
+        }
+        case 'archive': {
+          const k = `${norm(op.subject)}|${norm(op.from)}`;
+          if (!op.subject) { skipped++; break; }
+          const idx = activeItems.findIndex(it => keyOf(it) === k);
+          if (idx < 0) { skipped++; break; }
+          const it = activeItems.splice(idx, 1)[0];
+          activeKeys.delete(k);
+          if (!archivedKeys.has(k)) {
+            archivedItems.unshift({
+              date: it.date, created: it.created || '', from: it.from,
+              subject: it.subject, actionNeeded: it.actionNeeded,
+              archived: op.archivedDate || TODAY_STR
+            });
+            archivedKeys.add(k);
+          }
+          applied++;
+          break;
+        }
+        case 'update': {
+          const k = `${norm(op.subject)}|${norm(op.from)}`;
+          if (!op.subject || !op.fields || typeof op.fields !== 'object') { skipped++; break; }
+          const it = activeItems.find(x => keyOf(x) === k);
+          if (!it) { skipped++; break; }
+          const allowed = ['date','created','from','subject','actionNeeded','due','lore','specialist','notes'];
+          for (const [field, value] of Object.entries(op.fields)) {
+            if (allowed.includes(field)) it[field] = value;
+          }
+          applied++;
+          break;
+        }
+        default:
+          skipped++;
+      }
+    } catch (e) {
+      console.error('applyOperations: failed op', op, e);
+      skipped++;
+    }
+  }
+
   lastSeenSeedVersion = seed.seedVersion || null;
+  return { applied, skipped };
 }
 
 // ── Toast helpers ──────────────────────────────────────────────────────────
@@ -611,7 +834,7 @@ function setSync(state, label) {
 
 // ── Markdown serializer (for backup file) ──────────────────────────────────
 function serializeMarkdown() {
-  let out = '# Action Items\n\n> Live tracker. Source of truth is the artifact (IndexedDB). This file is an auto-saved backup written after every change.\n\n';
+  let out = '# Action Items\n\n> Snapshot of the live tracker. The artifact is the source of truth. This file is a restore-only backup, not consumed by Lore as an input.\n\n';
   out += '## Active\n\n| Date | Created | From | Subject | Action Needed | Due | Lore | Specialist | Notes |\n|------|---------|------|---------|---------------|-----|------|------------|-------|\n';
   for (const it of activeItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.actionNeeded || ''} | ${it.due || 'TBD'} | ${it.lore || ''} | ${it.specialist || ''} | ${it.notes || ''} |\n`;
   out += '\n## Completed\n\n| Date | Created | From | Subject | Resolution | Completed |\n|------|---------|------|---------|------------|-----------|\n';
@@ -625,12 +848,17 @@ function serializeMarkdown() {
 }
 
 // ── Manual export (download) ───────────────────────────────────────────────
+// Filename note: download as action-items.snapshot.md so the user can drag it
+// directly into inbox/ in their Lore workspace and Lore will pick it up as
+// the canonical "what's on my plate right now" read path. The naming is
+// intentionally distinct from the gitignored inbox/action-items.md, which is
+// a legacy restore-only backup the agent does not read.
 function downloadCurrentAsMarkdown() {
   const blob = new Blob([serializeMarkdown()], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `action-items.md`;
+  a.download = `action-items.snapshot.md`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -1127,6 +1355,7 @@ function apply(op) {
     try {
       await saveStored();
       updateSyncState();
+      writeAutoBackup();
     } catch (err) {
       setSync('error', 'Save failed');
       showToast('error', `Save failed: ${err.message}`, null, null);
@@ -1169,6 +1398,331 @@ document.getElementById('qa-add-btn').addEventListener('click', () => {
 });
 document.getElementById('qa-subject').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('qa-add-btn').click(); });
 
+// ── Auto-backup (state mirror) ─────────────────────────────────────────────
+// When the user enables auto-backup, they pick a target file via
+// showSaveFilePicker (one-time gesture). The FileSystemFileHandle is stashed
+// in IDB; permission persists across reloads. After every mutation, this view
+// serializes its current IDB state (active/completed/delegated/archived) as
+// JSON and writes it to that file. Lore reads the file as a near-realtime
+// view of state for dedup, "what's on my plate," 1:1 prep, etc.
+//
+// The file is a *mirror* written only by this view, never by the agent. The
+// artifact's IDB remains the sole source of truth.
+let backupHandle = null;
+let backupEnabled = false;
+let backupNeedsRegrant = false;
+// Flipped to false if we detect this webview blocks createWritable (Cowork's
+// embedded webview does). When false, the button greys out and explains why.
+let backupSupported = true;
+
+function isPlatformUnsupportError(e) {
+  const msg = String((e && e.message) || e || '').toLowerCase();
+  return msg.includes('not allowed') && (msg.includes('user agent') || msg.includes('platform'));
+}
+
+function buildStateSnapshot() {
+  return {
+    writtenAt: new Date().toISOString(),
+    schemaVersion: 2,
+    note: 'Auto-saved by the action items artifact. Source of truth is the artifact IDB; this file is a read-only mirror for the agent.',
+    active: activeItems,
+    completed: completedItems,
+    delegated: delegatedItems,
+    archived: archivedItems
+  };
+}
+
+async function ensureBackupPermission(handle, withGesture) {
+  if (!handle) return false;
+  // Cowork's webview (and some other Chromium embeddings) exposes
+  // showSaveFilePicker but does NOT expose queryPermission/requestPermission
+  // on FileSystemFileHandle. In that environment, the handle from a user
+  // gesture is implicitly granted for the session, and the only way to test
+  // it is to actually attempt a write. Trust the handle here; writeAutoBackup
+  // catches and surfaces any real permission/write failure.
+  if (typeof handle.queryPermission !== 'function') return true;
+  try {
+    let perm = await handle.queryPermission({ mode: 'readwrite' });
+    if (perm === 'granted') return true;
+    if (withGesture && typeof handle.requestPermission === 'function') {
+      perm = await handle.requestPermission({ mode: 'readwrite' });
+      return perm === 'granted';
+    }
+    return false;
+  } catch (_) {
+    // Permission API threw (some sandboxed webviews). Trust the handle and
+    // let the write itself be the real gate.
+    return true;
+  }
+}
+
+let autoBackupQueue = Promise.resolve();
+function writeAutoBackup() {
+  if (!backupEnabled || !backupHandle) return;
+  // Snapshot state synchronously so we don't capture a half-mutated view if
+  // multiple ops fire in quick succession.
+  const snapshot = buildStateSnapshot();
+  autoBackupQueue = autoBackupQueue.then(async () => {
+    try {
+      const ok = await ensureBackupPermission(backupHandle, false);
+      if (!ok) {
+        backupEnabled = false;
+        backupNeedsRegrant = true;
+        updateBackupStatus();
+        showToast('warn', 'Auto-backup paused: write permission was revoked. Click <strong>Auto-backup</strong> to re-grant access.', null, null);
+        return;
+      }
+      const writable = await backupHandle.createWritable();
+      await writable.write(JSON.stringify(snapshot, null, 2));
+      await writable.close();
+    } catch (e) {
+      backupEnabled = false;
+      if (isPlatformUnsupportError(e)) {
+        backupSupported = false;
+        // Clear any stale stashed handle so the next reload doesn't replay
+        // this failure. Once Cowork supports createWritable, the user can
+        // re-enable from a fresh button.
+        backupHandle = null;
+        try { await stashHandle('backupHandle', null); } catch (_) {}
+        updateBackupStatus();
+        // No toast: the button is hidden in this build, so a user-facing
+        // toast would be confusing. The failure is logged via console.
+        console.warn('Auto-backup unsupported in this webview (createWritable blocked); state mirror disabled.');
+      } else {
+        backupNeedsRegrant = true;
+        updateBackupStatus();
+        showToast('error', `Auto-backup write failed: ${(e && e.message) || e}.`, null, null);
+      }
+    }
+  });
+}
+
+async function enableAutoBackup() {
+  if (typeof window.showSaveFilePicker !== 'function') {
+    showToast('error', 'Auto-backup not supported in this view (showSaveFilePicker unavailable).', null, null);
+    return;
+  }
+  let handle;
+  try {
+    handle = await window.showSaveFilePicker({
+      suggestedName: 'action-items-state.json',
+      types: [{ description: 'Action items state (JSON)', accept: { 'application/json': ['.json'] } }]
+    });
+  } catch (e) {
+    if (e && e.name === 'AbortError') return; // user cancelled the picker
+    showToast('error', `Could not open file picker: ${(e && e.message) || e}`, null, null);
+    return;
+  }
+  // If the permission API exists, request a grant explicitly so we surface
+  // any prompt. If it doesn't, we trust the handle and fall through to the
+  // actual write below as the real test.
+  await ensureBackupPermission(handle, true);
+  // Inline write probe: this is the real test. If permission was actually
+  // denied or the webview rejects the write, we catch it here and tell the
+  // user exactly what went wrong rather than toasting "enabled" and then
+  // failing silently inside the queue.
+  try {
+    const writable = await handle.createWritable();
+    await writable.write(JSON.stringify(buildStateSnapshot(), null, 2));
+    await writable.close();
+  } catch (e) {
+    if (isPlatformUnsupportError(e)) {
+      // The webview disallows programmatic writes entirely. No amount of
+      // retrying or permission re-granting will fix it. Permanently disable.
+      backupSupported = false;
+      updateBackupStatus();
+      showToast('warn',
+        'Auto-backup is not supported in this Cowork build: the webview blocks programmatic file writes. ' +
+        'Use <strong>Download snapshot</strong> when you want Lore to see current state.',
+        null, null);
+    } else {
+      showToast('error',
+        `Auto-backup not enabled: write to <strong>${handle.name}</strong> failed (${(e && e.message) || e}). ` +
+        `Try a different location, or use <strong>Download snapshot</strong> instead.`,
+        null, null);
+    }
+    return;
+  }
+  backupHandle = handle;
+  backupEnabled = true;
+  backupNeedsRegrant = false;
+  try { await stashHandle('backupHandle', handle); } catch (_) {}
+  updateBackupStatus();
+  showToast('info',
+    `Auto-backup enabled. State mirrors to <strong>${handle.name}</strong> after every change. ` +
+    `Save it inside your Lore workspace (e.g. <code>inbox/action-items-state.json</code>) so Lore can read it.`,
+    null, null, 8000);
+}
+
+async function disableAutoBackup() {
+  backupHandle = null;
+  backupEnabled = false;
+  backupNeedsRegrant = false;
+  try { await stashHandle('backupHandle', null); } catch (_) {}
+  updateBackupStatus();
+  showToast('info', 'Auto-backup disabled. Lore no longer has a read path to your current state.', null, null, 4000);
+}
+
+function updateBackupStatus() {
+  const btn = document.getElementById('backup-btn');
+  if (!btn) return;
+  btn.classList.remove('on', 'paused');
+  if (!backupSupported) {
+    btn.textContent = 'Auto-backup: not supported';
+    btn.title = 'This Cowork build does not allow artifacts to write files programmatically. Use Download snapshot to share state with Lore.';
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+    return;
+  }
+  btn.disabled = false;
+  btn.style.opacity = '';
+  btn.style.cursor = '';
+  if (backupEnabled && backupHandle) {
+    btn.textContent = `Auto-backup: ${backupHandle.name}`;
+    btn.classList.add('on');
+    btn.title = 'Auto-backup is on. Click to disable. Every change writes the current state to the linked JSON file.';
+  } else if (backupNeedsRegrant && backupHandle) {
+    btn.textContent = `Auto-backup paused: ${backupHandle.name}`;
+    btn.classList.add('paused');
+    btn.title = 'Permission was revoked or write failed. Click to re-grant access.';
+  } else {
+    btn.textContent = 'Enable auto-backup';
+    btn.title = 'One-time setup: pick a JSON file where this view auto-saves a current state snapshot after every change. Lore reads that file to know what is on your plate.';
+  }
+}
+
+// Button is intentionally absent from the DOM in this Cowork build (see the
+// HTML comment in the menu-row). Guard the binding so we don't throw when
+// the element is missing. When/if the button is restored, this code is ready.
+(function bindBackupBtn() {
+  const btn = document.getElementById('backup-btn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    if (backupEnabled) {
+      if (window.confirm('Disable auto-backup? Lore will no longer have a read path to your current action items state.')) {
+        await disableAutoBackup();
+      }
+      return;
+    }
+    if (backupNeedsRegrant && backupHandle) {
+      const ok = await ensureBackupPermission(backupHandle, true);
+      if (ok) {
+        backupEnabled = true;
+        backupNeedsRegrant = false;
+        updateBackupStatus();
+        writeAutoBackup();
+        showToast('info', `Auto-backup resumed: ${backupHandle.name}`, null, null, 4000);
+        return;
+      }
+      // Re-grant failed; fall through to fresh enable
+    }
+    await enableAutoBackup();
+  });
+})();
+
+// ── Restore from backup ────────────────────────────────────────────────────
+// Parses a markdown snapshot (the same format Download snapshot writes) and
+// replaces the artifact's IDB content with its contents. Only meant for
+// recovery (artifact was deleted, IDB was wiped, etc.). Never used by the
+// agent as a path for ongoing updates.
+function parseMarkdownBackup(content) {
+  const lines = String(content || '').split('\n');
+  let section = 'preamble';
+  let inTable = false;
+  const result = { active: [], completed: [], archived: [], delegated: [] };
+
+  for (const line of lines) {
+    const m = line.match(/^##\s+(\w+)/);
+    if (m) {
+      const name = m[1].toLowerCase();
+      if (['active','completed','archived','delegated'].includes(name)) {
+        section = name; inTable = false; continue;
+      }
+      section = 'other'; inTable = false;
+      continue;
+    }
+    if (!line.startsWith('|')) { inTable = false; continue; }
+    const inner = line.replace(/^\|/, '').replace(/\|\s*$/, '');
+    const cells = inner.split('|').map(c => c.trim());
+    if (cells.every(c => /^[:\-\s]+$/.test(c) && c.length > 0)) { inTable = true; continue; }
+    if (!inTable) { inTable = true; continue; }
+    if (cells.every(c => c === '')) continue;
+
+    if (section === 'active' && cells.length >= 5) {
+      result.active.push({
+        date: cells[0] || '', created: cells[1] || '', from: cells[2] || '',
+        subject: cells[3] || '', actionNeeded: cells[4] || '', due: cells[5] || 'TBD',
+        lore: cells[6] || '', specialist: cells[7] || '', notes: cells[8] || ''
+      });
+    } else if (section === 'completed' && cells.length >= 4) {
+      result.completed.push({
+        date: cells[0] || '', created: cells[1] || '', from: cells[2] || '',
+        subject: cells[3] || '', resolution: cells[4] || '', completed: cells[5] || ''
+      });
+    } else if (section === 'archived' && cells.length >= 4) {
+      result.archived.push({
+        date: cells[0] || '', created: cells[1] || '', from: cells[2] || '',
+        subject: cells[3] || '', actionNeeded: cells[4] || '', archived: cells[5] || ''
+      });
+    } else if (section === 'delegated' && cells.length >= 5) {
+      result.delegated.push({
+        date: cells[0] || '', created: cells[1] || '', from: cells[2] || '',
+        subject: cells[3] || '', delegatedTo: cells[4] || '', actionNeeded: cells[5] || '',
+        delegated: cells[6] || '', notes: cells[7] || ''
+      });
+    }
+  }
+  return result;
+}
+
+async function restoreFromBackup(file) {
+  try {
+    const text = await file.text();
+    const parsed = parseMarkdownBackup(text);
+    const total = parsed.active.length + parsed.completed.length + parsed.delegated.length + parsed.archived.length;
+    if (total === 0) {
+      showToast('warn', 'No action items found in that file. Expected sections: Active, Completed, Delegated, Archived.', null, null, 6000);
+      return;
+    }
+    const currentTotal = activeItems.length + completedItems.length + delegatedItems.length + archivedItems.length;
+    if (currentTotal > 0) {
+      const ok = window.confirm(
+        `This will REPLACE your current items (${currentTotal} total) with the backup ` +
+        `(${parsed.active.length} active, ${parsed.completed.length} completed, ` +
+        `${parsed.delegated.length} delegated, ${parsed.archived.length} archived). ` +
+        `\n\nContinue?`
+      );
+      if (!ok) return;
+    }
+    activeItems    = parsed.active;
+    completedItems = parsed.completed;
+    archivedItems  = parsed.archived;
+    delegatedItems = parsed.delegated;
+    // Reset lastSeenSeedVersion so the current embedded seed (if any) won't
+    // re-apply on the next reload. The agent's next push will re-prime it.
+    lastSeenSeedVersion = null;
+    await saveStored();
+    rebuildItems(); renderStats(); applyFilters(); renderDelegatedSection();
+    updateSyncState();
+    showToast('info',
+      `Restored from backup: ${parsed.active.length} active, ${parsed.completed.length} completed, ` +
+      `${parsed.delegated.length} delegated, ${parsed.archived.length} archived.`,
+      null, null, 5000);
+  } catch (e) {
+    showToast('error', `Restore failed: ${(e && e.message) || e}`, null, null);
+  }
+}
+
+document.getElementById('restore-btn').addEventListener('click', () => {
+  document.getElementById('restore-file-input').click();
+});
+document.getElementById('restore-file-input').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  if (f) restoreFromBackup(f);
+  e.target.value = '';
+});
+
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 async function init() {
   setSync('stale', 'Loading...');
@@ -1184,20 +1738,26 @@ async function init() {
     const seed = readEmbeddedSeed();
 
     if (!hasStored) {
-      // First run: adopt the seed verbatim if present.
+      // First run with no IDB content. Start empty. If the seed contains
+      // operations, apply them so a brand-new install can still receive items
+      // from an agent push, but we never pull a "full state" from the seed.
+      // To recover prior items, the user can click "Restore from backup".
+      activeItems = []; completedItems = []; archivedItems = []; delegatedItems = [];
       if (seed) {
-        adoptSeed(seed);
-      } else {
-        activeItems = []; completedItems = []; archivedItems = [];
+        applyOperations(seed);
+        if (!seed.seedVersion) lastSeenSeedVersion = null;
       }
       try { await saveStored(); } catch (_) {}
     } else if (seed && seed.seedVersion && seed.seedVersion !== lastSeenSeedVersion) {
-      // Returning user, and the agent has pushed a new seed since we last consumed
-      // one. Adopt it — the agent always pushes file + artifact in lockstep, so the
-      // seed is the canonical new state.
-      adoptSeed(seed);
+      // Returning user, agent has pushed a new operations seed since we last
+      // saw the artifact. Apply the operations as a delta on top of IDB —
+      // user edits made in this view are preserved.
+      const result = applyOperations(seed);
       try { await saveStored(); } catch (_) {}
-      showToast('info', 'Action items updated by Lore.', null, null, 4000);
+      if (result.applied > 0) {
+        const noun = result.applied === 1 ? 'change' : 'changes';
+        showToast('info', `Action items updated by Lore (${result.applied} ${noun}).`, null, null, 4000);
+      }
     }
 
     rebuildItems(); renderStats(); applyFilters(); renderDelegatedSection();
@@ -1209,6 +1769,33 @@ async function init() {
       if (outer) outer.classList.add('hidden');
     }
     updateSyncState();
+
+    // Restore auto-backup handle if previously set. Permission may have been
+    // revoked across sessions; in that case we mark it paused and let the
+    // user re-grant via the button.
+    try {
+      const stashed = await loadStashedHandle('backupHandle');
+      if (stashed) {
+        backupHandle = stashed;
+        const ok = await ensureBackupPermission(stashed, false);
+        if (ok) {
+          backupEnabled = true;
+          backupNeedsRegrant = false;
+          updateBackupStatus();
+          // Write a fresh backup so the file reflects current IDB (especially
+          // important when the agent just pushed new operations).
+          writeAutoBackup();
+        } else {
+          backupEnabled = false;
+          backupNeedsRegrant = true;
+          updateBackupStatus();
+        }
+      } else {
+        updateBackupStatus();
+      }
+    } catch (_) {
+      updateBackupStatus();
+    }
   } catch (err) {
     setSync('error', 'Init failed');
     showToast('error',
@@ -1217,17 +1804,13 @@ async function init() {
       `seedDataPresent=${!!document.getElementById('seed-data')}, ` +
       `seedLength=${(document.getElementById('seed-data')||{}).textContent?.length || 0}.`,
       null, null);
-    // Last-resort: try to render the seed data anyway.
+    // Last-resort: try to apply any operations from the seed against in-memory state.
     try {
       storage = memStorage();
+      activeItems = []; completedItems = []; archivedItems = []; delegatedItems = [];
       const seed = readEmbeddedSeed();
-      if (seed) {
-        activeItems    = seed.active    || [];
-        completedItems = seed.completed || [];
-        archivedItems  = seed.archived  || [];
-        delegatedItems = seed.delegated || [];
-        rebuildItems(); renderStats(); applyFilters(); renderDelegatedSection();
-      }
+      if (seed) applyOperations(seed);
+      rebuildItems(); renderStats(); applyFilters(); renderDelegatedSection();
     } catch (_) {}
   }
 }

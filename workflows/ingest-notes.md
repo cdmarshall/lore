@@ -104,7 +104,7 @@ Offer a recommended default based on the note type. Mark it clearly as the recom
 Once you have the answers, process accordingly. Follow the relevant conventions from the existing workflow files:
 
 - **Meeting notes** → `meetings/notes/YYYY-MM-DD-[slug].md` using `templates/meeting-note.template.md`
-- **Action items** → `inbox/action-items.md` (follow duplicate-check rules from `workflows/action-items.md`)
+- **Action items** → push as `add` operations to the live artifact (see `workflows/action-items.md`). **Never write to `inbox/action-items.md`**. The artifact dedupes on `subject + from`; for cases where the new note adds real context to an existing item, emit an `update` op instead of a duplicate `add`.
 - **Profile updates** → the relevant `team/` or `stakeholders/` file (append, never overwrite)
 - **Reference docs / ideas / brainstorms** → `outbox/YYYY-MM-DD-[slug].md`
 - **Decisions** → `decisions/log.md` if any clear decision is captured
@@ -127,7 +127,7 @@ Do this for each unknown person, one at a time.
 
 Apply these without asking, unless the user's answers override them:
 
-- If action items are found in any note type, offer to add them to `inbox/action-items.md` at the end (don't silently add — confirm once in the output summary)
+- If action items are found in any note type, offer to push them to the live artifact as `add` operations at the end (don't silently push, confirm once in the output summary)
 - If a decision is clearly stated ("we decided to…"), flag it for `decisions/log.md`
 - If the notes are clearly about a known team member or stakeholder, offer to add relevant observations to their profile
 - Use today as the date if none was provided or inferred
@@ -149,18 +149,18 @@ After processing, provide a concise summary of what was done:
 **Date:** YYYY-MM-DD
 
 ### Files Created or Updated
-- meetings/notes/YYYY-MM-DD-[name].md — meeting summary created
-- inbox/action-items.md — [N] action items added
-- stakeholders/[name].md — observations appended
-- decisions/log.md — [N] decision(s) logged
-- outbox/YYYY-MM-DD-[slug].md — reference doc saved
+- meetings/notes/YYYY-MM-DD-[name].md, meeting summary created
+- Action items artifact, pushed [N] operations
+- stakeholders/[name].md, observations appended
+- decisions/log.md, [N] decision(s) logged
+- outbox/YYYY-MM-DD-[slug].md, reference doc saved
 
 ### Action Items Added
-- [ ] [Action 1] — Due: [date/TBD]
-- [ ] [Action 2] — Due: [date/TBD]
+- [ ] [Action 1], Due: [date/TBD]
+- [ ] [Action 2], Due: [date/TBD]
 
-### Skipped as duplicates
-[Only include if any were skipped — use the duplicate format from workflows/action-items.md]
+### Consolidated into existing items
+[Only include if any were consolidated, e.g. "Consolidated: 'X' into existing item 'Y' with new notes about Z"]
 
 ### Questions for you
 [List any items that are ambiguous and need your input before they can be filed]
