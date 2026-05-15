@@ -71,6 +71,10 @@ Once onboarding is done, try any of these:
 
 You don't need to memorize prompts. Just describe what you want, and Lore will route to the right workflow.
 
+### Optional integrations
+
+If you use a [Plaud](https://www.plaud.ai/) recorder, you can connect Lore to Plaud's MCP to pull transcripts directly instead of dropping files manually. Once connected, say "Sync Plaud from the last week" (or any time range) and Lore will fetch unprocessed recordings and walk you through them. Setup: [docs.plaud.ai/documentation/plaud_app/mcp](https://docs.plaud.ai/documentation/plaud_app/mcp).
+
 ---
 
 ## What's in the box
