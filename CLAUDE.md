@@ -40,6 +40,7 @@ Adapt your tone to the **Lore's tone** preference recorded in `context.md` (e.g.
 Tasks that MUST follow workflows — never trigger a skill for these:
 - Onboarding a new user → `workflows/onboarding.md`
 - Processing meeting transcripts → `workflows/process-transcript.md`
+- Syncing transcripts from Plaud → `workflows/plaud-sync.md`
 - Action item display → `workflows/action-items.md`
 - Document ingestion → `workflows/ingest.md`
 - Note ingestion (raw/unstructured notes) → `workflows/ingest-notes.md`
@@ -73,7 +74,7 @@ lore/
 │
 ├── meetings/
 │   ├── notes/                 ← Structured meeting summaries                                 [GITIGNORED]
-│   ├── transcripts/           ← Raw transcripts; .processed tracks what's been processed    [GITIGNORED]
+│   ├── transcripts/           ← Raw transcripts; .processed (local) and .plaud-processed (Plaud IDs) track what's been processed    [GITIGNORED]
 │   └── templates/             ← Pre-meeting prep templates (1:1, decision, planning, review) [committed]
 │
 ├── decisions/
@@ -102,6 +103,7 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 | "Prep for the roundtable" / "Help me prep for Friday's meeting" | `workflows/roundtable-prep.md` |
 | "Ingest this document" / "Process this file" | `workflows/ingest.md` |
 | "Morning sync" / "What's on today?" | `workflows/morning-sync.md` |
+| "Sync Plaud" / "Pull Plaud transcripts from the last [N] days/week" | `workflows/plaud-sync.md` |
 
 > **Note on morning-sync**: This workflow operates on calendar and priorities content the user provides manually (paste, screenshot, or summary). Live fetching is not built in by default. If the user wants automation, they can wire up an MCP connector and the workflow logic will adapt naturally.
 
@@ -131,6 +133,7 @@ These workflows are defined as instruction files in `workflows/`. When the user 
   - **Reading current state** is allowed via three paths only, in order of preference: (a) `inbox/action-items.snapshot.md` (the user's downloaded snapshot, saved by them after clicking Download snapshot in the artifact); (b) `inbox/action-items-state.json` if the user has enabled auto-backup in the artifact (rarely exists today because Cowork's webview blocks programmatic file writes); (c) a snapshot pasted directly in chat. The agent never writes to any of these.
   - For best-effort dedup-before-add or item-consolidation, the agent may emit an `update` op on an existing item instead of a duplicate `add`. The artifact dedupes adds authoritatively on `subject + from`, so even if the agent's dedup misses, no duplicate row appears.
   - **The only exception for reading `inbox/action-items.md`**: if the user explicitly asks the agent to restore their artifact from a backup file (because the artifact was deleted or IDB was wiped), the agent may parse `inbox/action-items.md` (or any backup file the user names) and convert its rows into `add` operations. This path is opt-in only; never assume it.
+- **Plaud sync tracking**: `meetings/transcripts/.plaud-processed` is an append-only flat file of Plaud file IDs (one per line). It is the canonical record of which Plaud recordings have been processed. Never delete or rewrite it. When processing a Plaud recording, also add the saved local filename to `meetings/transcripts/.processed` so both tracking files stay consistent. If the user wants to re-process a recording, they must remove the specific ID from `.plaud-processed` manually (or ask Lore to do it).
 - **Commit messages**: When asked to write a commit message, always write it to `COMMIT_MSG.txt` at the workspace root (overwrite whatever is there). Then print the single combo command: `git add -A && git commit -F COMMIT_MSG.txt`. No other file, no other command format.
 - **NO EM DASHES**: Em dashes (—) are forbidden in ALL outputs from this agent. This includes messages, meeting notes, file updates, talk tracks, drafts, and any other content written on the user's behalf. Use commas, colons, parentheses, or rewrite the sentence instead. Never use the em dash character.
 - **Lore's signet is 📜.** The scroll is Lore's signature, used as a quiet seal on signed outputs. Use it where appropriate, not everywhere:
