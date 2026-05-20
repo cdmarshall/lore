@@ -27,15 +27,21 @@ Parse the user's request into a concrete `date_from` and `date_to` (both YYYY-MM
 
 ## Step 2 — Fetch Recordings from Plaud
 
-Call `mcp__plaud__list_files` with the resolved `date_from` and `date_to`.
+**Do NOT use the `date_from`/`date_to` filter parameters.** The filtered endpoint returns a cached result set on Plaud's side and will miss recordings that were created recently. Always fetch without date filters.
 
-The tool paginates automatically when date filters are set and returns all matches. Each recording in the response includes at minimum:
+Instead, call `mcp__plaud__list_files` without any filters (use `page_size: 20`, start at `page: 1`). Recordings are returned most-recent-first. Collect pages until either:
+- You have seen at least one recording whose `created_at` date is strictly before `date_from`, OR
+- You have fetched 5 pages (safety limit)
+
+Then filter the collected results in memory: keep only recordings where the `created_at` date falls within `[date_from, date_to]` inclusive.
+
+Each recording in the response includes at minimum:
 - `id` (the Plaud file ID — canonical identifier)
 - `name` (recording title)
-- `created_at` or date field (recording date)
+- `created_at` (ISO timestamp — use this for date comparison)
 - Duration if available
 
-If the call returns zero recordings, tell the user:
+If no recordings remain after filtering, tell the user:
 > "No Plaud recordings found for [date range]."
 Then stop.
 
