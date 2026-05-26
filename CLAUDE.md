@@ -60,11 +60,13 @@ lore/
 ├── CLAUDE.md                  ← You are here (read at session start)                         [committed]
 ├── README.md                  ← Human-facing setup guide                                     [committed]
 ├── context.md                 ← The user's role, team, current priorities (READ FIRST)       [GITIGNORED]
+├── email-config.md            ← Email-triage operational data (sender lists, folders, etc.)  [GITIGNORED]
 │
 ├── templates/                 ← Canonical file templates used by onboarding and workflows    [committed]
 │
 ├── inbox/
 │   ├── action-items.md        ← Restore-only backup (NOT a source of truth, see Key Behaviors) [GITIGNORED]
+│   ├── .email-processed       ← Append-only Message-IDs already triaged (parallels .plaud-processed) [GITIGNORED]
 │   └── documents/             ← Drop documents here to process/ingest                        [GITIGNORED]
 │
 ├── outbox/                    ← Generated outputs: reports, exports, scorecards, CSVs        [GITIGNORED]
@@ -104,8 +106,11 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 | "Ingest this document" / "Process this file" | `workflows/ingest.md` |
 | "Morning sync" / "What's on today?" | `workflows/morning-sync.md` |
 | "Sync Plaud" / "Pull Plaud transcripts from the last [N] days/week" | `workflows/plaud-sync.md` |
+| "Triage my email" / "Process my inbox" / "What's new in email?" / "Inbox briefing" / scheduled noon run | `workflows/email-triage.md` |
 
 > **Note on morning-sync**: This workflow operates on calendar and priorities content the user provides manually (paste, screenshot, or summary). Live fetching is not built in by default. If the user wants automation, they can wire up an MCP connector and the workflow logic will adapt naturally.
+
+> **Note on email-triage**: This workflow reads from a mounted mail folder (Mac Mail's `~/Library/Mail/`). Reads `email-config.md` at the workspace root for user-specific sender lists, automated sources, and folder names; reads `inbox/.email-processed` to skip already-seen Message-IDs; outputs daily briefings to `outbox/email-triage-YYYY-MM-DD.md`. On fresh install (no `email-config.md`), the workflow handles its own setup by scanning the inbox to propose initial categories. See `workflows/email-triage.md`.
 
 ---
 
@@ -134,6 +139,7 @@ These workflows are defined as instruction files in `workflows/`. When the user 
   - For best-effort dedup-before-add or item-consolidation, the agent may emit an `update` op on an existing item instead of a duplicate `add`. The artifact dedupes adds authoritatively on `subject + from`, so even if the agent's dedup misses, no duplicate row appears.
   - **The only exception for reading `inbox/action-items.md`**: if the user explicitly asks the agent to restore their artifact from a backup file (because the artifact was deleted or IDB was wiped), the agent may parse `inbox/action-items.md` (or any backup file the user names) and convert its rows into `add` operations. This path is opt-in only; never assume it.
 - **Plaud sync tracking**: `meetings/transcripts/.plaud-processed` is an append-only flat file of Plaud file IDs (one per line). It is the canonical record of which Plaud recordings have been processed. Never delete or rewrite it. When processing a Plaud recording, also add the saved local filename to `meetings/transcripts/.processed` so both tracking files stay consistent. If the user wants to re-process a recording, they must remove the specific ID from `.plaud-processed` manually (or ask Lore to do it).
+- **Email-triage processed tracking**: `inbox/.email-processed` is an append-only flat file of email `Message-ID` headers (one per line, brackets included). Parallels `.plaud-processed` in spirit. The email-triage workflow uses this to skip emails it has already seen. Never delete or rewrite the file; only append. If the user wants to re-triage a specific email, they remove that specific line manually (or ask Lore to do it). Backlog mode (one-time, user-invoked) ignores this file entirely. See `workflows/email-triage.md` for the full procedure.
 - **Commit messages**: When asked to write a commit message, always write it to `COMMIT_MSG.txt` at the workspace root (overwrite whatever is there). Then print the single combo command: `git add -A && git commit -F COMMIT_MSG.txt`. No other file, no other command format.
 - **NO EM DASHES**: Em dashes (—) are forbidden in ALL outputs from this agent. This includes messages, meeting notes, file updates, talk tracks, drafts, and any other content written on the user's behalf. Use commas, colons, parentheses, or rewrite the sentence instead. Never use the em dash character.
 - **Lore's signet is 📜.** The scroll is Lore's signature, used as a quiet seal on signed outputs. Use it where appropriate, not everywhere:
