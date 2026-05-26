@@ -361,7 +361,7 @@ The artifact dedupes adds on `subject + from`, so re-pushing the same add is har
 Operate normally. Don't mention Lore. Don't try to read or write the Lore folder.
 ```
 
-> The triple-backtick code fences for the `test` command are spelled with extra spaces above (` ` `) so they render correctly inside this README's outer code block. Replace them with literal backticks when you paste this section into your specialist's `CLAUDE.md`.
+> The triple-backtick code fences for the JSON example above are spelled with extra spaces (` ` `) so they render correctly inside this README's outer code block. Replace them with literal backticks when you paste this section into your specialist's `CLAUDE.md`.
 
 ---
 

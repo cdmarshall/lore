@@ -7,6 +7,12 @@
 # --- Personal context (the master user profile) ---
 /context.md
 
+# --- Email triage config (personal sender lists, etc.) ---
+/email-config.md
+
+# --- Email triage processed-IDs tracking (append-only) ---
+/inbox/.email-processed
+
 # --- Personal team & stakeholder profiles ---
 /team/*.md
 /stakeholders/*.md
