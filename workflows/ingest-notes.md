@@ -1,6 +1,6 @@
 # Ingest Notes
 
-Process raw, unstructured notes — typed, pasted from OneNote, or photos of handwritten notes — and route them into the right files with the right structure.
+Process raw, unstructured notes, typed, pasted from OneNote, or photos of handwritten notes, and route them into the right files with the right structure.
 
 ## When to use this workflow
 
@@ -14,21 +14,21 @@ Process raw, unstructured notes — typed, pasted from OneNote, or photos of han
 ## Step 0: Receive the input
 
 Accept notes in any of these forms:
-- **Pasted text** — user pastes content directly into the chat
-- **Image/photo** — handwritten notes, whiteboard, sticky notes (read visually)
-- **File reference** — user names a file; read it from `inbox/documents/` or any path they specify
+- **Pasted text**, user pastes content directly into the chat
+- **Image/photo**, handwritten notes, whiteboard, sticky notes (read visually)
+- **File reference**, user names a file; read it from `inbox/documents/` or any path they specify
 
 If the user hasn't provided the notes yet, ask them to paste or share them before proceeding.
 
-Once you have the notes, do a quick silent read to understand the content. Use what you learn to pre-fill your best guesses for the questions below — you'll present them as the recommended option.
+Once you have the notes, do a quick silent read to understand the content. Use what you learn to pre-fill your best guesses for the questions below, you'll present them as the recommended option.
 
 ---
 
 ## Step 1: Clarifying questions (one at a time, using AskUserQuestion)
 
-Ask the following questions in sequence. Use the `AskUserQuestion` tool for each one — this renders clickable answer options with a custom-response fallback. Do **not** ask multiple questions at once.
+Ask the following questions in sequence. Use the `AskUserQuestion` tool for each one, this renders clickable answer options with a custom-response fallback. Do **not** ask multiple questions at once.
 
-**Skip a question** if the answer is already clear from the notes themselves (e.g., if the notes say "1:1 with Marcus" you don't need to ask who was involved). In that case, note your interpretation inline ("Looks like this is a 1:1 with Marcus — I'll use that") and move on.
+**Skip a question** if the answer is already clear from the notes themselves (e.g., if the notes say "1:1 with Marcus" you don't need to ask who was involved). In that case, note your interpretation inline ("Looks like this is a 1:1 with Marcus, I'll use that") and move on.
 
 ---
 
@@ -113,12 +113,12 @@ Once you have the answers, process accordingly. Follow the relevant conventions 
 
 If the notes mention someone not in `team/` or `stakeholders/`, **pause and ask before creating anything** for them:
 
-> "I see a reference to **[Name]** — I don't have a profile for them. What should I do?"
+> "I see a reference to **[Name]**, I don't have a profile for them. What should I do?"
 >
 > Options:
 > - Create a stakeholder profile for them
 > - Just mention them in the meeting note (no profile)
-> - They're not important — skip them
+> - They're not important, skip them
 > - I'll tell you more about who they are
 
 Do this for each unknown person, one at a time.
@@ -172,7 +172,7 @@ Sign off meeting notes and brainstorm docs with `— 📜 Lore` when you authore
 
 ## Tips
 
-- **Raw notes are messy — that's expected.** Don't require polish. If a note says "talk to Derek about the Q3 thing — maybe move it up?", that's enough to create an action item.
+- **Raw notes are messy, that's expected.** Don't require polish. If a note says "talk to Derek about the Q3 thing, maybe move it up?", that's enough to create an action item.
 - **Abbreviations and shorthand are common.** Use context from `context.md` (team names, project names, terminology) to interpret them.
 - **Ask about unknowns before writing.** It's better to pause and confirm than to create a file the user didn't want.
 - **One question at a time.** The whole point of the AskUserQuestion flow is to avoid overwhelming the user. Keep it sequential.

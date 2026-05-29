@@ -4,9 +4,9 @@ Process a document and extract relevant information to update the knowledge base
 
 ## Usage
 
-- "Ingest a document" or "Process inbox files" — list files in `inbox/documents/` and ask which to process
-- "Ingest [filename]" — process a specific file from `inbox/documents/`
-- "Ingest [full path]" — process a file from anywhere in the workspace
+- "Ingest a document" or "Process inbox files", list files in `inbox/documents/` and ask which to process
+- "Ingest [filename]", process a specific file from `inbox/documents/`
+- "Ingest [full path]", process a file from anywhere in the workspace
 
 ## Instructions
 

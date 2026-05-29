@@ -6,11 +6,11 @@ Start your day with a briefing on emails, calendar, and priorities.
 
 ## Input
 
-**Optional modifiers** — specify one when asking for a morning sync:
-- "emails only" — just process emails
-- "calendar only" — just show calendar
-- "week" / "full week" — show calendar for the full week ahead
-- (nothing specified) — full sync: emails + today's calendar + priorities
+**Optional modifiers**, specify one when asking for a morning sync:
+- "emails only", just process emails
+- "calendar only", just show calendar
+- "week" / "full week", show calendar for the full week ahead
+- (nothing specified), full sync: emails + today's calendar + priorities
 
 ## Instructions
 

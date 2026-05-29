@@ -13,6 +13,14 @@
 # --- Email triage processed-IDs tracking (append-only) ---
 /inbox/.email-processed
 
+# --- Unified triage config (personal channels, key people, ignore list) ---
+/triage-config.md
+
+# --- Triage processed-IDs + last-run tracking (append-only) ---
+/inbox/.slack-processed
+/inbox/.teams-processed
+/inbox/.triage-last-run
+
 # --- Personal team & stakeholder profiles ---
 /team/*.md
 /stakeholders/*.md
@@ -62,6 +70,7 @@
 .secrets/
 *.token
 *.key
+.mcp.json
 
 # --- Machine-local agent settings ---
 .claude/settings.local.json

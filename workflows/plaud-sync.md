@@ -2,6 +2,15 @@
 
 Pull recordings from Plaud for a specified time period, diff against already-processed transcripts, let the user select which to process, and run each through the standard transcript workflow sequentially.
 
+## Storage Mode
+
+This workflow operates in both filesystem and Obsidian modes (see `CLAUDE.md` → Obsidian Detection). The two modes differ only in where the raw transcript file is saved and where duplicate-content checks are run:
+
+- **Filesystem mode**: raw transcripts saved to `meetings/transcripts/`. Duplicate-content check `grep`s the same folder.
+- **Obsidian mode**: raw transcripts saved to `Lore/Transcripts/` in the vault via `obsidian_get_file_contents` / write. Duplicate-content check uses `obsidian_simple_search`. **Path resolution**: `Lore/` is the default subfolder; replace with the user's override from `context.md` → "Notes for Lore" → "Vault Configuration" if present (e.g., `Lore - Rate/Transcripts/`).
+
+The tracking dotfiles (`meetings/transcripts/.plaud-processed`, `meetings/transcripts/.processed`) stay in the workspace repo in both modes. Step 6d (process the transcript) hands off to `workflows/process-transcript.md`, which has its own Obsidian-mode branch, so downstream behavior follows naturally.
+
 ## Invocation
 
 | What the user says | Example |
@@ -13,7 +22,7 @@ Pull recordings from Plaud for a specified time period, diff against already-pro
 
 ---
 
-## Step 1 — Resolve the Date Range
+## Step 1, Resolve the Date Range
 
 Parse the user's request into a concrete `date_from` and `date_to` (both YYYY-MM-DD, inclusive).
 
@@ -25,7 +34,7 @@ Parse the user's request into a concrete `date_from` and `date_to` (both YYYY-MM
 
 ---
 
-## Step 2 — Fetch Recordings from Plaud
+## Step 2, Fetch Recordings from Plaud
 
 **Do NOT use the `date_from`/`date_to` filter parameters.** The filtered endpoint returns a cached result set on Plaud's side and will miss recordings that were created recently. Always fetch without date filters.
 
@@ -36,9 +45,9 @@ Instead, call `mcp__plaud__list_files` without any filters (use `page_size: 20`,
 Then filter the collected results in memory: keep only recordings where the `created_at` date falls within `[date_from, date_to]` inclusive.
 
 Each recording in the response includes at minimum:
-- `id` (the Plaud file ID — canonical identifier)
+- `id` (the Plaud file ID, canonical identifier)
 - `name` (recording title)
-- `created_at` (ISO timestamp — use this for date comparison)
+- `created_at` (ISO timestamp, use this for date comparison)
 - Duration if available
 
 If no recordings remain after filtering, tell the user:
@@ -47,7 +56,7 @@ Then stop.
 
 ---
 
-## Step 3 — Diff Against Already-Processed
+## Step 3, Diff Against Already-Processed
 
 Read `meetings/transcripts/.plaud-processed` to get the list of already-processed Plaud file IDs (one ID per line). If the file doesn't exist yet, treat it as an empty list.
 
@@ -59,15 +68,15 @@ Then stop.
 
 ---
 
-## Step 4 — Present Unprocessed Recordings
+## Step 4, Present Unprocessed Recordings
 
 Display the unprocessed recordings as a numbered list, most recent first:
 
 ```
 Found [N] unprocessed recording(s) from [date range]:
 
-  1. YYYY-MM-DD — [Recording Title] ([duration, if available])
-  2. YYYY-MM-DD — [Recording Title] ([duration, if available])
+  1. YYYY-MM-DD, [Recording Title] ([duration, if available])
+  2. YYYY-MM-DD, [Recording Title] ([duration, if available])
   ...
 
 Which would you like to process? (e.g. "all", "1,3,4", "1-3", or "none" to cancel)
@@ -77,7 +86,7 @@ Wait for the user's selection before continuing.
 
 ---
 
-## Step 5 — Confirm Selection
+## Step 5, Confirm Selection
 
 Parse the user's response into a list of selected indices:
 - "all" → every item
@@ -87,13 +96,13 @@ Parse the user's response into a list of selected indices:
 - Single number → just that item
 
 Confirm the selection if more than 3 transcripts were chosen:
-> "Processing [N] transcripts. This may take a while — I'll work through them one at a time and check in with you after each. Ready?"
+> "Processing [N] transcripts. This may take a while, I'll work through them one at a time and check in with you after each. Ready?"
 
 Wait for confirmation if N > 3.
 
 ---
 
-## Step 6 — Process Each Transcript Sequentially
+## Step 6, Process Each Transcript Sequentially
 
 Read `workflows/process-transcript.md` now (once) and hold its instructions in context for the entire loop.
 
@@ -101,20 +110,24 @@ For each selected recording, in order:
 
 ### 6a. Fetch the transcript
 
-Call `mcp__plaud__get_transcript` with the recording's `id`. This returns the full timestamped transcript with speaker labels — exactly the format the process-transcript workflow expects.
+Call `mcp__plaud__get_transcript` with the recording's `id`. This returns the full timestamped transcript with speaker labels, exactly the format the process-transcript workflow expects.
 
 Optionally also call `mcp__plaud__get_note` to get Plaud's AI-generated summary and action items. Use this as supplementary context (e.g., to cross-check your own extracted action items), not as a replacement for reading the transcript yourself.
 
 ### 6b. Content-based duplicate check
 
-Take the first 500 characters of the fetched transcript and search all existing files in `meetings/transcripts/` for that string:
+Take the first 500 characters of the fetched transcript and search existing transcripts for that string.
+
+**Filesystem mode**: search `meetings/transcripts/`:
 
 ```bash
 grep -rl "<first 500 chars, escaped for shell>" meetings/transcripts/
 ```
 
-If a match is found, tell the user:
-> "This transcript appears to already exist locally as `[filename]`. Skip it and move on, or process it anyway?"
+**Obsidian mode**: search the vault using `obsidian_simple_search` with the first 100 chars of the transcript as the query (Obsidian's search is full-text indexed, so a shorter snippet is enough). Scope the search to the `Lore/Transcripts/` folder if the search tool supports it; otherwise filter results to that folder client-side. Also run the filesystem grep above as a fallback to catch any transcripts that were saved in filesystem mode before the migration.
+
+If a match is found in either mode, tell the user:
+> "This transcript appears to already exist as `[filename]`. Skip it and move on, or process it anyway?"
 
 Wait for their answer before continuing. If they say skip, mark the recording in `.plaud-processed` (so it won't surface again) and move to the next item. If they say process anyway, continue.
 
@@ -124,42 +137,58 @@ This catches transcripts the user previously pasted in directly from the Plaud w
 
 - Date: use the recording's date field (YYYY-MM-DD)
 - Name: use the recording's `name` field. Clean it up if needed (e.g., remove auto-generated prefixes like "Plaud - ").
-- Use these to name the local transcript file: `meetings/transcripts/YYYY-MM-DD - [Meeting Name].md`
+- Compose the transcript filename:
+  - **Filesystem mode**: `meetings/transcripts/YYYY-MM-DD - [Meeting Name].md`
+  - **Obsidian mode**: `Lore/Transcripts/YYYY-MM-DD <kind> <Meeting Name>.md` (use `<kind>` if you can infer it from the meeting name; otherwise omit and just use `YYYY-MM-DD <Meeting Name>.md`)
 
-### 6c. Save the raw transcript locally
+### 6d. Save the raw transcript
 
-Before processing, save the raw transcript content to `meetings/transcripts/YYYY-MM-DD - [Meeting Name].md`. This makes the local archive the canonical copy, consistent with the folder-dropped workflow.
+Before processing, save the raw transcript content.
 
-### 6d. Process the transcript
+- **Filesystem mode**: write to `meetings/transcripts/YYYY-MM-DD - [Meeting Name].md` using the file tools.
+- **Obsidian mode**: write to `Lore/Transcripts/<derived filename>.md` via the Obsidian MCP. Frontmatter:
+  ```yaml
+  type: transcript
+  source: plaud
+  plaud_id: <recording id>
+  date: YYYY-MM-DD
+  ```
+  Body is the raw transcript with original timestamps and speaker labels.
 
-Follow every step in `workflows/process-transcript.md` exactly as you would for any single transcript — extraction, file updates, stakeholder questions, action item pushes, meeting notes, decisions. There is no abbreviated version here.
+The transcript file is the canonical raw archive in both modes, consistent with the folder-dropped workflow.
 
-### 6e. Mark as processed
+### 6e. Process the transcript
+
+Follow every step in `workflows/process-transcript.md` exactly as you would for any single transcript, extraction, file updates, stakeholder questions, action item pushes, meeting notes, decisions. There is no abbreviated version here.
+
+### 6f. Mark as processed
 
 After completing a transcript, **immediately** do both:
 1. Append the recording's Plaud `id` to `meetings/transcripts/.plaud-processed` (create the file if it doesn't exist)
-2. Append the saved local filename to `meetings/transcripts/.processed`
+2. Append the saved transcript filename to `meetings/transcripts/.processed`. In Obsidian mode, record the vault-relative path (e.g., `Lore/Transcripts/2026-05-28 1on1 Jane Doe.md`); in filesystem mode, the workspace-relative path (e.g., `meetings/transcripts/2026-05-28 - 1on1 Jane Doe.md`).
+
+Both tracking files stay in the workspace repo in both modes. Obsidian ignores dotfiles, so this keeps tracking semantics consistent across modes.
 
 This ensures that even if the batch is interrupted mid-run, already-completed transcripts won't be re-processed.
 
-### 6f. Checkpoint between transcripts
+### 6g. Checkpoint between transcripts
 
 After finishing each transcript (except the last), pause and show the output summary from process-transcript.md, then say:
-> "That's [N of M]. Moving on to [next recording title] when you're ready — or say 'stop' to end the batch here."
+> "That's [N of M]. Moving on to [next recording title] when you're ready, or say 'stop' to end the batch here."
 
 Wait for the user's go-ahead before starting the next one. This gives the user a chance to answer any "should I create a stakeholder file?" questions or review action items before the next transcript begins.
 
 ---
 
-## Step 7 — Batch Complete
+## Step 7, Batch Complete
 
 After all selected transcripts are processed, show a brief summary:
 
 ```
 Plaud sync complete. Processed [N] transcript(s):
 
-  ✓ YYYY-MM-DD — [Meeting Title] — [N] action items, [N] files updated
-  ✓ YYYY-MM-DD — [Meeting Title] — [N] action items, [N] files updated
+  ✓ YYYY-MM-DD, [Meeting Title], [N] action items, [N] files updated
+  ✓ YYYY-MM-DD, [Meeting Title], [N] action items, [N] files updated
   ...
 ```
 
@@ -171,3 +200,4 @@ Plaud sync complete. Processed [N] transcript(s):
 - **`.plaud-processed` is append-only.** Never delete or rewrite it. If the user wants to re-process a recording, they should remove the specific ID manually (or ask Lore to do it).
 - **Plaud's AI notes are supplementary.** Always read and process the full transcript yourself. Plaud's notes can help cross-check extracted action items but should not be treated as the ground truth.
 - **Terminology corrections apply.** If `context.md` has a `## Terminology & Corrections` section, apply those corrections to all transcript text as you process it.
+- **Mode is decided once per session.** If Obsidian mode is active when the batch starts, every transcript in the batch is saved to the vault; if filesystem mode, every transcript is saved to the repo. Do not flip mid-batch.
