@@ -368,7 +368,7 @@ The example uses the name **Sigil**; substitute your specialist's name if it dif
 
 Add a section like this to your specialist's `CLAUDE.md` so the awareness persists across sessions, including for teammates who don't have Lore installed:
 
-```markdown
+````markdown
 ---
 
 ## Optional sibling agent: Lore
@@ -416,9 +416,7 @@ The artifact dedupes adds on `subject + from`, so re-pushing the same add is har
 ### If Lore is not present
 
 Operate normally. Don't mention Lore. Don't try to read or write the Lore folder.
-```
-
-> The triple-backtick code fences for the JSON example above are spelled with extra spaces (` ` `) so they render correctly inside this README's outer code block. Replace them with literal backticks when you paste this section into your specialist's `CLAUDE.md`.
+````
 
 ---
 
