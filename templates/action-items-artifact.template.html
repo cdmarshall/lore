@@ -365,7 +365,7 @@ tbody tr:hover .delegate-btn { opacity: 1; }
     <button class="pill lore-pill" data-filter="lore" title="Items Lore can plausibly do from inside the workspace">Lore-Ready</button>
     <button class="pill agent-pill" data-filter="specialist" title="Items a sibling specialist agent (e.g., Sigil) can pick up">Specialist-Ready</button>
     <button class="pill stale-pill" data-filter="stale" title="Items added more than 30 days ago">Stale (&gt;30d)</button>
-    <button class="pill delegate-pill" id="delegated-pill" data-filter="delegated" title="Items delegated to your team — shown in the section below">Delegated</button>
+    <button class="pill delegate-pill" id="delegated-pill" data-filter="delegated" title="Items delegated to your team, shown in the section below">Delegated</button>
   </div>
   <div class="search-wrap">
     <input type="text" id="search" placeholder="Search items...">
@@ -575,7 +575,7 @@ async function saveStored() {
   try {
     await storage.setItem('items', { activeItems, completedItems, archivedItems, delegatedItems, lastSeenSeedVersion, savedAt: new Date().toISOString() });
   } catch (e) {
-    showToast('warn', `Local save failed (${storage.kind}): ${e.message}. Changes are in memory only — use Download snapshot to back up.`, null, null);
+    showToast('warn', `Local save failed (${storage.kind}): ${e.message}. Changes are in memory only, use Download snapshot to back up.`, null, null);
   }
 }
 
@@ -1046,7 +1046,7 @@ function renderDelegatedSection() {
     const tr = document.createElement('tr');
 
     const tdWho = document.createElement('td'); tdWho.style.width = '110px';
-    tdWho.innerHTML = `<span class="delegate-to-chip">${it.delegatedTo || '—'}</span>`;
+    tdWho.innerHTML = `<span class="delegate-to-chip">${it.delegatedTo || ','}</span>`;
 
     const tdItem = document.createElement('td');
     const subjectDiv = document.createElement('div'); subjectDiv.style.cssText = 'font-family:var(--font-body);font-weight:500;color:var(--text-primary);line-height:1.4;margin-bottom:3px'; subjectDiv.textContent = it.subject;
@@ -1062,7 +1062,7 @@ function renderDelegatedSection() {
 
     const tdSince = document.createElement('td'); tdSince.style.width = '85px';
     const sinceDate = it.delegated ? new Date(it.delegated + 'T12:00:00') : null;
-    const sinceText = sinceDate && !isNaN(sinceDate) ? sinceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+    const sinceText = sinceDate && !isNaN(sinceDate) ? sinceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ',';
     tdSince.innerHTML = `<span style="font-family:var(--font-ui);font-size:12px;color:var(--text-muted)">${sinceText}</span>`;
 
     const tdActions = document.createElement('td'); tdActions.style.cssText = 'width:120px;white-space:nowrap;padding-top:10px';
@@ -1328,7 +1328,7 @@ function applyMutationToState(op) {
       const didx = delegatedItems.findIndex(it => it.subject === op.subject);
       if (didx >= 0) {
         const it = delegatedItems.splice(didx, 1)[0];
-        completedItems.unshift({ date: it.date, created: it.created || '', from: it.from, subject: it.subject, resolution: `Delegated to ${it.delegatedTo} — ${it.actionNeeded || '(complete)'}`, completed: TODAY_STR });
+        completedItems.unshift({ date: it.date, created: it.created || '', from: it.from, subject: it.subject, resolution: `Delegated to ${it.delegatedTo}, ${it.actionNeeded || '(complete)'}`, completed: TODAY_STR });
       }
       break;
     }
@@ -1750,7 +1750,7 @@ async function init() {
       try { await saveStored(); } catch (_) {}
     } else if (seed && seed.seedVersion && seed.seedVersion !== lastSeenSeedVersion) {
       // Returning user, agent has pushed a new operations seed since we last
-      // saw the artifact. Apply the operations as a delta on top of IDB —
+      // saw the artifact. Apply the operations as a delta on top of IDB,
       // user edits made in this view are preserved.
       const result = applyOperations(seed);
       try { await saveStored(); } catch (_) {}

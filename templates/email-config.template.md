@@ -2,7 +2,7 @@
 
 User-specific data for the email triage workflow. This file is gitignored.
 
-The email triage workflow (`workflows/email-triage.md`) reads this file alongside `context.md` to categorize incoming email. The workflow is generic; everything here is yours.
+The unified triage workflow (`workflows/triage.md`) reads this file alongside `context.md` to categorize incoming email during its email pass. The workflow is generic; everything here is yours.
 
 If this is a fresh install, the agent can populate most of these sections automatically by scanning your inbox. You'll want to review and refine after that initial pass.
 

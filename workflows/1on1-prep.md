@@ -17,7 +17,7 @@ From the user's request, determine:
 ### 2. Read Source Files
 
 Read in parallel:
-- `team/[name].md` — their profile, active projects, recent observations, commitments
+- `team/[name].md`, their profile, active projects, recent observations, commitments
 
 For action items involving this person (sourced from them, delegated to them, etc.), try the read paths in order:
 
@@ -63,7 +63,7 @@ Scan `team/[name].md` Observations section for any recent patterns worth address
 Output a structured prep note:
 
 ```markdown
-# 1:1 Prep — [Name] — [Date]
+# 1:1 Prep, [Name], [Date]
 
 ## Active Projects
 | Project | Status | Last Update | Next Step | Flag? |
@@ -71,7 +71,7 @@ Output a structured prep note:
 | [Project] | [Status] | [Date / note] | [What's next] | [Stale / On track] |
 
 ## Follow Up on Delegated Items
-*(Items you handed off — close the loop)*
+*(Items you handed off, close the loop)*
 | Item | Delegated | Expected Action |
 |------|-----------|----------------|
 | [Subject] | [Date] | [Action Needed] |
@@ -79,7 +79,7 @@ Output a structured prep note:
 *(Omit this section if nothing is delegated to this person)*
 
 ## Their Open Action Items (from your list)
-- [Subject] — [brief note, source date]
+- [Subject], [brief note, source date]
 
 ## Suggested Agenda Topics
 - [Topic based on project status, delegated items, or observations]

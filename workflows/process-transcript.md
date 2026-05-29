@@ -4,16 +4,25 @@ Extract insights from meeting transcripts (especially Plaud AI exports) and upda
 
 ## Input
 
-**How to invoke** — tell the agent one of the following:
-- "Process any new transcripts" — check `meetings/transcripts/` for unprocessed files
-- "Process [filename]" — process a specific transcript file
-- "Process this transcript: [Meeting context]" then paste the content — use when pasting a transcript directly
+**How to invoke**, tell the agent one of the following:
+- "Process any new transcripts", check `meetings/transcripts/` for unprocessed files
+- "Process [filename]", process a specific transcript file
+- "Process this transcript: [Meeting context]" then paste the content, use when pasting a transcript directly
+
+## Storage Mode
+
+This workflow operates differently depending on whether Obsidian mode is active (see `CLAUDE.md` → Obsidian Detection). Both modes follow the same extraction logic in sections 1–4; the difference is in section 5 (Update Files), where the targets diverge:
+
+- **Filesystem mode**: writes meeting notes to `meetings/notes/`, observations into `team/*.md` and `stakeholders/*.md`, decisions to `decisions/log.md`. See "Section 5, Filesystem Mode" below.
+- **Obsidian mode**: writes meeting notes into the vault under `Lore/Meetings/`, observations into the person's vault note via `obsidian_patch_content`, decisions as one-note-per-decision under `Lore/Decisions/`. Cross-references use wikilinks. See "Section 5, Obsidian Mode" below.
+
+Both modes push the user's action items to the live artifact identically. The action-items hard rule from `CLAUDE.md` applies in both modes.
 
 ## Instructions
 
 ### 0. Identify the User in the Transcript
 
-**IMPORTANT**: The user (you, the agent's principal) is named in `context.md` under the **Role** section. When their name appears as a speaker in the transcript, that's the user. Anything they said or committed to belongs to them — don't create observations about the user themselves.
+**IMPORTANT**: The user (you, the agent's principal) is named in `context.md` under the **Role** section. When their name appears as a speaker in the transcript, that's the user. Anything they said or committed to belongs to them, don't create observations about the user themselves.
 
 ### 1. Check for New Transcripts
 
@@ -92,6 +101,10 @@ Should I:
 
 ### 5. Update Files
 
+Branch on storage mode (see "Storage Mode" at the top of this file).
+
+#### Section 5, Filesystem Mode
+
 **For team members and stakeholders with existing files:**
 - Add observations under the appropriate Observations subsection
 - Prefix entries with the meeting date (YYYY-MM-DD)
@@ -106,7 +119,61 @@ Should I:
 **For decisions:**
 - Add significant decisions to `decisions/log.md` using the format from `templates/decision-log-entry.template.md`
 
-**For the user's action items:**
+**For meeting notes:**
+- Save comprehensive summary to `meetings/notes/{date}-{meeting-name}.md`
+- Use the format from `templates/meeting-note.template.md`
+
+**Save raw transcript:**
+- Save to `meetings/transcripts/{date}-{meeting-name}.md`
+- Keep original format (timestamps and speaker labels)
+
+#### Section 5, Obsidian Mode
+
+**Path resolution:** all vault paths are under the configured Lore subfolder (default `Lore/`). If the user has overridden the subfolder name in `context.md` under "Notes for Lore" → "Vault Configuration" (e.g., `Lore - Rate/`), substitute that everywhere `Lore/` appears below.
+
+**For each identified person (existing vault note):**
+- Use `obsidian_simple_search` to locate the person's note. Expected location: `Lore/People/<Full Name>.md`.
+- If the note exists, append observations under the `## Observations` heading via `obsidian_patch_content` (operation: `append`, target_type: `heading`, target: `Observations`). Format:
+  ```markdown
+  **YYYY-MM-DD, [[YYYY-MM-DD <kind> <subject>]]:**
+  - [Observation 1]
+  - [Observation 2]
+  ```
+  The wikilink in the entry header points back to the meeting note created below, so the observation timeline naturally backlinks to the meeting.
+- If the note doesn't exist for someone who's a known direct report or stakeholder (per `context.md`), create it from `templates/team-member.template.md` or `templates/stakeholder.template.md` translated into the vault (frontmatter applied, tag set, body sections preserved). Save to `Lore/People/<Full Name>.md`.
+
+**For unknown participants:**
+- Same flow as filesystem mode (ask user before creating). On confirmation, create `Lore/People/<Full Name>.md` from the stakeholder template translated into the vault, with frontmatter `type: person, role: stakeholder/external` (or whatever the user specifies), plus tag `#person/stakeholder/external`.
+
+**For decisions:**
+- One note per decision under `Lore/Decisions/<YYYY-MM-DD> <Short Title>.md`, using `templates/decision-log-entry.template.md` translated into the vault. Frontmatter:
+  ```yaml
+  type: decision
+  date: YYYY-MM-DD
+  status: active
+  owner: "[[Owner Name]]"
+  projects: ["[[Project Name]]"]
+  ```
+  Tag `#decision/active`. Body wikilinks every person and project involved.
+- Do **not** append to `decisions/log.md` in Obsidian mode. The vault is canonical for decisions. (The filesystem `decisions/log.md` remains untouched if it exists from prior sessions; it's not used as a source of truth in Obsidian mode.)
+
+**For meeting notes:**
+- Save to `Lore/Meetings/<YYYY-MM-DD> <kind> <subject>.md`, using `templates/meeting-note.template.md` translated into the vault. Frontmatter:
+  ```yaml
+  type: meeting
+  kind: 1on1 | staff | roundtable | decision | external
+  date: YYYY-MM-DD
+  attendees: ["[[Name1]]", "[[Name2]]"]
+  related_projects: ["[[Project Name]]"]
+  ```
+  Tag with the appropriate `#meeting/<kind>` tag.
+- The body summarizes the meeting. It does **not** restate any attendee's role, team, or history. Use wikilinks. The reader can follow the link to the person's note for that context.
+- Save the raw transcript to `Lore/Transcripts/<YYYY-MM-DD> <kind> <subject>.md` (keep original timestamps and speaker labels).
+
+**Tracking files:**
+- `meetings/transcripts/.processed` and `meetings/transcripts/.plaud-processed` still live in the workspace repo (not in the vault). Append to them as in filesystem mode. Obsidian ignores dotfiles; keeping them in the repo preserves the existing tracking semantics.
+
+#### Section 5, Both Modes: For the user's action items
 - **Push as `add` operations to the live artifact.** Build one `add` operation per new action item, then push via the procedure in `workflows/action-items.md` → "Procedure for agent-driven changes." Do NOT write to `inbox/action-items.md`.
 - For each `add` op:
   - `item.date` = meeting/source date (the date the item originated)
@@ -124,14 +191,6 @@ Should I:
   ```
 - After pushing, surface every operation to the user in the Output Summary so they can verify (the artifact's bootstrap toast also confirms how many ops applied).
 
-**For meeting notes:**
-- Save comprehensive summary to `meetings/notes/{date}-{meeting-name}.md`
-- Use the format from `templates/meeting-note.template.md`
-
-**Save raw transcript:**
-- Save to `meetings/transcripts/{date}-{meeting-name}.md`
-- Keep original format (timestamps and speaker labels)
-
 ### 6. Output Summary
 
 After processing, provide:
@@ -148,6 +207,7 @@ After processing, provide:
 - [Other attendee 2]
 
 ### Files Updated
+(Filesystem mode paths shown; in Obsidian mode substitute `Lore/Meetings/`, `Lore/Transcripts/`, `Lore/People/`, `Lore/Decisions/`.)
 - meetings/notes/{date}-{meeting-name}.md - Meeting summary created
 - meetings/transcripts/{date}-{meeting-name}.md - Raw transcript saved
 - team/{person}.md - Added observations
@@ -190,7 +250,7 @@ Transcript processed and archived.
 
 ## Tips
 
-- **The user is named in `context.md`** — don't create observations about them.
+- **The user is named in `context.md`**, don't create observations about them.
 - When uncertain if something is noteworthy, err on the side of capturing it.
 - Personal observations (mood, engagement level) go in Observations, not 1:1 Notes.
 - Look for patterns across meetings over time.
@@ -210,7 +270,7 @@ Recommended filename format: `YYYY-MM-DD - Meeting Title.md`
 Tell the agent "Process this transcript: [Meeting context]" and paste the transcript content (with timestamps and speaker labels).
 
 **Option 3: Let the agent check for new files**
-Say "Process any new transcripts" — the agent will check `meetings/transcripts/` for unprocessed files.
+Say "Process any new transcripts", the agent will check `meetings/transcripts/` for unprocessed files.
 
 ## Plaud AI Specifics
 
