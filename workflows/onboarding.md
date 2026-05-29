@@ -16,7 +16,7 @@ You (Lore) check for `context.md` at the start of every session. If it's missing
 
 ---
 
-## Phase 0 — Welcome
+## Phase 0, Welcome
 
 Open with the signet, then something like:
 
@@ -26,7 +26,7 @@ Wait for confirmation. If the user wants to defer, tell them they can say "run o
 
 ---
 
-## Phase 1 — Identity
+## Phase 1, Identity
 
 **Ask:**
 - What should I call you?
@@ -43,7 +43,7 @@ Wait for confirmation. If the user wants to defer, tell them they can say "run o
 
 ---
 
-## Phase 2 — Primary duties and focus
+## Phase 2, Primary duties and focus
 
 **Ask:**
 - In a couple of sentences, what do you actually do? What domains do you own?
@@ -57,7 +57,7 @@ Wait for confirmation. If the user wants to defer, tell them they can say "run o
 
 ---
 
-## Phase 3 — Team (direct reports)
+## Phase 3, Team (direct reports)
 
 **Ask first:**
 - Do you have direct reports?
@@ -84,7 +84,7 @@ If two team members share a first name, use `firstname-lastname.md`.
 
 ---
 
-## Phase 4 — Key stakeholders
+## Phase 4, Key stakeholders
 
 **Ask:**
 - Who are the people outside your direct team you interact with regularly and need to track? Think managers, peers, executive sponsors, dotted-line partners, key vendors. Don't try to be exhaustive: focus on the people who really matter to your work.
@@ -107,7 +107,7 @@ If the user lists many, capture the names quickly first, then loop back for deta
 
 ---
 
-## Phase 5 — Active initiatives and current challenges
+## Phase 5, Active initiatives and current challenges
 
 **Ask:**
 - What are your 3 to 5 active initiatives right now? For each: a name, who owns it, rough status (planning / in progress / blocked / done), and a sentence of context.
@@ -119,7 +119,7 @@ If the user lists many, capture the names quickly first, then loop back for deta
 
 ---
 
-## Phase 6 — Tools and integrations
+## Phase 6, Tools and integrations
 
 **Ask:**
 - Do you use Jira, Confluence, Slack, Notion, Salesforce, Linear, Asana, or other tools regularly? For the ones where I might need to look something up on your behalf, can you tell me the relevant project or workspace names and IDs if you know them?
@@ -131,7 +131,7 @@ If the user lists many, capture the names quickly first, then loop back for deta
 
 ---
 
-## Phase 7 — Working style and Lore's personality
+## Phase 7, Working style and Lore's personality
 
 This phase has two parts.
 
@@ -146,7 +146,7 @@ Capture as bullet points under **Communication preferences** and **Things to avo
 
 Ask the user to pick a personality preset for how you (Lore) communicate. Use AskUserQuestion-style multiple choice. Present these five options plus an option to describe their own:
 
-> "How would you like me to talk to you? Pick the style that fits you best — you can change it anytime by editing context.md or just telling me to switch."
+> "How would you like me to talk to you? Pick the style that fits you best, you can change it anytime by editing context.md or just telling me to switch."
 
 **1. Concise & direct.** Brief, gets to the point fast. Minimal preamble. Good for someone who wants the answer first and the explanation only if asked.
 
@@ -164,7 +164,52 @@ Capture the choice (and any custom description) under **Lore's tone** in the **W
 
 ---
 
-## Phase 8 — Wrap up
+## Phase 7.5, Obsidian setup (optional)
+
+This phase only runs if the Obsidian MCP is connected. Otherwise, skip it entirely; the user can run `workflows/obsidian-setup.md` later if they connect Obsidian.
+
+**Detect:**
+
+Attempt `mcp__obsidian__obsidian_list_files_in_vault`. If the tool isn't available or errors, skip this phase, you're done. If it succeeds, continue.
+
+**Ask:**
+
+> "I noticed you have an Obsidian vault connected. I can use it as the canonical store for people, meetings, decisions, and projects, instead of (or alongside) the filesystem folders in this repo. The big advantage is Obsidian's wikilinks and backlinks, each fact lives in exactly one place, and you can see every meeting / decision a person appears in with one click. Want me to set that up?"
+
+If the user says no, skip to Phase 8. If yes, continue.
+
+**Ask for subfolder name:**
+
+Use AskUserQuestion-style multiple choice:
+
+> "What should I call Lore's subfolder inside your vault? It lives at the vault root so it doesn't collide with your existing notes. Most people use the default."
+
+Present these options:
+1. **`Lore/` (Recommended)** — the default; works for most users.
+2. **`Lore - <YourOrg>/`** — useful if you plan to run separate Lore instances per org or context (e.g., `Lore - Acme/`, `Lore - Personal/`). Pick this if you want room to add more later.
+3. **Other** — let the user type a custom name.
+
+**Output:**
+
+1. Write the choice to `context.md` under **Notes for Lore** → **Vault Configuration** (create the subsection if it doesn't already exist):
+   ```markdown
+   ### Vault Configuration
+
+   - **Obsidian vault subfolder**: `<chosen name>/`
+   - This is the active subfolder name. Whenever a workflow file references `Lore/<subfolder>/` as a vault path, substitute `<chosen name>/<subfolder>/`.
+   - Active subfolders: `<chosen name>/People/`, `<chosen name>/Meetings/`, `<chosen name>/Transcripts/`, `<chosen name>/Decisions/`, `<chosen name>/Strategy/`. Periodic notes (Daily/Weekly) will land under the same prefix when configured.
+   ```
+
+2. **Seed the folder structure** in the vault with two small placeholder READMEs so the folders are visible in Obsidian's file explorer from day one. For each of `Meetings/` and `Transcripts/`, write a `_README.md` via `mcp__obsidian__obsidian_append_content` that briefly states the naming convention (date-first filenames, optional frontmatter, wikilinks for attendees). Keep them short, the user can delete them whenever.
+
+3. **Do NOT migrate existing filesystem data here.** Onboarding is a fresh-install workflow; the user shouldn't have existing `team/` / `stakeholders/` / `decisions/log.md` content yet. If for some reason they do (e.g., they're re-running onboarding), point them at `workflows/obsidian-setup.md` for the migration path.
+
+4. Confirm to the user what was set up:
+   > "Your vault is configured. Lore will write people, meetings, decisions, and projects into `<chosen name>/` from here on. Filesystem fallback still works for any workflow that hasn't been migrated yet, no action needed from you."
+
+---
+
+## Phase 8, Wrap up
 
 **Do these in order:**
 

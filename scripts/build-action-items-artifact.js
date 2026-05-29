@@ -77,8 +77,8 @@ if (Array.isArray(rawOps)) {
 }
 
 // Validate each operation has a recognized op type. Don't be strict on the
-// shape of arguments — the artifact's applyOperations handles malformed ops
-// gracefully — but flag unknown ops loudly so the agent catches typos.
+// shape of arguments, the artifact's applyOperations handles malformed ops
+// gracefully, but flag unknown ops loudly so the agent catches typos.
 const VALID_OPS = new Set(['add', 'complete', 'delegate', 'delegateComplete', 'reopen', 'archive', 'update']);
 const unknownOps = operations
   .map((op, i) => ({ op, i }))
@@ -159,7 +159,7 @@ for (const op of operations) opCounts[op.op] = (opCounts[op.op] || 0) + 1;
 const summary = Object.entries(opCounts).map(([k, v]) => `${k}:${v}`).join(', ') || '(none)';
 
 console.log(`Built: ${outPath}`);
-console.log(`  Team members:  ${teamMembers.join(', ') || '(none — delegate disabled)'}`);
+console.log(`  Team members:  ${teamMembers.join(', ') || '(none, delegate disabled)'}`);
 console.log(`  Operations:    ${operations.length} (${summary})`);
 console.log(`  Seed version:  ${seed.seedVersion}`);
 console.log(`  Size:          ${out.length} bytes`);

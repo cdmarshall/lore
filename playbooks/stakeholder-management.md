@@ -120,7 +120,7 @@ For key stakeholders, understand:
 **Approach:**
 - Document scope clearly upfront
 - Make tradeoffs visible: "We can add X if we drop Y"
-- Don't just say no—offer alternatives
+- Don't just say no, offer alternatives
 - Involve them in prioritization
 
 ### The HiPPO (Highest Paid Person's Opinion)

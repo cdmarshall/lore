@@ -32,7 +32,7 @@ cd "$HOME\src\lore"
 
 Lore is designed to work with agents that read a top-level `CLAUDE.md` and treat the folder as a persistent workspace. The reference setup is **Cowork** (the desktop app that ships Claude as a workspace agent) or **Claude Code** running in this directory.
 
-Other configurations work too — Lore is just markdown files. As long as your agent can read files in the folder and edit them, it can run Lore.
+Other configurations work too, Lore is just markdown files. As long as your agent can read files in the folder and edit them, it can run Lore.
 
 ### 3. Run onboarding
 
@@ -49,9 +49,9 @@ The first time you talk to your agent in this folder, it will detect that `conte
 You can pause anytime, skip phases that don't apply, and come back later by saying "run onboarding."
 
 By the end, Lore will have generated:
-- `context.md` — your master profile.
-- `team/[firstname].md` — one file per direct report.
-- `stakeholders/[firstname-lastname].md` — one file per stakeholder.
+- `context.md`, your master profile.
+- `team/[firstname].md`, one file per direct report.
+- `stakeholders/[firstname-lastname].md`, one file per stakeholder.
 - A live `action-items` artifact in your Cowork sidebar (empty, ready to use). This is the canonical action items tracker; no local file is created for it.
 
 ### 4. Start using it
@@ -62,9 +62,10 @@ Once onboarding is done, try any of these:
 |------|--------|
 | See open tasks | "Show my action items" |
 | Process a meeting | "Process this transcript:" then paste, or drop a file in `meetings/transcripts/` |
-| Process raw notes | "I have some notes to process" then paste or upload — works for typed notes, OneNote exports, and photos of handwritten notes |
+| Process raw notes | "I have some notes to process" then paste or upload, works for typed notes, OneNote exports, and photos of handwritten notes |
 | Prep for a 1:1 | "Help me prepare for my 1:1 with [name]" |
 | Start the day | "Morning sync" |
+| Triage your channels | "Triage everything" or "What needs me across email, Slack, and Teams" |
 | End the week | "Run my weekly review" |
 | Make a decision | "Help me think through a decision about [topic]" |
 | Get unblocked | "I need help with [stakeholder situation]" |
@@ -74,6 +75,62 @@ You don't need to memorize prompts. Just describe what you want, and Lore will r
 ### Optional integrations
 
 If you use a [Plaud](https://www.plaud.ai/) recorder, you can connect Lore to Plaud's MCP to pull transcripts directly instead of dropping files manually. Once connected, say "Sync Plaud from the last week" (or any time range) and Lore will fetch unprocessed recordings and walk you through them. Setup: [docs.plaud.ai/documentation/plaud_app/mcp](https://docs.plaud.ai/documentation/plaud_app/mcp).
+
+If you connect **Slack** and **Microsoft 365** (Outlook and Teams), Lore can run a unified triage across all three channels. Say "triage everything" and Lore sweeps your inbox, your Slack DMs / mentions / project channels, and your Teams chats, then drafts responses grounded in your knowledge base and writing voice. It is draft-and-hold: nothing sends without you. Slack replies become native drafts in your "Drafts & Sent"; email and Teams replies are staged as paste-ready files in `outbox/drafts/` because those connectors are read-only. Multi-person Teams group chats are summarized rather than answered, and Lore asks before adding anything it learns to your knowledge base. You can also run it on a schedule (for example, twice a day). See `workflows/triage.md`.
+
+If you use [Obsidian](https://obsidian.md/), Lore can store entity data (people, meetings, decisions, projects) directly in your vault and use Obsidian's wikilinks and backlinks to avoid duplicating context. See the **Obsidian integration** section below.
+
+---
+
+## Obsidian integration
+
+Lore detects at session start whether the [Obsidian MCP](https://github.com/MarkusPfundstein/mcp-obsidian) is connected. If it is, Lore operates in **Obsidian mode**: the vault becomes the canonical store for entity data, and the agent uses wikilinks, backlinks, frontmatter, and Obsidian search instead of folder paths and grep. If the MCP isn't connected, Lore operates in **Filesystem mode**, which is the original behavior described in the rest of this README, unchanged.
+
+### What this gives you
+
+- **Each fact lives in exactly one place.** A teammate's role lives on their note in `Lore/People/`. Meeting notes wikilink to the person rather than restating role. Obsidian's backlinks pane on the person's note shows every meeting, decision, and observation involving them, without any duplication.
+- **Native graph view.** People, projects, decisions, and meetings become nodes you can explore visually.
+- **Periodic notes for daily and weekly reviews** use Obsidian's periodic-note machinery (`obsidian_get_periodic_note`), so they show up in the calendar pane and integrate with your existing Obsidian workflow.
+- **Surgical updates.** Lore uses `obsidian_patch_content` to append observations under named headings instead of rewriting whole files. Safer for concurrent edits while you have the vault open.
+
+### Where Lore stores things in the vault
+
+Lore operates from a dedicated `Lore/` subfolder inside your vault so it doesn't collide with your existing notes (the subfolder name is configurable in `context.md` under "Notes for Lore" → "Vault Configuration", which is useful if you maintain multiple Lore instances per org, e.g., `Lore - Acme/`, `Lore - Personal/`):
+
+```
+<your-vault>/
+└── Lore/
+    ├── People/         One note per person (direct reports, peers, stakeholders)
+    ├── Meetings/       One note per meeting; wikilinks to People and Projects
+    ├── Transcripts/    Raw transcripts (Plaud, pasted, etc.)
+    ├── Decisions/      One note per decision; wikilinks to People and Projects
+    ├── Projects/       One note per project or initiative
+    ├── Inbox/          Notes pending processing; tagged #inbox/unprocessed
+    ├── Daily/          Periodic daily notes
+    └── Weekly/         Periodic weekly notes
+```
+
+If you want a different subfolder name, record it in `context.md` under "Notes for Lore" and Lore will use that instead.
+
+### What stays in the repo
+
+The `lore/` repo still holds the agent logic (`CLAUDE.md`, `workflows/`, `templates/`, `playbooks/`), the action-items artifact build script, and the action-items snapshot file. Personal entity data (people, meetings, decisions, observations) moves into the vault. Operational tracking files (`.processed`, `.plaud-processed`, `.email-processed`) also stay in the repo because Obsidian ignores dotfiles.
+
+The action-items artifact is unchanged in Obsidian mode. The artifact's IndexedDB remains the sole source of truth for action items.
+
+### Setup
+
+1. Install the [Local REST API community plugin](https://github.com/coddingtonbear/obsidian-local-rest-api) in Obsidian. Configure an API key.
+2. Install the [Obsidian MCP server](https://github.com/MarkusPfundstein/mcp-obsidian) in Cowork (or Claude Code) and point it at your vault using the API key from step 1.
+3. Open Cowork in your `lore/` folder. Lore will detect the MCP, announce "Obsidian mode active," and start using the vault for new entity data.
+
+### Migration of existing filesystem data
+
+If you have existing files in `team/`, `stakeholders/`, `decisions/log.md`, or `meetings/notes/` from filesystem mode, they stay where they are. They aren't auto-migrated. New data lands in the vault under `Lore/`. If you want a one-shot migration of existing data into the vault, ask Lore: *"Migrate my existing Lore data into the vault."* Lore will preview the changes before writing.
+
+### Workflow coverage
+
+Workflows opt into Obsidian mode incrementally. As of this writing, `process-transcript`, `plaud-sync`, and `triage` use the vault when it's connected. Other workflows continue to operate against the filesystem until they're migrated. `CLAUDE.md` and each workflow file note which mode they support; see `OBSIDIAN_PLAN.md` for the rollout plan.
 
 ---
 
@@ -166,8 +223,8 @@ You can also paste the snapshot content directly in chat instead of saving the f
 
 Each Active row has two booleans that say "who could do this":
 
-- **Lore = `Y`** — Lore can do or substantially advance this item from inside the workspace, in chat. Drafting docs, summarizing threads, generating prep briefs, querying connectors, building small artifacts.
-- **Specialist = `Y`** — A sibling specialist agent (e.g., Sigil) can pick this up autonomously, off-session. Writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data from production systems.
+- **Lore = `Y`**, Lore can do or substantially advance this item from inside the workspace, in chat. Drafting docs, summarizing threads, generating prep briefs, querying connectors, building small artifacts.
+- **Specialist = `Y`**, A sibling specialist agent (e.g., Sigil) can pick this up autonomously, off-session. Writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data from production systems.
 
 The flags are independent. Both can be `Y` (either could do it), or both blank (you do it yourself), or one of each. When Lore adds an item, it sets these flags reflectively: "Could I do this? Could the specialist?" When you flag an item `Specialist: Y` and run your specialist, it scans for those rows, does the work, and writes the row directly into the Completed table. Lore picks up the change on its next run and reflects it in the live artifact.
 
@@ -177,15 +234,15 @@ See `workflows/action-items.md` for the full delegation contract, and the **Comp
 
 ## How this system works
 
-1. **`context.md`** — Lore reads this to understand your role, company, team, priorities, and preferred communication style. Update it regularly.
+1. **`context.md`**, Lore reads this to understand your role, company, team, priorities, and preferred communication style. Update it regularly.
 
-2. **Team and stakeholder profiles** — Living documents that grow over time. Lore updates them automatically when processing meeting transcripts. You can also edit them directly.
+2. **Team and stakeholder profiles**, Living documents that grow over time. Lore updates them automatically when processing meeting transcripts. You can also edit them directly.
 
-3. **Decision log** — Captures key decisions with context, options considered, and rationale. Helps you revisit past choices and see patterns.
+3. **Decision log**, Captures key decisions with context, options considered, and rationale. Helps you revisit past choices and see patterns.
 
-4. **Weekly reviews** — Structured reflection to maintain visibility and catch issues early.
+4. **Weekly reviews**, Structured reflection to maintain visibility and catch issues early.
 
-5. **Workflows** — Each common task has a workflow file in `workflows/`. Lore reads the relevant one and follows its instructions when you ask.
+5. **Workflows**, Each common task has a workflow file in `workflows/`. Lore reads the relevant one and follows its instructions when you ask.
 
 ---
 
@@ -198,7 +255,7 @@ See `workflows/action-items.md` for the full delegation contract, and the **Comp
 | Weekly (Friday) | Run weekly review; prep for any roundtable / leadership meeting. |
 | Before 1:1s | Prep with Lore using the team member's profile. |
 | After meetings | Drop the transcript in `meetings/transcripts/`; let Lore extract action items, decisions, and observations. |
-| After taking notes | Say "I have some notes to process" and paste or upload your notes — Lore will ask a few quick questions and file everything in the right place. |
+| After taking notes | Say "I have some notes to process" and paste or upload your notes, Lore will ask a few quick questions and file everything in the right place. |
 | Monthly | Update `context.md` priorities, review team development goals, update strategy docs. |
 | Quarterly | Full strategy review, team performance conversations, OKR/goal setting. |
 
@@ -239,8 +296,8 @@ Lore is designed to work with sibling specialist agents that handle role-specifi
 
 The action items artifact doubles as a delegation bus. Each Active row carries two independent boolean flags that say who could plausibly do the work:
 
-- **Lore (`Y`)** — Lore can do the item from inside this workspace, in chat. Examples: drafting documents, summarizing threads, generating prep briefs, querying connectors, building small artifacts.
-- **Specialist (`Y`)** — a sibling specialist agent (e.g., Sigil) can pick the item up autonomously, off-session. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data.
+- **Lore (`Y`)**, Lore can do the item from inside this workspace, in chat. Examples: drafting documents, summarizing threads, generating prep briefs, querying connectors, building small artifacts.
+- **Specialist (`Y`)**, a sibling specialist agent (e.g., Sigil) can pick the item up autonomously, off-session. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data.
 
 Both flags can be `Y` on the same row. Both can be blank (the user does it themselves). The specialist learns about `Specialist: Y` items by asking the user to share a Downloaded snapshot, then pushes its own `complete` operations to the artifact when work is done (using the same `scripts/build-action-items-artifact.js` + `mcp__cowork__update_artifact` path Lore uses). See `workflows/action-items.md` for the full delegation contract.
 
@@ -263,11 +320,11 @@ The example uses the name **Sigil**; substitute your specialist's name if it dif
 > - If either is missing, the user does **not** have Lore. Ignore everything below this line and operate normally. Do not mention Lore to the user.
 >
 > **Files you can read for context** (paths relative to `LORE_PATH`):
-> - `context.md` — role, team, current priorities, active initiatives, key stakeholders, tools.
-> - `team/*.md` — direct report profiles.
-> - `stakeholders/*.md` — stakeholder profiles.
-> - `decisions/log.md` — past decisions with context and rationale.
-> - `meetings/notes/*.md` — structured meeting summaries.
+> - `context.md`, role, team, current priorities, active initiatives, key stakeholders, tools.
+> - `team/*.md`, direct report profiles.
+> - `stakeholders/*.md`, stakeholder profiles.
+> - `decisions/log.md`, past decisions with context and rationale.
+> - `meetings/notes/*.md`, structured meeting summaries.
 >
 > **Action items live in a live Cowork artifact (id: `action-items`), not in any local file.** The artifact's IndexedDB is the sole source of truth. Do NOT read `inbox/action-items.md`; if it exists at all it's a restore-only backup that may be stale. To see what's in the artifact, ask the user to click Download snapshot in the artifact and share the resulting markdown file with you.
 >
@@ -275,7 +332,7 @@ The example uses the name **Sigil**; substitute your specialist's name if it dif
 > - **Lore** is `Y` if Lore could plausibly do the item from inside its workspace (drafting docs, summarizing threads, building small artifacts, querying connectors).
 > - **Specialist** is `Y` if a specialist agent (you) could pick it up autonomously.
 >
-> **You only act on items where `Specialist: Y`.** When proposing work, prefer those rows. Ignore the `Lore` flag for your own scoping; it tells the user (and Lore) what Lore could do, not what you should do. If a row is flagged `Specialist: Y` AND `Lore: Y`, either of you could handle it — whoever is in front of the user wins.
+> **You only act on items where `Specialist: Y`.** When proposing work, prefer those rows. Ignore the `Lore` flag for your own scoping; it tells the user (and Lore) what Lore could do, not what you should do. If a row is flagged `Specialist: Y` AND `Lore: Y`, either of you could handle it, whoever is in front of the user wins.
 >
 > **When you complete an item from Lore's action items list:**
 > 1. Do the work.
@@ -305,7 +362,7 @@ The example uses the name **Sigil**; substitute your specialist's name if it dif
 > ```
 > Never write to `inbox/action-items.md`. The artifact handles dedup automatically on `subject + from`.
 >
-> **Don't try to be Lore.** If the user asks for things outside your specialist scope (process a meeting transcript, prep for a 1:1, write a stakeholder talk track, do a weekly review), tell them: *"That's a Lore task — open Cowork and work in your Lore folder."* Lore items are flagged `Lore: Y`, which is also a hint that the work belongs over there even if you could in principle do it.
+> **Don't try to be Lore.** If the user asks for things outside your specialist scope (process a meeting transcript, prep for a 1:1, write a stakeholder talk track, do a weekly review), tell them: *"That's a Lore task, open Cowork and work in your Lore folder."* Lore items are flagged `Lore: Y`, which is also a hint that the work belongs over there even if you could in principle do it.
 
 #### Persistent addition to your specialist's `CLAUDE.md`
 
@@ -325,11 +382,11 @@ Some users run a generalist personal-assistant agent named **Lore** alongside th
 ### If Lore is present
 
 **Files you may read for context** (paths relative to `LORE_PATH`):
-- `context.md` — role, team, priorities, tools.
-- `team/*.md` — direct report profiles.
-- `stakeholders/*.md` — stakeholder profiles.
-- `decisions/log.md` — decision history.
-- `meetings/notes/*.md` — meeting summaries.
+- `context.md`, role, team, priorities, tools.
+- `team/*.md`, direct report profiles.
+- `stakeholders/*.md`, stakeholder profiles.
+- `decisions/log.md`, decision history.
+- `meetings/notes/*.md`, meeting summaries.
 
 **Action items live in a Cowork artifact, NOT a local file.** Lore's action items are tracked in a live Cowork artifact with id `action-items`. The artifact's IndexedDB is the sole source of truth. Do NOT read `inbox/action-items.md` (it may exist as a stale backup but is never authoritative). To see what's currently in the artifact, ask the user to click Download snapshot in the artifact and share the resulting markdown file.
 
@@ -354,7 +411,7 @@ You only act on `Specialist: Y` items. When the user asks "what should I work on
 ```
 The artifact dedupes adds on `subject + from`, so re-pushing the same add is harmless.
 
-**Scope boundary.** Lore handles general executive-assistant work (transcripts, 1:1 prep, talk tracks, weekly reviews, stakeholder management). When users ask you for those, redirect them to Lore: *"That's a Lore task — open Cowork and work in your Lore folder."*
+**Scope boundary.** Lore handles general executive-assistant work (transcripts, 1:1 prep, talk tracks, weekly reviews, stakeholder management). When users ask you for those, redirect them to Lore: *"That's a Lore task, open Cowork and work in your Lore folder."*
 
 ### If Lore is not present
 
@@ -384,6 +441,6 @@ Reach out to Colton Marshall ([colton.marshall@rate.com](mailto:colton.marshall@
 
 ## A note on the name
 
-Lore is a body of knowledge passed down — accumulated context that makes the people who hold it more effective at what they do. That's what this system is: a place for the lore of your role to accumulate and stay accessible, instead of living in your head and your notebooks and your Slack history.
+Lore is a body of knowledge passed down, accumulated context that makes the people who hold it more effective at what they do. That's what this system is: a place for the lore of your role to accumulate and stay accessible, instead of living in your head and your notebooks and your Slack history.
 
 The scroll signet (📜) is on signed outputs because Lore writes documents the way a scribe might, and a scribe seals their work.

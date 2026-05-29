@@ -24,7 +24,7 @@
 - [ ]
 
 ### Others
-- [ ] [Person]: [Action] — [Due date or TBD]
+- [ ] [Person]: [Action], [Due date or TBD]
 
 ## Follow-ups Needed
 

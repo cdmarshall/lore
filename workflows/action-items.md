@@ -16,9 +16,9 @@ The action items live in a single Cowork artifact (id: `action-items`). The arti
 
 The agent has three possible read paths, in order of preference:
 
-1. **`inbox/action-items.snapshot.md`** — the user's downloaded snapshot, saved by them via the artifact's Download snapshot button. Markdown format with `## Active`, `## Completed`, `## Delegated`, `## Archived` sections. Check first with `bash ls inbox/action-items.snapshot.md`; if present, parse it. Note the file's mtime in your response so the user knows how fresh the read is.
+1. **`inbox/action-items.snapshot.md`**, the user's downloaded snapshot, saved by them via the artifact's Download snapshot button. Markdown format with `## Active`, `## Completed`, `## Delegated`, `## Archived` sections. Check first with `bash ls inbox/action-items.snapshot.md`; if present, parse it. Note the file's mtime in your response so the user knows how fresh the read is.
 
-2. **`inbox/action-items-state.json`** — written automatically by the artifact's auto-backup feature, IF the user enabled it. **Currently this won't exist** because Cowork's webview blocks the artifact from writing files programmatically. The plumbing remains in place in case a future Cowork build enables it. If the file ever exists, prefer it over the markdown snapshot (it's fresher and machine-readable). JSON shape:
+2. **`inbox/action-items-state.json`**, written automatically by the artifact's auto-backup feature, IF the user enabled it. **Currently this won't exist** because Cowork's webview blocks the artifact from writing files programmatically. The plumbing remains in place in case a future Cowork build enables it. If the file ever exists, prefer it over the markdown snapshot (it's fresher and machine-readable). JSON shape:
    ```json
    {
      "writtenAt": "ISO timestamp (use to detect freshness)",
@@ -30,9 +30,9 @@ The agent has three possible read paths, in order of preference:
    }
    ```
 
-3. **A snapshot pasted directly in chat** — if no file is present and the user wants to give the agent a view right now without leaving chat. Same markdown format as #1.
+3. **A snapshot pasted directly in chat**, if no file is present and the user wants to give the agent a view right now without leaving chat. Same markdown format as #1.
 
-4. **None** — the agent has no view of state. Push operations blindly (the artifact handles dedup). Tell the user honestly: "I don't have a view of your current list. If you want me to dedup or list items, click Download snapshot in your artifact and save it to `inbox/action-items.snapshot.md` (or paste it here)."
+4. **None**, the agent has no view of state. Push operations blindly (the artifact handles dedup). Tell the user honestly: "I don't have a view of your current list. If you want me to dedup or list items, click Download snapshot in your artifact and save it to `inbox/action-items.snapshot.md` (or paste it here)."
 
 Never read `inbox/action-items.md` for state. That file is a legacy restore-only markdown backup, distinct from `action-items.snapshot.md`.
 
@@ -53,7 +53,7 @@ The build script (`scripts/build-action-items-artifact.js`) stamps `seedVersion`
 
 ### Operation types
 
-**`add`** — adds a new item to the Active list. Dedup happens in the artifact on `subject + from` (normalized: trimmed, lowercased); if the same key already exists in any list, the op is a no-op.
+**`add`**, adds a new item to the Active list. Dedup happens in the artifact on `subject + from` (normalized: trimmed, lowercased); if the same key already exists in any list, the op is a no-op.
 
 ```json
 {
@@ -74,7 +74,7 @@ The build script (`scripts/build-action-items-artifact.js`) stamps `seedVersion`
 
 Field meanings: `date` is the source date (meeting / email / origin). `created` is today's date (when the row was added to the list); always populate. `due` is one of `ASAP`, `Soon`, `This week`, `TBD`, or `YYYY-MM-DD`. `lore: "Y"` if Lore could plausibly do or substantially advance the item from inside the workspace; `specialist: "Y"` if a sibling specialist agent (e.g., Sigil) could pick it up autonomously. Both can be `Y` on the same row.
 
-**`complete`** — moves an active or delegated item to Completed.
+**`complete`**, moves an active or delegated item to Completed.
 
 ```json
 { "op": "complete", "subject": "...", "from": "...", "resolution": "optional resolution text" }
@@ -82,25 +82,25 @@ Field meanings: `date` is the source date (meeting / email / origin). `created` 
 
 `from` is part of the match key. `resolution` is optional; defaults to the item's existing `actionNeeded`. No-ops if the item is already completed or doesn't exist.
 
-**`delegate`** — moves an active item to the Delegated list and assigns it.
+**`delegate`**, moves an active item to the Delegated list and assigns it.
 
 ```json
 { "op": "delegate", "subject": "...", "from": "...", "delegatedTo": "Danelle" }
 ```
 
-**`reopen`** — moves an item from Delegated, Completed, or Archived back to Active (searched in that order). Resets `due` to `TBD`.
+**`reopen`**, moves an item from Delegated, Completed, or Archived back to Active (searched in that order). Resets `due` to `TBD`.
 
 ```json
 { "op": "reopen", "subject": "...", "from": "..." }
 ```
 
-**`archive`** — moves an active item to the Archived list.
+**`archive`**, moves an active item to the Archived list.
 
 ```json
 { "op": "archive", "subject": "...", "from": "..." }
 ```
 
-**`update`** — edits fields of an existing active item in place. Allowed fields: `date`, `created`, `from`, `subject`, `actionNeeded`, `due`, `lore`, `specialist`, `notes`.
+**`update`**, edits fields of an existing active item in place. Allowed fields: `date`, `created`, `from`, `subject`, `actionNeeded`, `due`, `lore`, `specialist`, `notes`.
 
 ```json
 { "op": "update", "subject": "...", "from": "...", "fields": { "due": "2026-06-01", "notes": "..." } }
@@ -108,7 +108,7 @@ Field meanings: `date` is the source date (meeting / email / origin). `created` 
 
 ### Match-key normalization
 
-For every op that references an existing item (everything except `add`), the artifact matches by `subject + from` after trimming whitespace and lowercasing. Wording must be precise — if the user previously marked an item complete with a slightly different subject, the match will fail and the op will no-op.
+For every op that references an existing item (everything except `add`), the artifact matches by `subject + from` after trimming whitespace and lowercasing. Wording must be precise, if the user previously marked an item complete with a slightly different subject, the match will fail and the op will no-op.
 
 If a match fails, the operation is silently skipped (counted as "skipped" in the toast on the user's side). That's acceptable: the artifact dedupes adds, ignores re-completions, and any genuine mismatch shows up as a stale push the agent can correct on the next operation.
 
@@ -200,8 +200,8 @@ If the user explicitly says "restore the artifact from the backup file at path X
 
 The Active list has two delegation flags per row. They answer two different questions:
 
-- **`lore: "Y"`** — Lore (this agent) could plausibly do or substantially advance the item from inside the workspace. Examples: drafting a memo, summarizing a thread, generating a prep brief, building a small artifact, querying a connector and surfacing the result, writing a stakeholder talk track.
-- **`specialist: "Y"`** — a sibling specialist agent (e.g., Sigil) could pick it up autonomously. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data from production systems.
+- **`lore: "Y"`**, Lore (this agent) could plausibly do or substantially advance the item from inside the workspace. Examples: drafting a memo, summarizing a thread, generating a prep brief, building a small artifact, querying a connector and surfacing the result, writing a stakeholder talk track.
+- **`specialist: "Y"`**, a sibling specialist agent (e.g., Sigil) could pick it up autonomously. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data from production systems.
 
 Both blank when the item needs human judgment, in-person conversation, or context only the user has.
 
@@ -222,7 +222,7 @@ When the user asks for their action items in chat, follow this order:
 1. **Check for `inbox/action-items.snapshot.md`** (`bash ls inbox/action-items.snapshot.md`). If present, parse the `## Active` table and render sorted by priority. Note the file's mtime in the response so the user knows how fresh it is.
 2. **Check for `inbox/action-items-state.json`** (future-proof; rarely present today). If it exists, parse the `active` array, use the `writtenAt` timestamp.
 3. **If neither file exists**, tell the user: "Click Download snapshot in your action items artifact and save the file to `inbox/action-items.snapshot.md` (or paste the contents here), and I'll render the list."
-4. **If they prefer**, suggest just opening the artifact directly — it's already the live view.
+4. **If they prefer**, suggest just opening the artifact directly, it's already the live view.
 
 Priority sorting (when rendering): OVERDUE → URGENT/ASAP → UPCOMING → other due dates → TBD/conditional.
 
