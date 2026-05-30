@@ -86,6 +86,10 @@ If you use [Obsidian](https://obsidian.md/), Lore can store entity data (people,
 
 Lore detects at session start whether the [Obsidian MCP](https://github.com/MarkusPfundstein/mcp-obsidian) is connected. If it is, Lore operates in **Obsidian mode**: the vault becomes the canonical store for entity data, and the agent uses wikilinks, backlinks, frontmatter, and Obsidian search instead of folder paths and grep. If the MCP isn't connected, Lore operates in **Filesystem mode**, which is the original behavior described in the rest of this README, unchanged.
 
+As your vault fills with people, meetings, decisions, and projects, Obsidian's graph view turns it into an explorable knowledge graph. Each node is an entity and each edge is a wikilink, so you can see at a glance how teammates, initiatives, and decisions connect:
+
+![Example Obsidian knowledge graph](assets/obsidian-graph.png)
+
 ### What this gives you
 
 - **Each fact lives in exactly one place.** A teammate's role lives on their note in `Lore/People/`. Meeting notes wikilink to the person rather than restating role. Obsidian's backlinks pane on the person's note shows every meeting, decision, and observation involving them, without any duplication.
