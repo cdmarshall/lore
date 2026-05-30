@@ -140,7 +140,7 @@ This phase has two parts.
 Ask:
 - Anything about how you like to work that I should know? Things like: communication style, calendar quirks (e.g., a shared OOO calendar), preferred output formats, or things you want me to avoid.
 
-Capture as bullet points under **Communication preferences** and **Things to avoid** in the **Working Style & Preferences** section of `context.md`.
+Capture as bullet points under **Communication preferences** and **Things to avoid** in the **Working Style & Preferences** section of `context.md`. This part captures only the user's *stated* preferences. The data-driven voice profile (how they actually write) is captured separately in Phase 7.6 from their sent messages, if a messaging connector is available.
 
 **Part B: Lore's tone.**
 
@@ -185,9 +185,9 @@ Use AskUserQuestion-style multiple choice:
 > "What should I call Lore's subfolder inside your vault? It lives at the vault root so it doesn't collide with your existing notes. Most people use the default."
 
 Present these options:
-1. **`Lore/` (Recommended)** — the default; works for most users.
-2. **`Lore - <YourOrg>/`** — useful if you plan to run separate Lore instances per org or context (e.g., `Lore - Acme/`, `Lore - Personal/`). Pick this if you want room to add more later.
-3. **Other** — let the user type a custom name.
+1. **`Lore/` (Recommended)**: the default; works for most users.
+2. **`Lore - <YourOrg>/`**: useful if you plan to run separate Lore instances per org or context (e.g., `Lore - Acme/`, `Lore - Personal/`). Pick this if you want room to add more later.
+3. **Other**: let the user type a custom name.
 
 **Output:**
 
@@ -206,6 +206,53 @@ Present these options:
 
 4. Confirm to the user what was set up:
    > "Your vault is configured. Lore will write people, meetings, decisions, and projects into `<chosen name>/` from here on. Filesystem fallback still works for any workflow that hasn't been migrated yet, no action needed from you."
+
+---
+
+## Phase 7.6, Writing voice capture (optional)
+
+This phase runs only if at least one messaging connector is available: Microsoft 365 (email and Teams) or Slack. If none is connected, skip it; the user can run it later by saying "analyze my writing voice" once a connector is set up. The goal is to learn how the user actually writes so Lore can draft in their voice (emails, Slack and Teams replies, talk tracks) instead of guessing.
+
+**Detect:**
+
+Check which of these tools resolve: `outlook_email_search` (email), `chat_message_search` (Teams), `slack_search_public_and_private` (Slack). Skip silently for any that are missing.
+
+**Ask permission first (this reads the user's sent messages):**
+
+> "If it's helpful, I can study how you actually write by reading a sample of your own sent messages (email, Slack, Teams) and build a voice profile, so anything I draft sounds like you. I only read your own sent items, I keep just short non-sensitive snippets as calibration examples, and you can edit or delete the profile anytime. Want me to do that?"
+
+If no, skip to Phase 8. If yes, continue with whichever connectors are present.
+
+**Resolve the user's own identity first** (their email from `context.md`; their Slack user ID via `slack_read_user_profile`) so the samples are messages they sent, not received.
+
+**Sample sent messages (the user's own):**
+
+- **Email** (`outlook_email_search`, `folderName: "Sent Items"`, `order: newest`): pull the most recent ~100 to 200, paginating. Favor genuine prose replies and outbound notes; ignore one-line forwards and calendar noise.
+- **Slack** (`slack_search_public_and_private`, query `from:<@SELF_USER_ID> after:<~90 days ago>`): pull ~50 to 100 of the user's own messages across DMs and channels.
+- **Teams** (`chat_message_search`, `sender: <user's email>`): pull what's available.
+
+**Analyze each medium separately** (email and chat are different registers). For each, characterize:
+
+- Greetings and sign-offs, or their absence, including mid-thread behavior.
+- Contractions, hedges ("I think", "should", "probably"), and how opinions versus facts are stated.
+- Warmth markers, softeners on asks, and recurring vocabulary tells.
+- Length norms, formatting habits (lists versus prose), and emoji usage (chat and email often differ).
+- Any hard rules worth enforcing (for example, whether the user ever uses em dashes; quantify it, e.g. "zero across 200 sent emails").
+
+**Output:**
+
+1. Write a `## Email Writing Style` section into `context.md` (core voice, hard rules, hedges, warmth markers, softeners, vocabulary tells, length norms, formatting, and one or two short verbatim calibration samples). Place it before the **Notes for Lore** section.
+2. If Slack or Teams data was sampled, write a `## Slack & Teams Writing Style` section as the chat counterpart: shorter, the affirmation openers and emoji habits, what carries over from email, and a few short calibration samples. Note that Teams uses the same register as Slack unless the data shows otherwise.
+3. Optionally write the fuller long-form guide (with anti-examples) to `outbox/dictation-style-prompt.md` and reference it from the `context.md` sections.
+4. Add a one-line pointer under **Notes for Lore**: any drafting on the user's behalf should conform to these sections.
+
+**Privacy and scope:**
+
+- Read only the user's own sent messages. Never keep another person's content as a sample.
+- Keep calibration samples short and free of customer PII, secrets, partner data, or anything sensitive. Paraphrase or redact if the cleanest example contains such content.
+- Write only the applicable sections. If only email is connected, write only the email section and tell the user the chat profile can be added later once Slack or Teams is connected.
+
+**If skipped or partial:** note that the user can say "analyze my writing voice" anytime to build or extend these profiles, and that they sharpen as more sent history accrues.
 
 ---
 
@@ -256,9 +303,10 @@ Present these options:
 By the end of onboarding, the workspace should contain (at minimum):
 
 ```
-context.md                              ← fully populated
+context.md                              ← fully populated (incl. writing-style sections if a connector was available)
 team/[firstname].md                     ← one per direct report (if any)
 stakeholders/[firstname-lastname].md    ← one per stakeholder
+outbox/dictation-style-prompt.md        ← optional long-form voice guide (Phase 7.6, if generated)
 ```
 
 The user should also have a live `action-items` artifact in their Cowork sidebar (created in Phase 8 step 2). That artifact, not any local file, is the source of truth for action items.
