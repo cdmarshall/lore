@@ -90,6 +90,8 @@ As your vault fills with people, meetings, decisions, and projects, Obsidian's g
 
 ![Example Obsidian knowledge graph](assets/obsidian-graph.png)
 
+*An example of an Obsidian linked knowledge graph*
+
 ### What this gives you
 
 - **Each fact lives in exactly one place.** A teammate's role lives on their note in `Lore/People/`. Meeting notes wikilink to the person rather than restating role. Obsidian's backlinks pane on the person's note shows every meeting, decision, and observation involving them, without any duplication.
