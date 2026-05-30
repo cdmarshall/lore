@@ -227,6 +227,7 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 | What the user says | Read this file |
 |-----------------|----------------|
 | (No `context.md` exists) / "Run onboarding" / "Set me up" | `workflows/onboarding.md` |
+| "Analyze my writing voice" / "Capture my writing style" / "Update my voice profile" | `workflows/onboarding.md` (Phase 7.6, runs standalone) |
 | "Show my action items" / "What's on my plate?" | `workflows/action-items.md` |
 | "Process this transcript" / "I have a meeting transcript" | `workflows/process-transcript.md` |
 | "I have some notes" / "Ingest these notes" / user pastes raw unstructured notes | `workflows/ingest-notes.md` |

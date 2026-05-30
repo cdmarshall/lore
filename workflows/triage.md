@@ -160,7 +160,7 @@ For every draft, before writing:
 2. Apply terminology corrections from `context.md` silently (e.g., normalize "Omsite" variants).
 3. Match voice:
    - **Email** drafts follow the `## Email Writing Style` section of `context.md` exactly (and `outbox/dictation-style-prompt.md` for nuance). No greeting on mid-thread replies, no sign-off, contractions default, hedge opinions / commit on facts, 25 to 120 words for most replies.
-   - **Slack and Teams** drafts are shorter and more casual than email, but carry the same warmth markers and zero em dashes. Match the register of the incoming message.
+   - **Slack and Teams** drafts follow the `## Slack & Teams Writing Style` section of `context.md` (short, warm, quick affirmation openers, light emoji, same hedging as email, zero em dashes). If that section is absent, fall back to: shorter and more casual than email, same warmth markers, no em dashes. Match the register of the incoming message.
 4. **No em dashes anywhere.** Hard rule. Use commas, parentheses, or a sentence break.
 5. If a draft would require a decision the user has not made, do not invent it. Draft a holding reply or flag the item in the briefing as "needs your call before I can draft."
 
