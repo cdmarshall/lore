@@ -205,7 +205,7 @@ Project:
 ```yaml
 type: project
 status: active | blocked | done
-owner: "[[Name]]"
+lead: "[[Name]]"            # day-to-day project lead; can be the user or any team member
 stakeholders: ["[[Name]]"]
 start_date: YYYY-MM-DD
 phase: [current phase label]
