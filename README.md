@@ -230,7 +230,7 @@ You can also paste the snapshot content directly in chat instead of saving the f
 Each Active row has two booleans that say "who could do this":
 
 - **Lore = `Y`**, Lore can do or substantially advance this item from inside the workspace, in chat. Drafting docs, summarizing threads, generating prep briefs, querying connectors, building small artifacts.
-- **Specialist = `Y`**, A sibling specialist agent (e.g., Sigil) can pick this up autonomously, off-session. Writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data from production systems.
+- **Specialist = `Y`**, A sibling specialist agent can pick this up autonomously, off-session. Writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data from production systems.
 
 The flags are independent. Both can be `Y` (either could do it), or both blank (you do it yourself), or one of each. When Lore adds an item, it sets these flags reflectively: "Could I do this? Could the specialist?" When you flag an item `Specialist: Y` and run your specialist, it scans for those rows, does the work, and writes the row directly into the Completed table. Lore picks up the change on its next run and reflects it in the live artifact.
 
@@ -303,17 +303,17 @@ Lore is designed to work with sibling specialist agents that handle role-specifi
 The action items artifact doubles as a delegation bus. Each Active row carries two independent boolean flags that say who could plausibly do the work:
 
 - **Lore (`Y`)**, Lore can do the item from inside this workspace, in chat. Examples: drafting documents, summarizing threads, generating prep briefs, querying connectors, building small artifacts.
-- **Specialist (`Y`)**, a sibling specialist agent (e.g., Sigil) can pick the item up autonomously, off-session. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data.
+- **Specialist (`Y`)**, a sibling specialist agent can pick the item up autonomously, off-session. Examples: writing Jira tickets, drafting PRDs, scoping engineering work, generating release notes, pulling structured data.
 
 Both flags can be `Y` on the same row. Both can be blank (the user does it themselves). The specialist learns about `Specialist: Y` items by asking the user to share a Downloaded snapshot, then pushes its own `complete` operations to the artifact when work is done (using the same `scripts/build-action-items-artifact.js` + `mcp__cowork__update_artifact` path Lore uses). See `workflows/action-items.md` for the full delegation contract.
 
-A reference example: the Rate Insurance Product team uses a specialist agent called **Sigil** for product-engineering tasks. Sigil reads Lore's `context.md`, `team/`, `stakeholders/` for context, asks the user for a Downloaded snapshot to identify `Specialist: Y` items, and pushes operations back to the artifact when work completes. Lore knows about Sigil as a delegation target; Sigil knows about Lore as a context source. Neither requires the other to function.
+A reference example: the RINS Product team uses a specialist agent called **Sigil** for product-engineering tasks. Sigil reads Lore's `context.md`, `team/`, `stakeholders/` for context, asks the user for a Downloaded snapshot to identify `Specialist: Y` items, and pushes operations back to the artifact when work completes. Lore knows about Sigil as a delegation target; Sigil knows about Lore as a context source. Neither requires the other to function.
 
 If you have a specialist agent of your own (call it whatever you want), the integration is just shared filesystem reads. Point it at your Lore folder (`~/src/lore` on Mac/Linux, `$HOME\src\lore` on Windows) and tell it the convention. The specialist needs no special integration plumbing, just instructions, which can include a graceful "if Lore isn't installed for this user, ignore" check so the specialist works for teammates who don't run Lore.
 
 ### Wiring up a specialist: the integration prompt
 
-Below is the prompt the Rate Insurance Product team uses to brief Sigil on Lore. Copy the relevant block into your specialist's `CLAUDE.md` (or paste the one-shot prompt at the start of a session). It's designed to **degrade gracefully**: if Lore isn't installed on a teammate's machine, the specialist silently skips the integration and operates normally.
+Below is the prompt the RINS Product team uses to brief Sigil on Lore. Copy the relevant block into your specialist's `CLAUDE.md` (or paste the one-shot prompt at the start of a session). It's designed to **degrade gracefully**: if Lore isn't installed on a teammate's machine, the specialist silently skips the integration and operates normally.
 
 The example uses the name **Sigil**; substitute your specialist's name if it differs.
 
@@ -428,7 +428,7 @@ Operate normally. Don't mention Lore. Don't try to read or write the Lore folder
 
 ## Contributing
 
-This repo lives at [github.com/Guaranteed-Rate/lore](https://github.com/Guaranteed-Rate/lore). Issues, ideas, and pull requests are welcome.
+Issues, ideas, and pull requests are welcome.
 
 A few things worth flagging if you want to contribute:
 
@@ -439,7 +439,7 @@ A few things worth flagging if you want to contribute:
 
 ## Questions or interest in adopting Lore
 
-Reach out to Colton Marshall ([colton.marshall@rate.com](mailto:colton.marshall@rate.com)).
+Reach out to Colton Marshall
 
 ---
 
