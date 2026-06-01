@@ -30,8 +30,14 @@ Never read `inbox/action-items.md` (legacy backup, distinct from `action-items.s
 
 ### 3. Pull Active Projects and Commitments
 
-From `team/[name].md`:
-- List every entry in their **Active Projects** section with status, last update, and next step. Flag any that haven't moved since the last 1:1.
+From `team/[name].md`, identify which active projects this person is involved in. Then, for each project:
+
+- **Filesystem mode**: check `projects/[slug].md` for current phase and status. Use this as the authoritative source; the team member's profile may have stale project info.
+- **Obsidian mode**: search `Projects/` for notes where this person appears in the `stakeholders` or `owner` frontmatter field, or run `obsidian_simple_search` on their name within `Projects/`.
+
+For each project surfaced:
+- Pull the `## Current Phase` section for a status snapshot.
+- Flag any that haven't had an update since the last 1:1 (compare the most recent dated entry in `## Current Phase` against the last 1:1 date from `team/[name].md`).
 - Note any commitments they made in the last 1:1 and whether they've been addressed.
 - Note any commitments the user made that may need follow-up.
 

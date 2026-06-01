@@ -49,9 +49,13 @@ Try the read paths in order:
 
 Never read `inbox/action-items.md` (legacy restore-only backup, distinct from `action-items.snapshot.md`).
 
-### 5. Check Current Priorities
+### 5. Check Current Priorities and Project Status
 
-Read `context.md` for current priorities and active initiatives.
+Read `context.md` for current priorities and active initiatives. For each initiative listed, check whether a project file exists:
+- **Filesystem mode**: check `projects/[slug].md`
+- **Obsidian mode**: search `Projects/` for the corresponding note
+
+If a project file exists, pull the `## Current Phase` section for a one-liner status. Surface this in the briefing's "Suggested Focus" block so the user sees each project's current standing alongside the day's priorities. Skip this for initiatives without a project file yet; just use the `context.md` notes column.
 
 ### 6. Generate Briefing
 
