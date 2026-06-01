@@ -122,8 +122,8 @@ Branch on storage mode (see "Storage Mode" at the top of this file).
 - Add significant decisions to `decisions/log.md` using the format from `templates/decision-log-entry.template.md`
 
 **For meeting notes:**
-- Save comprehensive summary to `meetings/notes/{date}-{meeting-name}.md`
-- Use the format from `templates/meeting-note.template.md`
+- **If a Plaud note is available** (fetched via `mcp__plaud__get_note` during plaud-sync): use its body as the primary content. Apply terminology corrections from `context.md`, then save to `meetings/notes/{date}-{meeting-name}.md` using the format from `templates/meeting-note.template.md`. Do not regenerate a summary the Plaud note already covers.
+- **If no Plaud note is available** (transcript was dropped in manually or Plaud note fetch failed): generate the summary from the transcript as before.
 
 **Save raw transcript:**
 - Save to `meetings/transcripts/{date}-{meeting-name}.md`
@@ -160,6 +160,8 @@ Branch on storage mode (see "Storage Mode" at the top of this file).
 - Do **not** append to `decisions/log.md` in Obsidian mode. The vault is canonical for decisions. (The filesystem `decisions/log.md` remains untouched if it exists from prior sessions; it's not used as a source of truth in Obsidian mode.)
 
 **For meeting notes:**
+- **If a Plaud note is available** (fetched via `mcp__plaud__get_note` during plaud-sync): use its body as the primary content. Apply wikilinks (resolve all participant and project names to `[[Name]]` form), apply terminology corrections from `context.md`, then save to `Lore/Meetings/<YYYY-MM-DD> <kind> <subject>.md` with the frontmatter below. Do not regenerate a summary the Plaud note already covers.
+- **If no Plaud note is available**: generate the summary from the transcript as before.
 - Save to `Lore/Meetings/<YYYY-MM-DD> <kind> <subject>.md`, using `templates/meeting-note.template.md` translated into the vault. Frontmatter:
   ```yaml
   type: meeting
