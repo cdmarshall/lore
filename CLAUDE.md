@@ -158,7 +158,7 @@ These are the rules for storing and finding information when Obsidian mode is ac
 - **One note per entity.** A person, project, or decision has exactly one note. Everything else links to it.
 - **Backlinks replace cross-references.** To find every meeting Jane appears in, follow backlinks on `[[Jane Doe]]`. Do not grep meeting files.
 - **Observations append to the entity's note**, not to the meeting note. Meeting notes summarize the meeting; person notes accumulate the running observation history.
-- **Use `obsidian_patch_content` for incremental updates** (append under a named heading). Avoid read-and-rewrite for additive changes.
+- **Use `obsidian_patch_content` for incremental updates** (append under a named heading). Avoid read-and-rewrite for additive changes. **Critical:** the `target` parameter must include the note title as a prefix: `target: "Note Title::Heading Name"` (e.g., `target: "Jane Doe::Observations"`). Passing just `target: "Observations"` will always fail with `invalid-target`.
 
 ### Tag taxonomy (hierarchical, slash-delimited)
 
@@ -217,7 +217,7 @@ tracker:            # optional: Jira epic key, Asana project URL, Linear link, e
 - `obsidian_simple_search` for fuzzy name and topic lookups.
 - `obsidian_complex_search` for structured queries against frontmatter.
 - `obsidian_get_periodic_note(period="daily" | "weekly" | "monthly")` for periodic notes.
-- `obsidian_patch_content` for appending under named headings.
+- `obsidian_patch_content` for appending under named headings. Always use the full `"Note Title::Heading Name"` format for `target` (e.g., `"Jane Doe::Observations"`, `"Rate Connect::Current Phase"`). Bare heading names like `"Observations"` always fail.
 - `obsidian_get_recent_changes` for "what changed since last session."
 - `obsidian_batch_get_file_contents` for pulling related notes in one call (a person plus their recent meetings).
 
