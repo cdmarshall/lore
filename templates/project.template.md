@@ -10,7 +10,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Active / Blocked / Done |
-| Owner | [Name] |
+| Lead | [Name] |
 | Phase | [Current phase or milestone] |
 | Started | YYYY-MM-DD |
 | Target | YYYY-MM-DD or TBD |
