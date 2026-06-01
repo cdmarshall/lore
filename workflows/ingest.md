@@ -18,7 +18,7 @@ Process a document and extract relevant information to update the knowledge base
 2. **Read and analyze the file** (supports PDF, text, markdown, images, CSV, etc.)
 
 3. **Ask the user what to do with it:**
-   - Update a project file
+   - Update a project file (if the document is a SOW, spec, brief, or other project artifact: suggest the matching file in `projects/` or offer to create one using `templates/project.template.md`)
    - Add observations to a team member's file
    - Add observations to a stakeholder's file
    - Extract action items
@@ -26,7 +26,13 @@ Process a document and extract relevant information to update the knowledge base
    - Generate an output file (report, matrix, export, etc.)
    - Other (let user specify)
 
+   **Note on project files**: If the document is clearly scoped to an active project (e.g., a vendor SOW, a product spec, a project brief), default the suggestion to "update project file" and name the likely match. Do not suggest adding project-status content to `strategy/`; that folder holds only vision and roadmap docs.
+
 4. **Process accordingly** and confirm what was updated
+
+   **Storage mode note:** When updating a project or person file, branch on the active storage mode (see `CLAUDE.md` → Obsidian Detection):
+   - **Obsidian mode:** use `obsidian_patch_content` to append under `## Current Phase` (projects) or `## Observations` (people) on the relevant vault note. Use `mcp__obsidian__obsidian_append_content` to create a new vault note if one doesn't exist.
+   - **Filesystem mode:** edit `projects/[slug].md` or `team/`/`stakeholders/` files directly. Run the two-step existence check before writing.
 
 ## File Locations
 

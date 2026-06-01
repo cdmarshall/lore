@@ -20,7 +20,8 @@ Prepare for a recurring team roundtable / leadership meeting.
 
 Read the following files in parallel:
 - `context.md`, current priorities, active initiatives, and the user's team list
-- `strategy/roadmap.md` if it exists, current initiative statuses
+- `strategy/roadmap.md` if it exists, for high-level strategic direction
+- Each active project file in `projects/` (filesystem mode) or `Projects/` vault notes (Obsidian mode) for current phase and status. In Obsidian mode, use `obsidian_complex_search` with `type: project, status: active` to pull all active project notes at once.
 - One file per direct report under `team/`, each team member's recent observations
 
 For action items (completed-this-week, active blockers, delegated items), try the read paths in order:
@@ -134,6 +135,7 @@ Output a structured prep brief:
 
 - The Round-Robin section is for the user's prep, they're listening and facilitating, not reading these notes aloud.
 - Parking Lot items should only go there if they genuinely need >2 min to resolve.
-- If `strategy/roadmap.md` isn't populated, note that and skip the initiative table.
+- If `strategy/roadmap.md` isn't populated, note that and skip the roadmap framing.
+- For the Project Health table, prefer status from individual `projects/` files over the Active Initiatives table in `context.md` -- project files are the authoritative source of current phase and blockers.
 - Completed items with no resolution note can be listed with just the subject.
 - Flag if any team member has a pattern of blockers that may need a dedicated sync.

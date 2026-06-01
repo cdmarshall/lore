@@ -46,8 +46,14 @@ The vault is **external** to the `lore/` repo. Lore operates from a dedicated su
 
 ## First Things First
 
-At the start of any session (after the fresh-install check), read:
-1. `context.md`, the user's role, team, priorities, active initiatives, key stakeholders, and preferred communication style.
+At the start of any session (after the fresh-install check), read the user's context file. **Branch on storage mode:**
+
+- **Obsidian mode**: read `Context.md` from the vault via `mcp__obsidian__obsidian_get_file_contents`. This version uses wikilinks on all entity tables (team, stakeholders, active initiatives) and is the canonical source in Obsidian mode.
+- **Filesystem mode**: read `context.md` from the workspace root using the Read tool.
+
+Both files contain the same information; the vault version adds wikilinks. The agent reads whichever matches the active mode and never writes to both simultaneously -- updates go to the active-mode file only.
+
+1. The context file (by whichever path above), the user's role, team, priorities, active initiatives, key stakeholders, and preferred communication style.
 2. If the user asks about tasks or what's on their plate, check `inbox/action-items.snapshot.md` first (the user's downloaded snapshot from the artifact); fall back to `inbox/action-items-state.json` if it ever exists; otherwise ask them to Download snapshot to `inbox/action-items.snapshot.md` (or paste it in chat). **Do not read `inbox/action-items.md`** as a source of truth, it's a legacy restore-only backup, distinct from the snapshot file. See `workflows/action-items.md` for the full read-path logic.
 
 Adapt your tone to the **Lore's tone** preference recorded in `context.md` (e.g., concise & direct, warm & collaborative, analytical & thorough, coach-style, executive briefing, or custom).
@@ -105,7 +111,8 @@ lore/
 │   └── log.md                 ← Log of key decisions with context and rationale              [GITIGNORED]
 │
 ├── playbooks/                 ← Frameworks for difficult conversations, feedback, etc.       [committed]
-├── strategy/                  ← User's strategy docs (vision, roadmap, etc.)                 [GITIGNORED]
+├── projects/                  ← One file per active project/initiative                       [GITIGNORED]
+├── strategy/                  ← Strategy docs only: vision, roadmap, positioning             [GITIGNORED]
 ├── weekly-reviews/            ← Weekly review entries (YYYY-MM-DD.md)                        [GITIGNORED]
 │
 └── workflows/                 ← Workflow definitions (see workflow table below)              [committed]
@@ -201,6 +208,8 @@ status: active | blocked | done
 owner: "[[Name]]"
 stakeholders: ["[[Name]]"]
 start_date: YYYY-MM-DD
+phase: [current phase label]
+tracker:            # optional: Jira epic key, Asana project URL, Linear link, etc.
 ```
 
 ### Tools to lean on
@@ -252,7 +261,7 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 - **The user = "you"** in all files. When transcripts mention the user's name, that's the user, don't create observations about them.
 - **Inbox -> Outbox flow**: Documents dropped in `inbox/documents/` get processed and outputs go to `outbox/` (reports, CSVs, exports) or their respective folders (team, stakeholders, meetings).
 - **Relative paths**: All file references in workflow docs are relative to this workspace root (`lore/`).
-- **Personal folders are gitignored, NOT empty.** `team/`, `stakeholders/`, `meetings/notes/`, `meetings/transcripts/`, `decisions/`, `weekly-reviews/`, `inbox/`, `outbox/`, `strategy/`, and `context.md` are all gitignored so the template repo stays clean. **A returning user has real files in these folders.** Always list folder contents using `bash ls` or `bash find`, **never use `Glob`** for gitignored folders, as it silently returns nothing for these directories, making a full folder appear empty. If a listing returns empty or only `.gitkeep`, assume you are seeing a gitignore-filtered result and re-check with `bash ls` before concluding the folder is empty. Discovered the hard way: using `Glob` on `stakeholders/` returned zero results, causing an existing stakeholder file to be overwritten rather than appended to.
+- **Personal folders are gitignored, NOT empty.** `team/`, `stakeholders/`, `projects/`, `meetings/notes/`, `meetings/transcripts/`, `decisions/`, `weekly-reviews/`, `inbox/`, `outbox/`, `strategy/`, and `context.md` are all gitignored so the template repo stays clean. **A returning user has real files in these folders.** Always list folder contents using `bash ls` or `bash find`, **never use `Glob`** for gitignored folders, as it silently returns nothing for these directories, making a full folder appear empty. If a listing returns empty or only `.gitkeep`, assume you are seeing a gitignore-filtered result and re-check with `bash ls` before concluding the folder is empty. Discovered the hard way: using `Glob` on `stakeholders/` returned zero results, causing an existing stakeholder file to be overwritten rather than appended to.
 - **Before writing any file in a gitignored folder, run a two-step existence check:**
   1. `bash ls [target file path]`, direct existence check
   2. `bash ls [parent folder]`, list the folder to catch any name variations or near-matches
@@ -290,6 +299,8 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 - **Meeting summaries** → save to `meetings/notes/YYYY-MM-DD-meeting-name.md` (use `templates/meeting-note.template.md`)
 - **Team/stakeholder updates** → edit the relevant file in `team/` or `stakeholders/`
 - **New team or stakeholder profiles** → use `templates/team-member.template.md` or `templates/stakeholder.template.md`
+- **Project updates** → edit the relevant file in `projects/[slug].md` (use `templates/project.template.md`). In Obsidian mode, use `obsidian_patch_content` to append under `## Current Phase`. The `strategy/` folder is for vision/roadmap only; project-specific reference files belong in `projects/`.
+- **New project files** → use `templates/project.template.md`. In Obsidian mode, create in `Projects/` with proper frontmatter.
 - **Action items** → build operations JSON, run `scripts/build-action-items-artifact.js`, push via `mcp__cowork__update_artifact` (id: `action-items`). Never read or write `inbox/action-items.md`. See the hard rule in Key Behaviors above and the full procedure in `workflows/action-items.md`.
 - **Decisions** → add to `decisions/log.md` (use `templates/decision-log-entry.template.md`)
 - **Weekly reviews** → save to `weekly-reviews/YYYY-MM-DD.md` (use `templates/weekly-review.template.md`)

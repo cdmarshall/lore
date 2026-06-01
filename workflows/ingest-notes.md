@@ -101,13 +101,27 @@ Offer a recommended default based on the note type. Mark it clearly as the recom
 
 ## Step 2: Process the notes
 
-Once you have the answers, process accordingly. Follow the relevant conventions from the existing workflow files:
+Once you have the answers, process accordingly. Follow the relevant conventions from the existing workflow files.
 
+**Branch on storage mode** (see `CLAUDE.md` → Obsidian Detection):
+
+**Filesystem mode:**
 - **Meeting notes** → `meetings/notes/YYYY-MM-DD-[slug].md` using `templates/meeting-note.template.md`
-- **Action items** → push as `add` operations to the live artifact (see `workflows/action-items.md`). **Never write to `inbox/action-items.md`**. The artifact dedupes on `subject + from`; for cases where the new note adds real context to an existing item, emit an `update` op instead of a duplicate `add`.
+- **Action items** → push as `add` operations to the live artifact (see `workflows/action-items.md`). **Never write to `inbox/action-items.md`**.
 - **Profile updates** → the relevant `team/` or `stakeholders/` file (append, never overwrite)
+- **Project updates** → if the notes reference an active project, append a dated status block to `projects/[slug].md` under `## Current Phase`. If no project file exists yet for a recognized initiative, offer to create one from `templates/project.template.md`.
 - **Reference docs / ideas / brainstorms** → `outbox/YYYY-MM-DD-[slug].md`
 - **Decisions** → `decisions/log.md` if any clear decision is captured
+
+**Obsidian mode:**
+- **Meeting notes** → vault note `Meetings/YYYY-MM-DD <kind> <subject>.md` with proper frontmatter (`type: meeting`, `attendees`, `related_projects`). Use `mcp__obsidian__obsidian_append_content`.
+- **Action items** → same as filesystem mode (artifact is canonical in both modes).
+- **Profile updates** → use `obsidian_patch_content` to append under `## Observations` on the person's vault note. Do not overwrite.
+- **Project updates** → use `obsidian_patch_content` to append under `## Current Phase` on the relevant `Projects/` note.
+- **Reference docs / ideas / brainstorms** → `outbox/YYYY-MM-DD-[slug].md` (filesystem outbox, not vault).
+- **Decisions** → vault note `Decisions/YYYY-MM-DD <Title>.md` with `type: decision` frontmatter.
+
+The artifact dedupes `add` ops on `subject + from`; for cases where the new note adds real context to an existing item, emit an `update` op instead of a duplicate `add`.
 
 ### Handling unknown people
 
