@@ -116,8 +116,8 @@ Once you have the answers, process accordingly. Follow the relevant conventions 
 **Obsidian mode:**
 - **Meeting notes** → vault note `Meetings/YYYY-MM-DD <kind> <subject>.md` with proper frontmatter (`type: meeting`, `attendees`, `related_projects`). Use `mcp__obsidian__obsidian_append_content`.
 - **Action items** → same as filesystem mode (artifact is canonical in both modes).
-- **Profile updates** → use `obsidian_patch_content` to append under `## Observations` on the person's vault note. Do not overwrite.
-- **Project updates** → use `obsidian_patch_content` to append under `## Current Phase` on the relevant `Projects/` note.
+- **Profile updates** → use `obsidian_patch_content` to append under `## Observations` on the person's vault note. Use `target: "<Note Title>::Observations"` (e.g., `"Jane Doe::Observations"`). Bare heading names fail. Do not overwrite.
+- **Project updates** → use `obsidian_patch_content` to append under `## Current Phase` on the relevant `Projects/` note. Use `target: "<Note Title>::Current Phase"` (e.g., `"Rate Connect::Current Phase"`).
 - **Reference docs / ideas / brainstorms** → `outbox/YYYY-MM-DD-[slug].md` (filesystem outbox, not vault).
 - **Decisions** → vault note `Decisions/YYYY-MM-DD <Title>.md` with `type: decision` frontmatter.
 

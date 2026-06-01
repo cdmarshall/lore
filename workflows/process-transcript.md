@@ -135,7 +135,7 @@ Branch on storage mode (see "Storage Mode" at the top of this file).
 
 **For each identified person (existing vault note):**
 - Use `obsidian_simple_search` to locate the person's note. Expected location: `Lore/People/<Full Name>.md`.
-- If the note exists, append observations under the `## Observations` heading via `obsidian_patch_content` (operation: `append`, target_type: `heading`, target: `Observations`). Format:
+- If the note exists, append observations under the `## Observations` heading via `obsidian_patch_content` (operation: `append`, target_type: `heading`, target: `"<Note Title>::Observations"` — e.g., `target: "Jane Doe::Observations"`). **The full `Note Title::Heading` path is required; bare heading names like `"Observations"` always fail with `invalid-target`.** Format:
   ```markdown
   **YYYY-MM-DD, [[YYYY-MM-DD <kind> <subject>]]:**
   - [Observation 1]
