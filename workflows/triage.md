@@ -44,7 +44,7 @@ Before doing anything else, check whether `triage-config.md` exists at the works
 3. `email-config.md` (root), if present: reuse its sender lists and tier framework for the email pass.
 4. Processed trackers in `inbox/`: `.slack-processed`, `.teams-processed`, `.email-processed` (append-only; one ID per line).
 5. `inbox/.triage-last-run`: ISO 8601 timestamp of the previous run. If absent, default the window to the last 24 hours and note it in the briefing.
-6. The Obsidian vault under the configured subfolder (for this user: `Lore - Rate/`; substitute the value from `context.md` Vault Configuration).
+6. The Obsidian vault under the configured subfolder (read from `context.md` → "Notes for Lore" → "Vault Configuration"; default is `Lore/` if no override is set. Substitute that value for any `Lore/<path>` references in this workflow).
 
 ## What counts as "needs attention"
 
@@ -168,7 +168,9 @@ For every draft, before writing:
 
 After drafting, capture what the sweep revealed:
 
-1. **Observations:** new, durable facts about a person or project (a status change, a commitment someone made, a risk surfaced). Append to the relevant vault note with `obsidian_patch_content` (append under the note's observations/log heading). One fact, written once, on the entity's own note. Never restate it elsewhere.
+1. **Observations:** new, durable facts about a person or project (a status change, a commitment someone made, a risk surfaced). Write once, on the entity's own note, never elsewhere.
+   - **Obsidian mode:** append to the relevant vault note with `obsidian_patch_content` (under `## Observations` for people, `## Current Phase` for projects).
+   - **Filesystem mode:** append to `team/[name].md` or `stakeholders/[name].md` for person observations; append a dated block to `projects/[slug].md` under `## Current Phase` for project updates. Run the standard two-step existence check before writing.
 2. **Decisions:** if a thread contains a clearly-stated decision, log it. In Obsidian mode, create a note under `<vault>/Decisions/` using the decision frontmatter schema. In filesystem mode, append to `decisions/log.md` using `templates/decision-log-entry.template.md`.
 3. **Never overwrite.** Only append. If an update would change an existing fact rather than add one, flag it in the briefing for the user to confirm instead of writing it.
 4. List every knowledge-base write in the briefing so the user can see what changed.

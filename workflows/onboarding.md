@@ -114,8 +114,9 @@ If the user lists many, capture the names quickly first, then loop back for deta
 - What's keeping you up at night? What are your biggest current challenges?
 
 **Output:**
-- Populate the **Active Initiatives** table in `context.md`.
+- Populate the **Active Initiatives** table in `context.md` (and `Context.md` in the vault if Obsidian mode is active, using wikilinks for project names).
 - Populate the **Current Challenges** section as bullet points.
+- For each initiative with more than a sentence of context, offer to create a project file: "Want me to create a dedicated project file for [Initiative Name]? It gives you a place to track phases, team, status updates, and integration notes as the work evolves." If yes, create `projects/[slug].md` from `templates/project.template.md` (filesystem mode) or a vault note in `Projects/` with proper frontmatter (Obsidian mode). A sparse project file is fine at this stage -- it will fill in over time as transcripts are processed.
 
 ---
 
@@ -197,10 +198,11 @@ Present these options:
 
    - **Obsidian vault subfolder**: `<chosen name>/`
    - This is the active subfolder name. Whenever a workflow file references `Lore/<subfolder>/` as a vault path, substitute `<chosen name>/<subfolder>/`.
-   - Active subfolders: `<chosen name>/People/`, `<chosen name>/Meetings/`, `<chosen name>/Transcripts/`, `<chosen name>/Decisions/`, `<chosen name>/Strategy/`. Periodic notes (Daily/Weekly) will land under the same prefix when configured.
+   - Active subfolders: `<chosen name>/People/`, `<chosen name>/Meetings/`, `<chosen name>/Transcripts/`, `<chosen name>/Decisions/`, `<chosen name>/Projects/`, `<chosen name>/Strategy/`. Periodic notes (Daily/Weekly) will land under the same prefix when configured.
+   - `Projects/` holds one note per active project/initiative. `Strategy/` holds only vision and roadmap content.
    ```
 
-2. **Seed the folder structure** in the vault with two small placeholder READMEs so the folders are visible in Obsidian's file explorer from day one. For each of `Meetings/` and `Transcripts/`, write a `_README.md` via `mcp__obsidian__obsidian_append_content` that briefly states the naming convention (date-first filenames, optional frontmatter, wikilinks for attendees). Keep them short, the user can delete them whenever.
+2. **Seed the folder structure** in the vault with small placeholder READMEs so the folders are visible in Obsidian's file explorer from day one. For `Meetings/`, `Transcripts/`, and `Projects/`, write a `_README.md` via `mcp__obsidian__obsidian_append_content` that briefly states the naming convention for that folder. Keep them short (2-3 lines); the user can delete them whenever. Also write the vault `Context.md` file (a wikilink-enabled version of `context.md`) to the vault root -- use the same content as `context.md`, converting the My Team, Key Stakeholders, and Active Initiatives table entries to wikilinks.
 
 3. **Do NOT migrate existing filesystem data here.** Onboarding is a fresh-install workflow; the user shouldn't have existing `team/` / `stakeholders/` / `decisions/log.md` content yet. If for some reason they do (e.g., they're re-running onboarding), point them at `workflows/obsidian-setup.md` for the migration path.
 
@@ -306,7 +308,19 @@ By the end of onboarding, the workspace should contain (at minimum):
 context.md                              ← fully populated (incl. writing-style sections if a connector was available)
 team/[firstname].md                     ← one per direct report (if any)
 stakeholders/[firstname-lastname].md    ← one per stakeholder
+projects/[slug].md                      ← one per initiative the user wanted a project file for (if any, Phase 5)
 outbox/dictation-style-prompt.md        ← optional long-form voice guide (Phase 7.6, if generated)
+```
+
+If Obsidian mode is active, the vault should additionally contain:
+
+```
+Context.md                              ← vault version of context.md with wikilinks (vault root)
+People/[Full Name].md                   ← one per direct report and key stakeholder
+Projects/[Project Name].md              ← one per initiative with a project file
+Meetings/_README.md                     ← naming convention placeholder
+Transcripts/_README.md                  ← naming convention placeholder
+Projects/_README.md                     ← naming convention placeholder
 ```
 
 The user should also have a live `action-items` artifact in their Cowork sidebar (created in Phase 8 step 2). That artifact, not any local file, is the source of truth for action items.

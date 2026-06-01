@@ -42,7 +42,8 @@ No change. Workflows operate on `team/`, `stakeholders/`, `meetings/`, `decision
 | `context.md` | Note `Context` at vault root (still the orientation doc); links out to `[[Role]]`, `[[Priorities]]`, `[[Team]]` |
 | `inbox/documents/` | Notes tagged `#inbox/unprocessed`; tag removed when ingested |
 | `inbox/action-items.snapshot.md` | **Unchanged.** Artifact IDB remains canonical. Snapshot file still read from disk. |
-| `strategy/*.md` | Notes tagged `#strategy`, linked from `[[Context]]` |
+| `projects/[slug].md` | Note `[Project Name]` in `Projects/`, `type: project` frontmatter, tag `#project/<slug>`, status, tracker field |
+| `strategy/*.md` (vision, roadmap only) | Notes tagged `#strategy`, linked from `[[Context]]`. Project-specific reference files belong in `Projects/`, not `Strategy/`. |
 | `playbooks/*.md` | Notes tagged `#playbook`, kept as-is (committed templates) |
 
 ## Linking & Deduplication Rules
@@ -158,7 +159,8 @@ For each workflow in `workflows/`, add an "Obsidian mode" branch. The filesystem
 2. ✅ Update `process-transcript` as the pilot workflow.
 3. ✅ Migrate `plaud-sync` (primary transcript ingestion path for the user).
 4. ✅ One-shot migration of existing filesystem data into the vault (people, stakeholders, decisions, strategy). Meetings + transcripts being moved manually by the user; folders pre-populated with `_README.md` convention placeholders.
-5. ⏳ Validate that backlinks and observation appends work as expected over a week of real meetings.
-6. ⏳ Roll out remaining workflows: `ingest-notes`, `ingest`, `1on1-prep`, `roundtable-prep`, `morning-sync`, `onboarding`. (`triage` ships Obsidian-aware; the legacy `email-triage` workflow has been retired in favor of `triage`.)
+5. ✅ Establish `projects/` as a first-class folder. Create `templates/project.template.md`, add `Projects/` to vault structure and active folders, migrate `strategy/aspire-north.md` to `projects/aspire-north.md` as the pilot project file, update workflows with project-awareness sections.
+6. ⏳ Validate that backlinks and observation appends work as expected over a week of real meetings.
+7. ⏳ Roll out remaining workflows: `ingest-notes`, `ingest`, `1on1-prep`, `roundtable-prep`, `morning-sync`, `onboarding`. (`triage` ships Obsidian-aware; the legacy `email-triage` workflow has been retired in favor of `triage`.)
 
 — 📜 Lore

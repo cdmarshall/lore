@@ -69,6 +69,7 @@ Use `bash ls` (not `Glob`, per `CLAUDE.md`'s gitignored-folder rule) to list eac
 
 - `team/`
 - `stakeholders/`
+- `projects/`
 - `decisions/` (specifically `decisions/log.md`)
 - `strategy/`
 - `meetings/notes/`
@@ -80,6 +81,7 @@ Count what's in each. Report back to the user with the counts:
 > "Here's what I found in your filesystem:
 > - `team/`: N direct report profiles
 > - `stakeholders/`: N stakeholder profiles
+> - `projects/`: N project files
 > - `decisions/log.md`: ~N decisions (rough count from headings)
 > - `strategy/`: N strategy docs
 > - `meetings/notes/`: N meeting notes
@@ -90,12 +92,15 @@ Count what's in each. Report back to the user with the counts:
 
 Use AskUserQuestion with `multiSelect: true`. Options:
 1. **People** (team + stakeholders → `<vault subfolder>/People/`) — Recommended; everything else benefits from people being in place
-2. **Decisions** (split `decisions/log.md` into one note per decision under `<vault subfolder>/Decisions/`)
-3. **Strategy** (3-N docs → `<vault subfolder>/Strategy/`)
-4. **Meetings + Transcripts** (raw move, no transformation; wikilinking can happen later)
-5. **Skip migration for now** (just record the config, migrate later)
+2. **Projects** (project files → `<vault subfolder>/Projects/`)
+3. **Decisions** (split `decisions/log.md` into one note per decision under `<vault subfolder>/Decisions/`)
+4. **Strategy** (vision/roadmap docs only → `<vault subfolder>/Strategy/`)
+5. **Meetings + Transcripts** (raw move, no transformation; wikilinking can happen later)
+6. **Skip migration for now** (just record the config, migrate later)
 
 If the user picks "Skip", jump to Step 7.
+
+> **Note on Strategy vs Projects**: Before migrating `strategy/`, scan its files. Any file that is a project reference doc (SOW, vendor engagement brief, scoped initiative spec) should be migrated to `Projects/` instead of `Strategy/`. `Strategy/` in the vault is for vision, roadmap, and positioning content only.
 
 ---
 
@@ -131,6 +136,28 @@ tags: [person/<role>]
 
 Internal vs external: if the stakeholder's profile says "Company: <user's company>" or similar, internal. Vendors / partners (Aspire North-like) are external. When ambiguous, default to internal.
 
+### Projects migration
+
+Source: `projects/*.md`.
+Destination: `<vault subfolder>/Projects/<Project Title>.md`.
+
+Use the project file's `# Heading` as the note title. Apply frontmatter from the status table in the file:
+
+```yaml
+---
+type: project
+status: active | blocked | done
+owner: "[[<Owner Full Name>]]"
+stakeholders: ["[[Name1]]", "[[Name2]]"]
+start_date: YYYY-MM-DD
+phase: [current phase label from Status table]
+tracker:     # populate from Tracker field in Status table; omit if N/A
+tags: [project/<slug>, status/<status>]
+---
+```
+
+Apply wikilinks for any canonical names in the body. The `## Team` section names should become `[[Full Name]]` wikilinks. Add `related_projects: ["[[<This Project>]]"]` to any meeting notes that reference this project.
+
 ### Decisions migration
 
 Source: `decisions/log.md`.
@@ -153,7 +180,9 @@ Sanitize filesystem-unsafe characters in titles (`:` → ` -`, `/` → ` or `, e
 
 ### Strategy migration
 
-Source: `strategy/*.md`.
+**Important**: `strategy/` holds only genuine strategy documents (vision, roadmap, positioning). Project-specific reference files belong in `projects/` and should be migrated under "Projects migration" above, not here. If any files in `strategy/` look like project reference docs (SOWs, vendor briefs, scoped initiative specs), surface them to the user and suggest migrating them as project files instead.
+
+Source: `strategy/*.md` (vision/roadmap content only).
 Destination: `<vault subfolder>/Strategy/<Original Filename Title-Cased>.md`.
 
 Frontmatter:

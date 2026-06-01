@@ -85,19 +85,21 @@ Both modes push the user's action items to the live artifact identically. The ac
 - Extract their action items and commitments
 - These will be pushed to the live action items artifact as `add` operations. **Do not** write to `inbox/action-items.md` (see `workflows/action-items.md`).
 
-### 4. Identify Projects/Initiatives
+### 4. Identify and Update Projects
 
-**Look for mentions of projects, initiatives, or ongoing work** named in the transcript.
+**Look for mentions of projects, initiatives, or ongoing work** named in the transcript. Cross-reference against the Active Initiatives table in `context.md`.
 
-**Ask the user:**
-"I identified these projects/initiatives in the transcript:
-- [Project 1]
-- [Project 2]
+**For each project mentioned:**
 
-Should I:
-1. Track these as new initiatives in `context.md`?
-2. Update existing project files?
-3. Just note them in the meeting summary?"
+- **If a project file exists** (`projects/[slug].md` in filesystem mode; `Projects/[Name].md` in Obsidian mode): append a dated status block under `## Current Phase` with any meaningful updates from the transcript (decisions reached, blockers surfaced, phase progress, next steps). Use `obsidian_patch_content` in Obsidian mode.
+  ```markdown
+  **YYYY-MM-DD:**
+  - [Update from this meeting]
+  ```
+- **If no project file exists yet** for a recognized initiative: create one using `templates/project.template.md`, filling in what's known from the transcript and `context.md`. Ask the user to confirm before creating.
+- **If the initiative is brand new** (not in `context.md`): note it in the meeting summary and ask the user whether to add it to `context.md` Active Initiatives and create a project file.
+
+Do not create or update `context.md` Active Initiatives rows automatically; prompt the user for new entries.
 
 ### 5. Update Files
 

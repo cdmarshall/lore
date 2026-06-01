@@ -50,6 +50,9 @@
 /meetings/transcripts/*
 !/meetings/transcripts/.gitkeep
 
+# --- Project files (user-specific, one per active project) ---
+/projects/*.md
+
 # --- Strategy docs (user-specific) ---
 /strategy/*.md
 
