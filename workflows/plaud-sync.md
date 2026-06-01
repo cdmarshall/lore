@@ -108,11 +108,15 @@ Read `workflows/process-transcript.md` now (once) and hold its instructions in c
 
 For each selected recording, in order:
 
-### 6a. Fetch the transcript
+### 6a. Fetch the transcript and Plaud note
 
-Call `mcp__plaud__get_transcript` with the recording's `id`. This returns the full timestamped transcript with speaker labels, exactly the format the process-transcript workflow expects.
+Call both in parallel:
+- `mcp__plaud__get_transcript` with the recording's `id` — returns the full timestamped transcript with speaker labels.
+- `mcp__plaud__get_note` with the recording's `id` — returns Plaud's AI-generated summary and action items.
 
-Optionally also call `mcp__plaud__get_note` to get Plaud's AI-generated summary and action items. Use this as supplementary context (e.g., to cross-check your own extracted action items), not as a replacement for reading the transcript yourself.
+**Plaud's note is the primary source for the meeting note body.** Use it directly rather than re-summarizing from the transcript. Lore's job on the meeting note is to add wikilinks, apply frontmatter/tags, and apply any terminology corrections from `context.md` — not to regenerate a summary Plaud already produced.
+
+The raw transcript is still required for: identifying participants to resolve wikilinks, extracting observations for people profiles, catching action items the artifact needs in the right delta-ops format, and surfacing decisions. Scan it for those purposes.
 
 ### 6b. Content-based duplicate check
 
@@ -198,6 +202,6 @@ Plaud sync complete. Processed [N] transcript(s):
 
 - **Process in the same context, not subagents.** Sequential same-context processing preserves awareness of people and projects seen earlier in the batch, avoids write contention on shared files (stakeholder profiles, decisions log), and lets the user interject between transcripts.
 - **`.plaud-processed` is append-only.** Never delete or rewrite it. If the user wants to re-process a recording, they should remove the specific ID manually (or ask Lore to do it).
-- **Plaud's AI notes are supplementary.** Always read and process the full transcript yourself. Plaud's notes can help cross-check extracted action items but should not be treated as the ground truth.
+- **Plaud's note is the primary source for the meeting note body.** Use it directly; add wikilinks, frontmatter, and terminology corrections on top. The raw transcript is still needed for participant identification, observations, action items, and decisions — but don't regenerate a summary when Plaud already produced one.
 - **Terminology corrections apply.** If `context.md` has a `## Terminology & Corrections` section, apply those corrections to all transcript text as you process it.
 - **Mode is decided once per session.** If Obsidian mode is active when the batch starts, every transcript in the batch is saved to the vault; if filesystem mode, every transcript is saved to the repo. Do not flip mid-batch.
