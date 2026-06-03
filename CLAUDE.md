@@ -27,10 +27,12 @@ You are the primary AI agent for this workspace. There is no need to run shell c
 
 **After the fresh-install check, decide which storage mode is active for this session.**
 
-1. Attempt `mcp__obsidian__obsidian_list_notes`.
-2. If the tool exists and returns successfully, this session is in **Obsidian mode**. The vault is the canonical store for entity context (people, projects, meetings, decisions, observations). The exception is the action-items artifact, which remains canonical for action items regardless of mode (see Key Behaviors).
+1. Attempt `list_memory_projects` (basic-memory MCP).
+2. If the tool exists and returns successfully with the Lore project listed, this session is in **Obsidian mode**. The vault is the canonical store for entity context (people, projects, meetings, decisions, observations). The exception is the action-items artifact, which remains canonical for action items regardless of mode (see Key Behaviors).
 3. If the tool is missing or errors, this session is in **Filesystem mode**. Behavior is exactly as documented in Folder Structure / Creating Outputs / each workflow.
 4. State the active mode once at session start (e.g., "Obsidian mode active, vault is connected") so the user can override if desired.
+
+> **MCP layer note**: The vault MCP is **basic-memory** (not the cyanheads obsidian-mcp-server). All vault tool calls use basic-memory tool names (see "Tools to lean on" below). The underlying files are the same Obsidian vault; the MCP layer changed.
 
 **First-time Obsidian connection detection.** If Obsidian mode is active AND `context.md` exists (i.e., this isn't a fresh install) AND `context.md` does NOT have a **Vault Configuration** subsection under **Notes for Lore**, this is the user's first session with Obsidian connected to an existing Lore workspace. In your opening message, offer the setup workflow:
 
@@ -48,7 +50,7 @@ The vault is **external** to the `lore/` repo. Lore operates from a dedicated su
 
 At the start of any session (after the fresh-install check), read the user's context file. **Branch on storage mode:**
 
-- **Obsidian mode**: read `Context.md` from the vault via `mcp__obsidian__obsidian_get_note`. This version uses wikilinks on all entity tables (team, stakeholders, active initiatives) and is the canonical source in Obsidian mode.
+- **Obsidian mode**: read `Context.md` from the vault via `read_note("Context")`. This version uses wikilinks on all entity tables (team, stakeholders, active initiatives) and is the canonical source in Obsidian mode.
 - **Filesystem mode**: read `context.md` from the workspace root using the Read tool.
 
 Both files contain the same information; the vault version adds wikilinks. The agent reads whichever matches the active mode and never writes to both simultaneously -- updates go to the active-mode file only.
@@ -144,7 +146,7 @@ Notes about the vault layout:
 - **Frontmatter holds entity metadata** (role, status, dates, etc.). The body never restates what frontmatter already says.
 - **Each fact is written once.** Role lives on the person's note; meeting notes wikilink to the person rather than restating role.
 - **Templates remain committed** in the repo's `templates/` folder. When writing to the vault, translate the template structure into the new note (filling in frontmatter, applying wikilinks). Don't fork the templates into the vault.
-- **Periodic notes** (`Daily/`, `Weekly/`) come from `obsidian_get_note` with `target: {"type": "periodic", "period": "daily" | "weekly"}`, which creates the note if it doesn't exist. Don't hand-roll date-named files.
+- **Periodic notes** (`Daily/`, `Weekly/`) are constructed by date. Use today's date from the `<env>` block at the bottom of this prompt. To read or create a daily note, call `read_note("Daily/YYYY-MM-DD")` or `write_note(title: "YYYY-MM-DD", directory: "Daily/", content: "...", ...)`. There is no automatic periodic note creation; the agent always constructs the path from the current date explicitly.
 - **Dotfile tracking** (`.processed`, `.plaud-processed`, `.email-processed`) stays in the workspace repo (in their current locations) in Obsidian mode too, because Obsidian ignores dotfiles and these are operational state, not entity data.
 
 ---
@@ -158,7 +160,7 @@ These are the rules for storing and finding information when Obsidian mode is ac
 - **One note per entity.** A person, project, or decision has exactly one note. Everything else links to it.
 - **Backlinks replace cross-references.** To find every meeting Jane appears in, follow backlinks on `[[Jane Doe]]`. Do not grep meeting files.
 - **Observations append to the entity's note**, not to the meeting note. Meeting notes summarize the meeting; person notes accumulate the running observation history.
-- **Use `obsidian_patch_note` for incremental updates** (append under a named heading). Avoid read-and-rewrite for additive changes. Pass the note path in `target` and the heading in `section`: `target: {"type": "path", "path": "Lore/People/Jane Doe.md"}, section: {"type": "heading", "target": "Observations"}`. For nested headings use `::` in the section target (e.g., `"Parent::Child"`). Always confirm the heading exists first with `obsidian_get_note(format: "document-map")`; use `patchOptions: {createTargetIfMissing: true}` to create it if absent.
+- **Use `edit_note` for incremental updates** (appending observations, adding table rows, updating a section). Prefer surgical edits over full rewrites. See "Tools to lean on" for the right `operation` per use case.
 
 ### Tag taxonomy (hierarchical, slash-delimited)
 
@@ -217,29 +219,40 @@ tracker:            # optional: Jira epic key, Asana project URL, Linear link, e
 
 ### Tools to lean on
 
-> **MCP server:** Lore uses [cyanheads/obsidian-mcp-server](https://github.com/cyanheads/obsidian-mcp-server). Tool names and parameter shapes below reflect that server's API.
+> **MCP server:** Lore uses [basic-memory](https://github.com/basicmachines-co/basic-memory). The vault is the same Obsidian vault; basic-memory reads and writes files directly without needing the Obsidian app to be open. Tool names and parameter shapes below reflect basic-memory's API.
 
-- `obsidian_search_notes` for text and structured queries. Use `mode: "text"` for fuzzy name/topic lookups; `mode: "jsonlogic"` for frontmatter queries (replaces the old `obsidian_simple_search` and `obsidian_complex_search`).
-- `obsidian_get_note` with `format: "full"` for reading a note's content, frontmatter, tags, and metadata. For periodic notes, pass `target: {"type": "periodic", "period": "daily" | "weekly" | "monthly"}`. For regular notes, use `target: {"type": "path", "path": "Lore/People/Jane Doe.md"}`. There is no batch call; chain individual requests.
-- `obsidian_list_notes` for listing vault contents at a path (replaces the old `obsidian_list_files_in_vault`).
-- `obsidian_patch_note` for appending/prepending/replacing under named headings (replaces the old `obsidian_patch_content`). Target format: `{"type": "path", "path": "Lore/People/Jane Doe.md"}`. Always confirm the heading exists with `obsidian_get_note(format: "document-map")` before patching. **Do NOT use `obsidian_patch_note` to add rows to a markdown table.** `append` dumps content at the end of the section, after the table, not inside it. Use `obsidian_replace_in_note` instead (see below).
-- `obsidian_replace_in_note` for surgical edits that don't fit `obsidian_patch_note`'s structural targets, including **adding rows to a markdown table**. To insert a new table row, use the last existing row as an anchor: set `search` to that row and `replace` to that same row plus a newline plus the new row — this is an extend, not a delete, because the original last row is included verbatim in the replacement. Example: `{"search": "| Last Row | Value |", "replace": "| Last Row | Value |\n| New Row | New Value |"}`. The `replacements` parameter is an array, not a plain object — omitting it or passing a flat object will fail validation.
-- **`obsidian_manage_frontmatter` for atomic get/set/delete of individual frontmatter keys.** This is the correct way to add or update a frontmatter key on an existing note. **Never delete and recreate a file just to update frontmatter.** Usage:
-  ```
-  obsidian_manage_frontmatter(
-    target: {"type": "path", "path": "Lore/People/Jane Doe.md"},
-    operation: "set",   # or "get" or "delete"
-    key: "last_1on1",
-    value: "2026-06-01"
-  )
-  ```
-  The `target` discriminator (`"type"`) is required. Passing a plain string or omitting `type` will fail validation.
+**Reading:**
+
+- `read_note(identifier)` — read a note by title, path, or permalink. Pass just the title or path, e.g., `read_note("People/Jane Doe")`. Include frontmatter with `include_frontmatter: true`. There is no batch call; chain individual requests.
+- `list_directory(dir_name: "People/")` — list vault contents at a path. Equivalent to the old `obsidian_list_notes`.
+- `search_notes(query, search_type: "hybrid")` — hybrid text + semantic search. Use for fuzzy name/topic lookups. For structured frontmatter queries, add `note_types: ["person"]` or `metadata_filters: {status: "active"}` to filter results. Hybrid search finds more relevant results than the old keyword-only search.
+
+**Writing:**
+
+- `write_note(title, directory, content, metadata)` — create a new note or overwrite an existing one (set `overwrite: true` to replace). Pass frontmatter fields via `metadata` dict, e.g., `metadata: {type: "person", role: "direct-report", last_1on1: "2026-06-01"}`. Use for initial creation and full rewrites.
+- `edit_note(identifier, operation, content, ...)` — incremental edits to an existing note. The `identifier` is the note title or path. Operations:
+  - `"append"` — append content to the **end of the file**. Use for adding new sections or content when order doesn't matter.
+  - `"prepend"` — prepend to the start of the file.
+  - `"find_replace"` — surgical replacement. Pass `find_text` (exact text to match) and `content` (replacement text). This is the **primary tool** for:
+    - Appending to a specific section: find the last line of that section, replace it with itself plus a newline plus the new content.
+    - Adding rows to a markdown table: find the last table row, replace it with itself plus `\n| New Row | New Value |`.
+    - Updating a single frontmatter key: find `key: old_value`, replace with `key: new_value`. Never delete and recreate a file just to update frontmatter.
+  - `"replace_section"` — replace the entire content of a named section. Pass `section` (the heading text). Use when rewriting a whole section is cleaner than a surgical find_replace.
+  - `"insert_after_section"` — insert content after a named section ends. Pass `section` (the heading text).
+
+**Frontmatter updates:** There is no dedicated frontmatter tool. Use `edit_note` with `operation: "find_replace"` to change a specific key in-place (e.g., `find_text: "last_1on1: 2026-05-01"`, `content: "last_1on1: 2026-06-03"`). If the key doesn't exist yet, `append` a new frontmatter line or use `write_note(overwrite: true)` with the full updated `metadata`.
+
+**Graph traversal (bonus):**
+
+- `build_context(url: "memory://People/Jane Doe", depth: 2)` — traverses wikilinks from a starting note outward to the specified depth. Useful in prep workflows to pull all meeting, project, and decision notes connected to a person.
+- `recent_activity(timeframe: "7d")` — returns recently modified notes across the vault. Good for morning sync or catching up.
 
 ### Path resolution
 
-- Vault paths are relative to vault root. A person note is `Lore/People/Jane Doe.md`.
+- Vault paths are relative to vault root. A person note is `People/Jane Doe.md` (no `Lore/` prefix for this vault).
+- Always check `context.md` → "Vault Configuration" to confirm the active subfolder convention. This vault uses no prefix: `People/`, `Meetings/`, `Projects/`, etc.
 - The vault root path itself is opaque to Lore; the MCP handles that. Lore only ever speaks in vault-relative paths.
-- If wikilink resolution is ambiguous (two notes with the same title), use the full piped form: `[[Lore/People/Jane Doe|Jane Doe]]`.
+- If wikilink resolution is ambiguous (two notes with the same title), use the full piped form: `[[People/Jane Doe|Jane Doe]]`.
 
 ---
 
@@ -313,7 +326,7 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 - **Meeting summaries** → save to `meetings/notes/YYYY-MM-DD-meeting-name.md` (use `templates/meeting-note.template.md`)
 - **Team/stakeholder updates** → edit the relevant file in `team/` or `stakeholders/`
 - **New team or stakeholder profiles** → use `templates/team-member.template.md` or `templates/stakeholder.template.md`
-- **Project updates** → edit the relevant file in `projects/[slug].md` (use `templates/project.template.md`). In Obsidian mode, use `obsidian_patch_note` with `target: {"type": "path", "path": "Lore/Projects/<Name>.md"}, section: {"type": "heading", "target": "Current Phase"}, operation: "append"`. The `strategy/` folder is for vision/roadmap only; project-specific reference files belong in `projects/`.
+- **Project updates** → edit the relevant file in `projects/[slug].md` (use `templates/project.template.md`). In Obsidian mode, use `edit_note(identifier: "Projects/<Name>", operation: "find_replace", find_text: "<last line of Current Phase section>", content: "<last line>\n<new content>")`. The `strategy/` folder is for vision/roadmap only; project-specific reference files belong in `projects/`.
 - **New project files** → use `templates/project.template.md`. In Obsidian mode, create in `Projects/` with proper frontmatter.
 - **Action items** → build operations JSON, run `scripts/build-action-items-artifact.js`, push via `mcp__cowork__update_artifact` (id: `action-items`). Never read or write `inbox/action-items.md`. See the hard rule in Key Behaviors above and the full procedure in `workflows/action-items.md`.
 - **Decisions** → add to `decisions/log.md` (use `templates/decision-log-entry.template.md`)
