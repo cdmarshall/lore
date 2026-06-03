@@ -195,7 +195,7 @@ If you have existing files in `team/`, `stakeholders/`, `decisions/log.md`, or `
 
 ### Workflow coverage
 
-Workflows opt into Obsidian mode incrementally. As of this writing, `process-transcript`, `plaud-sync`, and `triage` use the vault when it's connected. Other workflows continue to operate against the filesystem until they're migrated. `CLAUDE.md` and each workflow file note which mode they support; see `OBSIDIAN_PLAN.md` for the rollout plan.
+All workflows support Obsidian mode. When basic-memory is connected, every workflow reads from and writes to the vault. Filesystem mode remains available as a fallback if basic-memory is not connected.
 
 ### Troubleshooting
 
