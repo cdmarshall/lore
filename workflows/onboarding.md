@@ -171,7 +171,7 @@ This phase only runs if the Obsidian MCP is connected. Otherwise, skip it entire
 
 **Detect:**
 
-Attempt `mcp__obsidian__obsidian_list_files_in_vault`. If the tool isn't available or errors, skip this phase, you're done. If it succeeds, continue.
+Attempt `mcp__obsidian__obsidian_list_notes`. If the tool isn't available or errors, skip this phase, you're done. If it succeeds, continue.
 
 **Ask:**
 
@@ -202,7 +202,7 @@ Present these options:
    - `Projects/` holds one note per active project/initiative. `Strategy/` holds only vision and roadmap content.
    ```
 
-2. **Seed the folder structure** in the vault with small placeholder READMEs so the folders are visible in Obsidian's file explorer from day one. For `Meetings/`, `Transcripts/`, and `Projects/`, write a `_README.md` via `mcp__obsidian__obsidian_append_content` that briefly states the naming convention for that folder. Keep them short (2-3 lines); the user can delete them whenever. Also write the vault `Context.md` file (a wikilink-enabled version of `context.md`) to the vault root -- use the same content as `context.md`, converting the My Team, Key Stakeholders, and Active Initiatives table entries to wikilinks.
+2. **Seed the folder structure** in the vault with small placeholder READMEs so the folders are visible in Obsidian's file explorer from day one. For `Meetings/`, `Transcripts/`, and `Projects/`, write a `_README.md` via `mcp__obsidian__obsidian_append_to_note` that briefly states the naming convention for that folder. Keep them short (2-3 lines); the user can delete them whenever. Also write the vault `Context.md` file (a wikilink-enabled version of `context.md`) to the vault root -- use the same content as `context.md`, converting the My Team, Key Stakeholders, and Active Initiatives table entries to wikilinks.
 
 3. **Do NOT migrate existing filesystem data here.** Onboarding is a fresh-install workflow; the user shouldn't have existing `team/` / `stakeholders/` / `decisions/log.md` content yet. If for some reason they do (e.g., they're re-running onboarding), point them at `workflows/obsidian-setup.md` for the migration path.
 

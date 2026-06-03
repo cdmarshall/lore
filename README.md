@@ -84,7 +84,7 @@ If you use [Obsidian](https://obsidian.md/), Lore can store entity data (people,
 
 ## Obsidian integration
 
-Lore detects at session start whether the [Obsidian MCP](https://github.com/MarkusPfundstein/mcp-obsidian) is connected. If it is, Lore operates in **Obsidian mode**: the vault becomes the canonical store for entity data, and the agent uses wikilinks, backlinks, frontmatter, and Obsidian search instead of folder paths and grep. If the MCP isn't connected, Lore operates in **Filesystem mode**, which is the original behavior described in the rest of this README, unchanged.
+Lore detects at session start whether the [Obsidian MCP](https://github.com/cyanheads/obsidian-mcp-server) is connected. If it is, Lore operates in **Obsidian mode**: the vault becomes the canonical store for entity data, and the agent uses wikilinks, backlinks, frontmatter, and Obsidian search instead of folder paths and grep. If the MCP isn't connected, Lore operates in **Filesystem mode**, which is the original behavior described in the rest of this README, unchanged.
 
 As your vault fills with people, meetings, decisions, and projects, Obsidian's graph view turns it into an explorable knowledge graph. Each node is an entity and each edge is a wikilink, so you can see at a glance how teammates, initiatives, and decisions connect:
 
@@ -96,8 +96,8 @@ As your vault fills with people, meetings, decisions, and projects, Obsidian's g
 
 - **Each fact lives in exactly one place.** A teammate's role lives on their note in `Lore/People/`. Meeting notes wikilink to the person rather than restating role. Obsidian's backlinks pane on the person's note shows every meeting, decision, and observation involving them, without any duplication.
 - **Native graph view.** People, projects, decisions, and meetings become nodes you can explore visually.
-- **Periodic notes for daily and weekly reviews** use Obsidian's periodic-note machinery (`obsidian_get_periodic_note`), so they show up in the calendar pane and integrate with your existing Obsidian workflow.
-- **Surgical updates.** Lore uses `obsidian_patch_content` to append observations under named headings instead of rewriting whole files. Safer for concurrent edits while you have the vault open.
+- **Periodic notes for daily and weekly reviews** use Obsidian's periodic-note machinery (`obsidian_get_note`), so they show up in the calendar pane and integrate with your existing Obsidian workflow.
+- **Surgical updates.** Lore uses `obsidian_patch_note` to append observations under named headings instead of rewriting whole files. Safer for concurrent edits while you have the vault open.
 
 ### Where Lore stores things in the vault
 
@@ -126,8 +126,28 @@ The action-items artifact is unchanged in Obsidian mode. The artifact's IndexedD
 
 ### Setup
 
-1. Install the [Local REST API community plugin](https://github.com/coddingtonbear/obsidian-local-rest-api) in Obsidian. Configure an API key.
-2. Install the [Obsidian MCP server](https://github.com/MarkusPfundstein/mcp-obsidian) in Cowork (or Claude Code) and point it at your vault using the API key from step 1.
+1. Install the [Local REST API community plugin](https://github.com/coddingtonbear/obsidian-local-rest-api) in Obsidian. In the plugin settings, enable **"Encrypted (HTTPS) Server"** and generate an API key.
+
+2. Add the MCP server to your Cowork or Claude Code config:
+
+   ```json
+   "mcpServers": {
+     "obsidian": {
+       "type": "stdio",
+       "command": "npx",
+       "args": ["-y", "obsidian-mcp-server@latest"],
+       "env": {
+         "MCP_TRANSPORT_TYPE": "stdio",
+         "MCP_LOG_LEVEL": "info",
+         "OBSIDIAN_API_KEY": "[YOUR API KEY]",
+         "OBSIDIAN_BASE_URL": "https://127.0.0.1:27124"
+       }
+     }
+   }
+   ```
+
+   The `OBSIDIAN_BASE_URL` points to the plugin's always-on HTTPS port. The server handles the self-signed certificate automatically (`OBSIDIAN_VERIFY_SSL` defaults to `false`).
+
 3. Open Cowork in your `lore/` folder. Lore will detect the MCP, announce "Obsidian mode active," and start using the vault for new entity data.
 
 ### Migration of existing filesystem data

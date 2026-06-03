@@ -20,7 +20,7 @@ This workflow requires three connectors. Tool names below are the logical names;
 | Email | Microsoft 365 | Read-only | `outlook_email_search`, `read_resource` |
 | Teams | Microsoft 365 | Read-only | `chat_message_search`, `read_resource` |
 | Slack | Slack | Read + write (drafts) | `slack_search_users`, `slack_search_channels`, `slack_search_public_and_private`, `slack_read_channel`, `slack_read_thread`, `slack_read_user_profile`, `slack_send_message_draft` |
-| Knowledge base | Obsidian | Read + write | `obsidian_simple_search`, `obsidian_complex_search`, `obsidian_batch_get_file_contents`, `obsidian_patch_content`, `obsidian_append_content` |
+| Knowledge base | Obsidian | Read + write | `obsidian_search_notes` (mode: "text" or "jsonlogic"), `obsidian_get_note`, `obsidian_patch_note`, `obsidian_append_to_note`, `obsidian_manage_frontmatter` |
 
 If a connector is missing at run time, skip that source, note it in the briefing, and continue with the others. Do not fail the whole run because one source is unavailable.
 
@@ -148,7 +148,7 @@ Applied to each new email. Stop at the first matching categorization rule. Ancho
 5. For each group chat with new activity, write a 1 to 3 sentence summary of what is being discussed (topic, who is driving it, any conclusion or open question). Do NOT draft a reply. These go in the briefing's "Teams discussions" section.
 6. From those summaries, extract **knowledge-base candidates**: decisions reached, status changes on an initiative, new commitments, risks, or facts about a person or project that the vault should capture. List each candidate with the chat it came from and the vault note it would land on.
 7. **Do not auto-write group-chat candidates** (they are lower-confidence than direct-thread observations). Instead, prompt the user:
-   - **Interactive run:** after presenting the summaries, ask directly, "Want me to update the knowledge base with any of these?" and apply only the ones the user confirms (additive, via `obsidian_patch_content`).
+   - **Interactive run:** after presenting the summaries, ask directly, "Want me to update the knowledge base with any of these?" and apply only the ones the user confirms (additive, via `obsidian_patch_note`).
    - **Scheduled run:** list the candidates in the briefing under "Knowledge base candidates (your call)" with a note that the user can reply "update KB with #1, #3" to apply them. Hold until they do.
 8. Append processed IDs to `inbox/.teams-processed` for both direct and summarized messages.
 
@@ -156,7 +156,7 @@ Applied to each new email. Stop at the first matching categorization rule. Ancho
 
 For every draft, before writing:
 
-1. Identify the people and projects involved. Look them up in the vault: `obsidian_simple_search` by name/topic, then `obsidian_batch_get_file_contents` to pull the person note plus related project/decision notes in one call. Cross-reference `context.md` Active Initiatives.
+1. Identify the people and projects involved. Look them up in the vault: `obsidian_search_notes` (mode: "text") by name/topic, then `obsidian_get_note` for each relevant person/project note. Cross-reference `context.md` Active Initiatives.
 2. Apply terminology corrections from `context.md` silently (e.g., normalize "Omsite" variants).
 3. Match voice:
    - **Email** drafts follow the `## Email Writing Style` section of `context.md` exactly (and `outbox/dictation-style-prompt.md` for nuance). No greeting on mid-thread replies, no sign-off, contractions default, hedge opinions / commit on facts, 25 to 120 words for most replies.
@@ -169,7 +169,7 @@ For every draft, before writing:
 After drafting, capture what the sweep revealed:
 
 1. **Observations:** new, durable facts about a person or project (a status change, a commitment someone made, a risk surfaced). Write once, on the entity's own note, never elsewhere.
-   - **Obsidian mode:** append to the relevant vault note with `obsidian_patch_content` (under `## Observations` for people, `## Current Phase` for projects).
+   - **Obsidian mode:** append to the relevant vault note with `obsidian_patch_note` using `target: {"type": "path", "path": "Lore/People/<Name>.md"}` and `section: {"type": "heading", "target": "Observations"}` (or `"Current Phase"` for projects), `operation: "append"`.
    - **Filesystem mode:** append to `team/[name].md` or `stakeholders/[name].md` for person observations; append a dated block to `projects/[slug].md` under `## Current Phase` for project updates. Run the standard two-step existence check before writing.
 2. **Decisions:** if a thread contains a clearly-stated decision, log it. In Obsidian mode, create a note under `<vault>/Decisions/` using the decision frontmatter schema. In filesystem mode, append to `decisions/log.md` using `templates/decision-log-entry.template.md`.
 3. **Never overwrite.** Only append. If an update would change an existing fact rather than add one, flag it in the briefing for the user to confirm instead of writing it.

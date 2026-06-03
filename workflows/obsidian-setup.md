@@ -113,7 +113,7 @@ For each selected category, dispatch a focused subagent (or do inline if scope i
 - **Add the appropriate frontmatter** per the schemas in `CLAUDE.md` → "Obsidian Mode Conventions" → "Frontmatter schemas".
 - **Tag per the taxonomy** in the same section.
 - **No em dashes** anywhere.
-- **One MCP call per file write** (`mcp__obsidian__obsidian_append_content`, which creates the file if it doesn't exist).
+- **One MCP call per file write** (`mcp__obsidian__obsidian_append_to_note`, which creates the file if it doesn't exist).
 
 ### People migration
 
@@ -211,7 +211,7 @@ After the move, suggest a follow-up pass to wikilink the meeting bodies (a separ
 
 After all migrations complete:
 
-1. List each `<vault subfolder>/<category>/` folder via `mcp__obsidian__obsidian_list_files_in_dir` and confirm counts match expectations.
+1. List each `<vault subfolder>/<category>/` folder via `mcp__obsidian__obsidian_list_notes` and confirm counts match expectations.
 2. Spot-check 2-3 files per category by reading them back and confirming frontmatter and wikilinks are clean.
 3. If meetings or transcripts were moved, confirm the source folders in the repo are still intact (we keep them as a backup).
 4. Report the final counts to the user.

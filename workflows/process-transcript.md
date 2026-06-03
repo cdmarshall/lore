@@ -14,7 +14,7 @@ Extract insights from meeting transcripts (especially Plaud AI exports) and upda
 This workflow operates differently depending on whether Obsidian mode is active (see `CLAUDE.md` → Obsidian Detection). Both modes follow the same extraction logic in sections 1–4; the difference is in section 5 (Update Files), where the targets diverge:
 
 - **Filesystem mode**: writes meeting notes to `meetings/notes/`, observations into `team/*.md` and `stakeholders/*.md`, decisions to `decisions/log.md`. See "Section 5, Filesystem Mode" below.
-- **Obsidian mode**: writes meeting notes into the vault under `Lore/Meetings/`, observations into the person's vault note via `obsidian_patch_content`, decisions as one-note-per-decision under `Lore/Decisions/`. Cross-references use wikilinks. See "Section 5, Obsidian Mode" below.
+- **Obsidian mode**: writes meeting notes into the vault under `Lore/Meetings/`, observations into the person's vault note via `obsidian_patch_note`, decisions as one-note-per-decision under `Lore/Decisions/`. Cross-references use wikilinks. See "Section 5, Obsidian Mode" below.
 
 Both modes push the user's action items to the live artifact identically. The action-items hard rule from `CLAUDE.md` applies in both modes.
 
@@ -91,7 +91,7 @@ Both modes push the user's action items to the live artifact identically. The ac
 
 **For each project mentioned:**
 
-- **If a project file exists** (`projects/[slug].md` in filesystem mode; `Projects/[Name].md` in Obsidian mode): append a dated status block under `## Current Phase` with any meaningful updates from the transcript (decisions reached, blockers surfaced, phase progress, next steps). Use `obsidian_patch_content` in Obsidian mode.
+- **If a project file exists** (`projects/[slug].md` in filesystem mode; `Projects/[Name].md` in Obsidian mode): append a dated status block under `## Current Phase` with any meaningful updates from the transcript (decisions reached, blockers surfaced, phase progress, next steps). Use `obsidian_patch_note` in Obsidian mode.
   ```markdown
   **YYYY-MM-DD:**
   - [Update from this meeting]
@@ -134,8 +134,8 @@ Branch on storage mode (see "Storage Mode" at the top of this file).
 **Path resolution:** all vault paths are under the configured Lore subfolder (default `Lore/`). If the user has overridden the subfolder name in `context.md` under "Notes for Lore" → "Vault Configuration" (e.g., `Lore - Rate/`), substitute that everywhere `Lore/` appears below.
 
 **For each identified person (existing vault note):**
-- Use `obsidian_simple_search` to locate the person's note. Expected location: `Lore/People/<Full Name>.md`.
-- If the note exists, append observations under the `## Observations` heading via `obsidian_patch_content` (operation: `append`, target_type: `heading`, target: `"<Note Title>::Observations"` — e.g., `target: "Jane Doe::Observations"`). **The full `Note Title::Heading` path is required; bare heading names like `"Observations"` always fail with `invalid-target`.** Format:
+- Use `obsidian_search_notes` to locate the person's note. Expected location: `Lore/People/<Full Name>.md`.
+- If the note exists, append observations under the `## Observations` heading via `obsidian_patch_note` with `target: {"type": "path", "path": "Lore/People/Jane Doe.md"}, section: {"type": "heading", "target": "Observations"}, operation: "append"`. Use `patchOptions: {createTargetIfMissing: true}` if the heading may not yet exist. Format:
   ```markdown
   **YYYY-MM-DD, [[YYYY-MM-DD <kind> <subject>]]:**
   - [Observation 1]
