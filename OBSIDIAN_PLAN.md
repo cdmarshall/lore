@@ -8,7 +8,7 @@ When the Obsidian MCP is connected, the vault becomes Lore's primary store. Cros
 
 Add a check at session start, right after the Fresh Install detection in `CLAUDE.md`:
 
-1. Attempt `mcp__obsidian__obsidian_list_files_in_vault`.
+1. Attempt `mcp__obsidian__obsidian_list_notes`.
 2. Success → **Obsidian mode**. Treat the vault as canonical for everything except the action-items artifact (which stays the source of truth as today).
 3. Failure / tool missing → **Filesystem mode**. Current behavior, unchanged.
 
@@ -26,9 +26,9 @@ No change. Workflows operate on `team/`, `stakeholders/`, `meetings/`, `decision
 - Cross-references use wikilinks (`[[Jane Doe]]`).
 - Entity metadata lives in YAML frontmatter, not body prose.
 - Categorization uses a hierarchical tag taxonomy.
-- Periodic notes (daily, weekly) come from `obsidian_get_periodic_note`, not hand-rolled date files.
-- Discovery uses `obsidian_simple_search` / `obsidian_complex_search` and backlinks, not `grep` / `glob`.
-- Append-only updates use `obsidian_patch_content` under named headings, not full-file rewrites.
+- Periodic notes (daily, weekly) come from `obsidian_get_note`, not hand-rolled date files.
+- Discovery uses `obsidian_search_notes` (mode: "text" or "jsonlogic") and backlinks, not `grep` / `glob`.
+- Append-only updates use `obsidian_patch_note` under named headings, not full-file rewrites.
 
 ## Migration Map
 
@@ -38,7 +38,7 @@ No change. Workflows operate on `team/`, `stakeholders/`, `meetings/`, `decision
 | `stakeholders/bob.md` | Note `Bob Smith` with `type: person, role: stakeholder/external` |
 | `meetings/notes/2026-05-28-1on1-jane.md` | Note titled `2026-05-28 1on1 Jane Doe`, body opens with `[[Jane Doe]]`, frontmatter `type: meeting, kind: 1on1, attendees: [[Jane Doe]]` |
 | `decisions/log.md` (one big file) | One note per decision, `type: decision`, tag `#decision/active`, linked to people/projects |
-| `weekly-reviews/2026-05-28.md` | Periodic weekly note via `obsidian_get_periodic_note(period="weekly")` |
+| `weekly-reviews/2026-05-28.md` | Periodic weekly note via `obsidian_get_note(target: {"type": "periodic", "period": "weekly"})` |
 | `context.md` | Note `Context` at vault root (still the orientation doc); links out to `[[Role]]`, `[[Priorities]]`, `[[Team]]` |
 | `inbox/documents/` | Notes tagged `#inbox/unprocessed`; tag removed when ingested |
 | `inbox/action-items.snapshot.md` | **Unchanged.** Artifact IDB remains canonical. Snapshot file still read from disk. |
@@ -113,10 +113,10 @@ start_date: YYYY-MM-DD
 For each workflow in `workflows/`, add an "Obsidian mode" branch. The filesystem-mode branch stays as-is.
 
 - **onboarding**: still writes `Context`, but in Obsidian mode it also creates seed notes for each named direct report and stakeholder as wikilink stubs, then suggests the user fill in details over time.
-- **process-transcript**: creates the meeting note in the vault; for each attendee mentioned, appends a dated observation block under `## Observations` on the person's note via `obsidian_patch_content`. No duplicated role/context in the meeting note body.
-- **1on1-prep**: instead of `grep meetings/notes/`, runs `obsidian_simple_search` for the person's name and pulls the backlinks pane equivalent via `obsidian_complex_search`. Recent observations and open commitments are gathered from the person's note + linked meetings.
-- **roundtable-prep**: searches the past week of meeting notes via `obsidian_get_recent_changes` + tag filter `#meeting`.
-- **morning-sync**: uses `obsidian_get_periodic_note(period="daily")` for today's note, creating it if missing, with a checklist seeded from the action-items snapshot.
+- **process-transcript**: creates the meeting note in the vault; for each attendee mentioned, appends a dated observation block under `## Observations` on the person's note via `obsidian_patch_note`. No duplicated role/context in the meeting note body.
+- **1on1-prep**: instead of `grep meetings/notes/`, runs `obsidian_search_notes` (mode: "text") for the person's name and follows backlinks via `obsidian_search_notes` (mode: "jsonlogic"). Recent observations and open commitments are gathered from the person's note + linked meetings.
+- **roundtable-prep**: searches the past week of meeting notes via `obsidian_search_notes` (mode: "jsonlogic" filtering by `stat.mtime`) + tag filter `#meeting`.
+- **morning-sync**: uses `obsidian_get_note` with `target: {"type": "periodic", "period": "daily"}` for today's note, creating it if missing, with a checklist seeded from the action-items snapshot.
 - **ingest** / **ingest-notes**: drop into vault as `#inbox/unprocessed`, then process in place rather than moving files between folders.
 - **plaud-sync**: transcripts land in the vault under a `Transcripts/` folder; `.plaud-processed` and `.processed` still tracked as flat files in the vault root (Obsidian ignores dotfiles).
 - **email-triage**: unchanged storage-wise (outputs to `outbox/` on disk), but the day's briefing also gets appended to today's periodic note as a section.
@@ -124,12 +124,13 @@ For each workflow in `workflows/`, add an "Obsidian mode" branch. The filesystem
 
 ## Tools to Lean On
 
-- `obsidian_simple_search` for fuzzy name/topic lookups.
-- `obsidian_complex_search` for JsonLogic queries against frontmatter (e.g., all people where `role == "direct-report"`).
-- `obsidian_get_periodic_note(period=...)` for daily / weekly / monthly notes.
-- `obsidian_patch_content` for surgical appends under headings, never read-and-rewrite for incremental updates.
-- `obsidian_get_recent_changes` for "what's new since last session."
-- `obsidian_batch_get_file_contents` for pulling a person + their recent meetings in one call.
+- `obsidian_search_notes` (mode: "text") for fuzzy name/topic lookups.
+- `obsidian_search_notes` (mode: "jsonlogic") for structured frontmatter queries (e.g., all people where `role == "direct-report"`).
+- `obsidian_get_note` with `target: {"type": "periodic", "period": "daily" | "weekly" | "monthly"}` for periodic notes.
+- `obsidian_patch_note` with `target: {"type": "path", "path": "..."}` and `section: {"type": "heading", "target": "Heading Name"}` for surgical appends under headings. Never read-and-rewrite for incremental updates.
+- `obsidian_manage_frontmatter` for atomic get/set/delete of individual frontmatter keys — never delete and recreate a file just to update frontmatter.
+- `obsidian_get_note` (multiple calls, chained) for pulling a person and their related meetings/decisions.
+- For "what changed recently": use `obsidian_search_notes` (mode: "jsonlogic") filtering by `stat.mtime` — there is no dedicated recent-changes tool in the current MCP server.
 
 ## CLAUDE.md Changes (landed)
 
