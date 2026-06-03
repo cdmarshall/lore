@@ -31,7 +31,7 @@ Process a document and extract relevant information to update the knowledge base
 4. **Process accordingly** and confirm what was updated
 
    **Storage mode note:** When updating a project or person file, branch on the active storage mode (see `CLAUDE.md` → Obsidian Detection):
-   - **Obsidian mode:** use `obsidian_patch_note` with `target: {"type": "path", "path": "Lore/Projects/<Name>.md"}` (or `Lore/People/<Name>.md`) and `section: {"type": "heading", "target": "Current Phase"}` (or `"Observations"`), `operation: "append"`. Use `patchOptions: {createTargetIfMissing: true}` if the heading may not exist. Use `mcp__obsidian__obsidian_append_to_note` to create a new vault note if one doesn't exist.
+   - **Obsidian mode:** use `edit_note(identifier: "Projects/<Name>", operation: "find_replace", find_text: "<last line of Current Phase section>", content: "<last line>\n<new content>")` (or `"People/<Name>"` with the `Observations` section). If the heading doesn't exist yet, use `edit_note(operation: "append")`. To create a new vault note, use `write_note(title, directory, content, metadata)`.
    - **Filesystem mode:** edit `projects/[slug].md` or `team/`/`stakeholders/` files directly. Run the two-step existence check before writing.
 
 ## File Locations

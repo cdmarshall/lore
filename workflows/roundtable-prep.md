@@ -21,7 +21,7 @@ Prepare for a recurring team roundtable / leadership meeting.
 Read the following files in parallel:
 - `context.md`, current priorities, active initiatives, and the user's team list
 - `strategy/roadmap.md` if it exists, for high-level strategic direction
-- Each active project file in `projects/` (filesystem mode) or `Projects/` vault notes (Obsidian mode) for current phase and status. In Obsidian mode, use `obsidian_search_notes` with `mode: "jsonlogic"` querying `frontmatter.type == "project"` and `frontmatter.status == "active"` to pull all active project notes.
+- Each active project file in `projects/` (filesystem mode) or `Projects/` vault notes (Obsidian mode) for current phase and status. In Obsidian mode, use `search_notes(note_types: ["project"], metadata_filters: {status: "active"})` to pull all active project notes.
 - One file per direct report under `team/`, each team member's recent observations
 
 For action items (completed-this-week, active blockers, delegated items), try the read paths in order:
