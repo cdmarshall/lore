@@ -33,7 +33,7 @@ Never read `inbox/action-items.md` (legacy backup, distinct from `action-items.s
 From `team/[name].md`, identify which active projects this person is involved in. Then, for each project:
 
 - **Filesystem mode**: check `projects/[slug].md` for current phase and status. Use this as the authoritative source; the team member's profile may have stale project info.
-- **Obsidian mode**: search `Projects/` for notes where this person appears in the `stakeholders` or `owner` frontmatter field, or run `obsidian_search_notes` on their name within `Projects/`.
+- **Obsidian mode**: use `search_notes(query: "<name>", note_types: ["project"])` or `search_notes(metadata_filters: {lead: "[[Name]]"})` to find project notes where this person is involved.
 
 For each project surfaced:
 - Pull the `## Current Phase` section for a status snapshot.

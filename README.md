@@ -84,7 +84,9 @@ If you use [Obsidian](https://obsidian.md/), Lore can store entity data (people,
 
 ## Obsidian integration
 
-Lore detects at session start whether the [Obsidian MCP](https://github.com/cyanheads/obsidian-mcp-server) is connected. If it is, Lore operates in **Obsidian mode**: the vault becomes the canonical store for entity data, and the agent uses wikilinks, backlinks, frontmatter, and Obsidian search instead of folder paths and grep. If the MCP isn't connected, Lore operates in **Filesystem mode**, which is the original behavior described in the rest of this README, unchanged.
+Lore detects at session start whether [basic-memory](https://github.com/basicmachines-co/basic-memory) is connected. If it is, Lore operates in **Obsidian mode**: the vault becomes the canonical store for entity data, and the agent uses wikilinks, backlinks, frontmatter, and semantic search instead of folder paths and grep. If the MCP isn't connected, Lore operates in **Filesystem mode**, which is the original behavior described in the rest of this README, unchanged.
+
+basic-memory is a local-first MCP server that sits between AI clients and a folder of Markdown files. It builds a SQLite index over your vault and exposes read, write, search, and graph-traversal tools. Obsidian reads and writes the same files through its own UI with no sync step required -- they share the same folder.
 
 As your vault fills with people, meetings, decisions, and projects, Obsidian's graph view turns it into an explorable knowledge graph. Each node is an entity and each edge is a wikilink, so you can see at a glance how teammates, initiatives, and decisions connect:
 
@@ -96,8 +98,9 @@ As your vault fills with people, meetings, decisions, and projects, Obsidian's g
 
 - **Each fact lives in exactly one place.** A teammate's role lives on their note in `Lore/People/`. Meeting notes wikilink to the person rather than restating role. Obsidian's backlinks pane on the person's note shows every meeting, decision, and observation involving them, without any duplication.
 - **Native graph view.** People, projects, decisions, and meetings become nodes you can explore visually.
-- **Periodic notes for daily and weekly reviews** use Obsidian's periodic-note machinery (`obsidian_get_note`), so they show up in the calendar pane and integrate with your existing Obsidian workflow.
-- **Surgical updates.** Lore uses `obsidian_patch_note` to append observations under named headings instead of rewriting whole files. Safer for concurrent edits while you have the vault open.
+- **Semantic hybrid search.** basic-memory uses full-text and vector search together, so Lore finds relevant notes by meaning -- not just exact keyword matches.
+- **Surgical updates.** Lore uses `edit_note` with targeted operations (`find_replace`, `replace_section`) instead of rewriting whole files. This is more reliable than section-based patching and works without Obsidian needing to be open.
+- **No dependency on Obsidian being open.** basic-memory reads files directly. The Obsidian app can be closed; vault operations still work.
 
 ### Where Lore stores things in the vault
 
@@ -112,8 +115,8 @@ Lore operates from a dedicated `Lore/` subfolder inside your vault so it doesn't
     ├── Decisions/      One note per decision; wikilinks to People and Projects
     ├── Projects/       One note per project or initiative
     ├── Inbox/          Notes pending processing; tagged #inbox/unprocessed
-    ├── Daily/          Periodic daily notes
-    └── Weekly/         Periodic weekly notes
+    ├── Daily/          Daily notes, named by date (YYYY-MM-DD.md)
+    └── Weekly/         Weekly notes, named by date (YYYY-MM-DD.md)
 ```
 
 If you want a different subfolder name, record it in `context.md` under "Notes for Lore" and Lore will use that instead.
@@ -126,29 +129,65 @@ The action-items artifact is unchanged in Obsidian mode. The artifact's IndexedD
 
 ### Setup
 
-1. Install the [Local REST API community plugin](https://github.com/coddingtonbear/obsidian-local-rest-api) in Obsidian. In the plugin settings, enable **"Encrypted (HTTPS) Server"** and generate an API key.
+**Step 1: Install basic-memory**
 
-2. Add the MCP server to your Cowork or Claude Code config:
+basic-memory requires Python 3.12+. Install it via `uv`, which handles the Python version automatically:
 
-   ```json
-   "mcpServers": {
-     "obsidian": {
-       "type": "stdio",
-       "command": "npx",
-       "args": ["-y", "obsidian-mcp-server@latest"],
-       "env": {
-         "MCP_TRANSPORT_TYPE": "stdio",
-         "MCP_LOG_LEVEL": "info",
-         "OBSIDIAN_API_KEY": "[YOUR API KEY]",
-         "OBSIDIAN_BASE_URL": "https://127.0.0.1:27124"
-       }
-     }
-   }
-   ```
+```bash
+uv tool install basic-memory
+```
 
-   The `OBSIDIAN_BASE_URL` points to the plugin's always-on HTTPS port. The server handles the self-signed certificate automatically (`OBSIDIAN_VERIFY_SSL` defaults to `false`).
+If you don't have `uv` installed: `brew install uv` on macOS, or see [docs.astral.sh/uv](https://docs.astral.sh/uv/).
 
-3. Open Cowork in your `lore/` folder. Lore will detect the MCP, announce "Obsidian mode active," and start using the vault for new entity data.
+**Step 2: Register your vault as a project**
+
+Use `--default` in the `add` command to register and set the default in one step (see Troubleshooting below for why this matters):
+
+```bash
+bm project add lore "/path/to/your/obsidian-vault" --default
+```
+
+Replace the path with the actual path to your vault. On macOS with iCloud sync, this is typically:
+`~/Library/Mobile Documents/iCloud~md~obsidian/Documents/<VaultName>`
+
+Confirm it registered:
+
+```bash
+bm project list
+# Should show "lore" marked as default
+```
+
+**Step 3: Index the vault**
+
+```bash
+bm doctor
+```
+
+This builds the SQLite index over your existing notes. Takes a moment for a large vault; only needs to run once.
+
+**Step 4: Add basic-memory to your Cowork / Claude Code config**
+
+Claude Code reads MCP config from `~/.claude.json` (global) or `.claude/settings.json` (project-level). Add:
+
+```json
+"mcpServers": {
+  "basic-memory": {
+    "command": "uvx",
+    "args": ["basic-memory", "mcp"]
+  }
+}
+```
+
+Restart Cowork or Claude Code after saving.
+
+**Step 5: Record the vault path in context.md**
+
+Under "Notes for Lore" → "Vault Configuration", add:
+- The vault's full filesystem path
+- The MCP name (`basic-memory`) and project name (`lore`)
+- The active subfolder convention (e.g., no prefix if your content is at the vault root)
+
+On first launch after setup, Lore will announce "Obsidian mode active" and begin using the vault.
 
 ### Migration of existing filesystem data
 
@@ -157,6 +196,55 @@ If you have existing files in `team/`, `stakeholders/`, `decisions/log.md`, or `
 ### Workflow coverage
 
 Workflows opt into Obsidian mode incrementally. As of this writing, `process-transcript`, `plaud-sync`, and `triage` use the vault when it's connected. Other workflows continue to operate against the filesystem until they're migrated. `CLAUDE.md` and each workflow file note which mode they support; see `OBSIDIAN_PLAN.md` for the rollout plan.
+
+### Troubleshooting
+
+**`bm project default <name>` reports "No default project is currently set"**
+
+This error can appear even when the project was successfully registered. Always verify with `bm project list`. If your project isn't marked as default, set it manually:
+
+```bash
+python3 -c "
+import json, pathlib
+p = pathlib.Path.home() / '.basic-memory/config.json'
+c = json.loads(p.read_text())
+c['default_project'] = 'lore'
+p.write_text(json.dumps(c, indent=2))
+print('Done:', json.dumps(c, indent=2))
+"
+```
+
+This is why the setup steps above use `--default` in the `add` command -- it avoids this issue entirely.
+
+**`bm project remove <name>` reports "not found"**
+
+basic-memory sometimes creates a default `main` project pointing at `~/basic-memory` that wasn't registered through the CLI, so the `remove` command can't find it by name. Remove it directly from the config:
+
+```bash
+python3 -c "
+import json, pathlib
+p = pathlib.Path.home() / '.basic-memory/config.json'
+c = json.loads(p.read_text())
+before = len(c.get('projects', []))
+c['projects'] = [proj for proj in c.get('projects', []) if proj.get('name') != 'main']
+p.write_text(json.dumps(c, indent=2))
+print(f'Removed {before - len(c[\"projects\"])} project(s). Remaining:', [proj.get('name') for proj in c['projects']])
+"
+```
+
+**Notes disappear from search or `doctor` reports inconsistencies**
+
+Rebuild the index:
+
+```bash
+bm reindex
+```
+
+Or for a full reset (files are never touched):
+
+```bash
+bm reset --reindex
+```
 
 ---
 

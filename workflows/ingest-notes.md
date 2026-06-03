@@ -114,10 +114,10 @@ Once you have the answers, process accordingly. Follow the relevant conventions 
 - **Decisions** → `decisions/log.md` if any clear decision is captured
 
 **Obsidian mode:**
-- **Meeting notes** → vault note `Meetings/YYYY-MM-DD <kind> <subject>.md` with proper frontmatter (`type: meeting`, `attendees`, `related_projects`). Use `mcp__obsidian__obsidian_append_to_note`.
+- **Meeting notes** → vault note `Meetings/YYYY-MM-DD <kind> <subject>.md` with proper frontmatter (`type: meeting`, `attendees`, `related_projects`). Use `write_note(title: "YYYY-MM-DD <kind> <subject>", directory: "Meetings/", content: "...", metadata: {type: "meeting", ...})`.
 - **Action items** → same as filesystem mode (artifact is canonical in both modes).
-- **Profile updates** → use `obsidian_patch_note` with `target: {"type": "path", "path": "Lore/People/<Full Name>.md"}, section: {"type": "heading", "target": "Observations"}, operation: "append"`. Use `patchOptions: {createTargetIfMissing: true}` if the heading may not exist. Do not overwrite.
-- **Project updates** → use `obsidian_patch_note` with `target: {"type": "path", "path": "Lore/Projects/<Name>.md"}, section: {"type": "heading", "target": "Current Phase"}, operation: "append"`.
+- **Profile updates** → use `edit_note(identifier: "People/<Full Name>", operation: "find_replace", find_text: "<last observation line>", content: "<last observation line>\n<new observation>")`. If the `## Observations` heading doesn't exist yet, use `edit_note(operation: "append")` to add it. Do not overwrite.
+- **Project updates** → use `edit_note(identifier: "Projects/<Name>", operation: "find_replace", find_text: "<last line of Current Phase section>", content: "<last line>\n<new content>")`.
 - **Reference docs / ideas / brainstorms** → `outbox/YYYY-MM-DD-[slug].md` (filesystem outbox, not vault).
 - **Decisions** → vault note `Decisions/YYYY-MM-DD <Title>.md` with `type: decision` frontmatter.
 

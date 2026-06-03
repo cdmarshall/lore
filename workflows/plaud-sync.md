@@ -7,7 +7,7 @@ Pull recordings from Plaud for a specified time period, diff against already-pro
 This workflow operates in both filesystem and Obsidian modes (see `CLAUDE.md` → Obsidian Detection). The two modes differ only in where the raw transcript file is saved and where duplicate-content checks are run:
 
 - **Filesystem mode**: raw transcripts saved to `meetings/transcripts/`. Duplicate-content check `grep`s the same folder.
-- **Obsidian mode**: raw transcripts saved to `Lore/Transcripts/` in the vault via `obsidian_get_note` / write. Duplicate-content check uses `obsidian_search_notes`. **Path resolution**: `Lore/` is the default subfolder; replace with the user's override from `context.md` → "Notes for Lore" → "Vault Configuration" if present (e.g., `Lore - Rate/Transcripts/`).
+- **Obsidian mode**: raw transcripts saved to `Lore/Transcripts/` in the vault via `write_note`. Duplicate-content check uses `search_notes`. **Path resolution**: `Lore/` is the default subfolder; replace with the user's override from `context.md` → "Notes for Lore" → "Vault Configuration" if present (e.g., no prefix for this vault).
 
 The tracking dotfiles (`meetings/transcripts/.plaud-processed`, `meetings/transcripts/.processed`) stay in the workspace repo in both modes. Step 6d (process the transcript) hands off to `workflows/process-transcript.md`, which has its own Obsidian-mode branch, so downstream behavior follows naturally.
 
@@ -128,7 +128,7 @@ Take the first 500 characters of the fetched transcript and search existing tran
 grep -rl "<first 500 chars, escaped for shell>" meetings/transcripts/
 ```
 
-**Obsidian mode**: search the vault using `obsidian_search_notes` with the first 100 chars of the transcript as the query (Obsidian's search is full-text indexed, so a shorter snippet is enough). Scope the search to the `Lore/Transcripts/` folder if the search tool supports it; otherwise filter results to that folder client-side. Also run the filesystem grep above as a fallback to catch any transcripts that were saved in filesystem mode before the migration.
+**Obsidian mode**: search the vault using `search_notes(query: "<first 100 chars>", search_type: "hybrid")`. Filter results to the `Transcripts/` folder client-side. Also run the filesystem grep above as a fallback to catch any transcripts that were saved in filesystem mode before the migration.
 
 If a match is found in either mode, tell the user:
 > "This transcript appears to already exist as `[filename]`. Skip it and move on, or process it anyway?"
@@ -150,7 +150,7 @@ This catches transcripts the user previously pasted in directly from the Plaud w
 Before processing, save the raw transcript content.
 
 - **Filesystem mode**: write to `meetings/transcripts/YYYY-MM-DD - [Meeting Name].md` using the file tools.
-- **Obsidian mode**: write to `Lore/Transcripts/<derived filename>.md` via the Obsidian MCP. Frontmatter:
+- **Obsidian mode**: write to `Transcripts/<derived filename>.md` via `write_note(title: "<derived filename>", directory: "Transcripts/", content: "...", metadata: {...})`. Frontmatter:
   ```yaml
   type: transcript
   source: plaud
