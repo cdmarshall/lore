@@ -133,16 +133,21 @@ Branch on storage mode (see "Storage Mode" at the top of this file).
 
 **Path resolution:** all vault paths are under the configured Lore subfolder (default `Lore/`). If the user has overridden the subfolder name in `context.md` under "Notes for Lore" → "Vault Configuration" (e.g., `Lore - Rate/`), substitute that everywhere `Lore/` appears below.
 
-**For each identified person (existing vault note):**
-- Use `search_notes` to locate the person's note. Expected location: `People/<Full Name>.md`.
-- If the note exists, append observations under the `## Observations` heading via `edit_note(identifier: "People/Jane Doe", operation: "find_replace", find_text: "<last observation line>", content: "<last observation line>\n<new observation>")`. If the heading doesn't exist yet, use `edit_note(operation: "append")` to add the full `## Observations` section. Format:
+**For each identified person:**
+
+**Step 1 — Check existence with `read_note`, not `search_notes`.**
+Always call `read_note("People/<Full Name>")` directly. `search_notes` is a fuzzy/semantic search and will silently miss existing notes. `read_note` either returns the note or errors — it is the only reliable existence check. **Never assert a note doesn't exist based on a `search_notes` miss; always confirm with `read_note` first.**
+
+**Step 2 — If the note exists**, add the new observation inside the `## Observations` section using `edit_note` with `operation: "find_replace"`. **NEVER use `operation: "append"` for observations on an existing note — appending dumps content at the end of the file, outside the Observations section, which is wrong.** Instead: (1) read the note (already done in Step 1), (2) find the correct insertion anchor inside `## Observations`, (3) use `find_replace`. If the note has a "Newest first" instruction, insert the new entry *before* the first existing `###` entry. Otherwise, insert after the last observation entry. If `## Observations` doesn't exist yet, then (and only then) use `edit_note(operation: "append")` to add the full section. Format for each entry:
   ```markdown
-  **YYYY-MM-DD, [[YYYY-MM-DD <kind> <subject>]]:**
+  ### YYYY-MM-DD — [[YYYY-MM-DD <kind> <subject>]]
+
   - [Observation 1]
   - [Observation 2]
   ```
   The wikilink in the entry header points back to the meeting note created below, so the observation timeline naturally backlinks to the meeting.
-- If the note doesn't exist for someone who's a known direct report or stakeholder (per `context.md`), create it from `templates/team-member.template.md` or `templates/stakeholder.template.md` translated into the vault (frontmatter applied, tag set, body sections preserved). Save to `Lore/People/<Full Name>.md`.
+
+**Step 3 — If the note does not exist** for someone who is a known direct report or stakeholder (per `context.md`), create it from `templates/team-member.template.md` or `templates/stakeholder.template.md` translated into the vault (frontmatter applied, tag set, body sections preserved). Save to `Lore/People/<Full Name>.md`.
 
 **For unknown participants:**
 - Same flow as filesystem mode (ask user before creating). On confirmation, create `Lore/People/<Full Name>.md` from the stakeholder template translated into the vault, with frontmatter `type: person, role: stakeholder/external` (or whatever the user specifies), plus tag `#person/stakeholder/external`.
