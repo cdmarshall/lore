@@ -108,12 +108,13 @@ Branch on storage mode (see "Storage Mode" at the top of this file).
 #### Section 5, Filesystem Mode
 
 **For team members and stakeholders with existing files:**
-- Add observations under the appropriate Observations subsection
-- Prefix entries with the meeting date (YYYY-MM-DD)
+- Append a new dated entry to the `## Observations` section, newest first (insert before the first existing `###` entry)
+- Do NOT use thematic subsections (Communication Style, Wins & Concerns, Relationships & Dynamics, Team Dynamics, etc.)
 - Append to existing content, don't overwrite
 - Use this format:
   ```markdown
-  **YYYY-MM-DD - [Meeting context]:**
+  ### YYYY-MM-DD - [Meeting context]
+
   - [Observation 1]
   - [Observation 2]
   ```
