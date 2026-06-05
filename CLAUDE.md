@@ -162,6 +162,26 @@ These are the rules for storing and finding information when Obsidian mode is ac
 - **Observations append to the entity's note**, not to the meeting note. Meeting notes summarize the meeting; person notes accumulate the running observation history.
 - **Use `edit_note` for incremental updates** (appending observations, adding table rows, updating a section). Prefer surgical edits over full rewrites. See "Tools to lean on" for the right `operation` per use case.
 
+### Person note structure
+
+- **No H1 heading.** The note title is the filename; do not add a `# Name` or `# Name - Role` line at the top.
+- **No Overview table.** Identity data (job title, role, team, manager, location, start date, status) lives entirely in frontmatter. Never create or maintain a `## Overview` markdown table on a person note.
+- **Single Observations section.** All observations live under one `## Observations` section. Entries are formatted as `### YYYY-MM-DD - <short context>` headings, newest first. There are no thematic subsections (Communication Style, Wins & Concerns, Relationships & Dynamics, Team Dynamics, etc.). Append new entries at the top of the section using `edit_note` with `operation: "find_replace"`, inserting before the first existing `###` entry.
+- **Active Projects is a Dataview live view, not a hand-maintained list.** The `## Active Projects` section on every person note contains a Dataview query that pulls from `Projects/` frontmatter (`lead` and `stakeholders` fields). Never hand-edit this section or add project entries to it manually. To update a project's status, phase, or membership, edit the project note itself. The Dataview community plugin is required in Obsidian for this section to render.
+
+The Dataview block that must appear in the `## Active Projects` section of every person note:
+
+```dataview
+TABLE WITHOUT ID
+  file.link AS Project,
+  choice(lead = this.file.link, "Lead", "Stakeholder") AS Role,
+  status AS Status,
+  phase AS "Phase / latest"
+FROM "Projects"
+WHERE (lead = this.file.link OR contains(stakeholders, this.file.link)) AND status != "done"
+SORT status ASC, file.name ASC
+```
+
 ### Tag taxonomy (hierarchical, slash-delimited)
 
 - People: `#person/direct-report`, `#person/peer`, `#person/manager`, `#person/stakeholder/internal`, `#person/stakeholder/external`, `#person/former`
@@ -177,15 +197,20 @@ These are the rules for storing and finding information when Obsidian mode is ac
 Person:
 ```yaml
 type: person
-role: direct-report | peer | manager | stakeholder/internal | stakeholder/external
+job_title: <e.g. Product Manager>      # the person's actual job title
+role: direct-report | peer | manager | stakeholder/internal | stakeholder/external   # relationship category, NOT the job title
 team: <team-name>
 manager: "[[Name]]"
+location: <city/region>
 start_date: YYYY-MM-DD
-last_1on1: YYYY-MM-DD
 status: active | departed          # omit or set to "active" for current employees
+aka: <fuller/legal name>           # optional; only if different from filename/note title
+last_1on1: YYYY-MM-DD             # direct reports only
 departure_date: YYYY-MM-DD         # optional; only when status is "departed"
 departure_reason: resigned | terminated | retired | transferred   # optional
+tags: [person/direct-report]       # use the appropriate tag from the tag taxonomy
 ```
+Note: there is NO `title:` field on person notes. The note filename is the title. Person notes also have NO H1 heading and NO "## Overview" table; all identity data lives in frontmatter.
 
 Meeting:
 ```yaml

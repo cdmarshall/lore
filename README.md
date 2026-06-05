@@ -139,7 +139,13 @@ uv tool install basic-memory
 
 If you don't have `uv` installed: `brew install uv` on macOS, or see [docs.astral.sh/uv](https://docs.astral.sh/uv/).
 
-**Step 2: Register your vault as a project**
+**Step 2: Install the Dataview community plugin in Obsidian**
+
+Lore's People notes include a live "Active Projects" table that shows every project a person leads or is a stakeholder on, pulled automatically from the `Projects/` folder via Dataview. This means you update a project note once and every connected person note reflects it instantly, no manual list maintenance needed. Dataview also enables roster-style views across your vault (e.g., all active direct reports, all projects a person touches).
+
+To install: open Obsidian, go to **Settings → Community plugins → Browse**, search for **Dataview**, and click Install then Enable. No configuration needed; the queries in People notes work out of the box once the plugin is active.
+
+**Step 3: Register your vault as a project**
 
 Use `--default` in the `add` command to register and set the default in one step (see Troubleshooting below for why this matters):
 
@@ -157,7 +163,7 @@ bm project list
 # Should show "lore" marked as default
 ```
 
-**Step 3: Index the vault**
+**Step 4: Index the vault**
 
 ```bash
 bm doctor
@@ -165,7 +171,7 @@ bm doctor
 
 This builds the SQLite index over your existing notes. Takes a moment for a large vault; only needs to run once.
 
-**Step 4: Add basic-memory to your Cowork / Claude Code config**
+**Step 5: Add basic-memory to your Cowork / Claude Code config**
 
 Claude Code reads MCP config from `~/.claude.json` (global) or `.claude/settings.json` (project-level). Add:
 
@@ -180,7 +186,7 @@ Claude Code reads MCP config from `~/.claude.json` (global) or `.claude/settings
 
 Restart Cowork or Claude Code after saving.
 
-**Step 5: Record the vault path in context.md**
+**Step 6: Record the vault path in context.md**
 
 Under "Notes for Lore" → "Vault Configuration", add:
 - The vault's full filesystem path

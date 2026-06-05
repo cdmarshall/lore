@@ -74,10 +74,10 @@ Loop until they're done. Don't push for completeness on each person; you can alw
 
 **Output for each direct report:**
 1. Add a row to the **My Team** table in `context.md`.
-2. Copy `templates/team-member.template.md` to `team/[firstname-lowercase].md` and fill in:
-   - The `# [Name] - [Role]` header
-   - The Overview table (Role, Reports to: You, Start date, Location)
+2. Copy `templates/team-member.template.md` to `team/[firstname-lowercase].md` (filesystem mode) or create `People/[Full Name].md` in the vault (Obsidian mode) and fill in:
+   - Frontmatter: `job_title`, `role: direct-report`, `team`, `manager`, `location`, `start_date`, and `last_1on1` (leave blank for now), `tags: [person/direct-report]`
    - The Current Focus Areas section if mentioned
+   - Do NOT add an H1 heading. Do NOT add an Overview table. Identity data belongs in frontmatter only.
 3. Leave Strengths, Growth Areas, Career Goals, Working Style, Observations, and 1:1 Notes empty for now. These build up over time through 1:1s and meeting processing.
 
 If two team members share a first name, use `firstname-lastname.md`.
@@ -99,10 +99,10 @@ If the user lists many, capture the names quickly first, then loop back for deta
 
 **Output for each stakeholder:**
 1. Add a row to the **Key Stakeholders** table in `context.md`.
-2. Copy `templates/stakeholder.template.md` to `stakeholders/[firstname-lastname].md` (lowercase, hyphenated) and fill in:
-   - The `# [Name]` header
-   - The Role section (Title, Relationship, Focus)
+2. Copy `templates/stakeholder.template.md` to `stakeholders/[firstname-lastname].md` (lowercase, hyphenated; filesystem mode) or create `People/[Full Name].md` in the vault (Obsidian mode) and fill in:
+   - Frontmatter: `job_title`, `role` (stakeholder/internal or stakeholder/external), `team`, `location`, `status: active`, and the appropriate tag
    - The What They Care About section if they shared anything
+   - Do NOT add an H1 heading. Identity data belongs in frontmatter only.
 3. Leave Background, Communication Preferences, Working Relationship, and Observations empty for now.
 
 ---
