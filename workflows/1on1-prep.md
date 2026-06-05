@@ -30,14 +30,14 @@ Never read `inbox/action-items.md` (legacy backup, distinct from `action-items.s
 
 ### 3. Pull Active Projects and Commitments
 
-From `team/[name].md`, identify which active projects this person is involved in. Then, for each project:
+Identify which active projects this person is involved in:
 
-- **Filesystem mode**: check `projects/[slug].md` for current phase and status. Use this as the authoritative source; the team member's profile may have stale project info.
-- **Obsidian mode**: use `search_notes(query: "<name>", note_types: ["project"])` or `search_notes(metadata_filters: {lead: "[[Name]]"})` to find project notes where this person is involved.
+- **Obsidian mode**: active projects are not hand-maintained on the person's note. Query project notes in `Projects/` directly, looking for notes where `lead = [[Name]]` or `stakeholders` contains `[[Name]]`. Use `search_notes(query: "<name>", note_types: ["project"])` or `search_notes(metadata_filters: {lead: "[[Name]]"})` as a starting point, then verify with the raw project notes.
+- **Filesystem mode**: check `team/[name].md` for any project context noted there, then cross-reference `projects/[slug].md` files as the authoritative source.
 
 For each project surfaced:
 - Pull the `## Current Phase` section for a status snapshot.
-- Flag any that haven't had an update since the last 1:1 (compare the most recent dated entry in `## Current Phase` against the last 1:1 date from `team/[name].md`).
+- Flag any that haven't had an update since the last 1:1 (compare the most recent dated entry in `## Current Phase` against the last 1:1 date in `last_1on1` frontmatter or the most recent 1:1 note).
 - Note any commitments they made in the last 1:1 and whether they've been addressed.
 - Note any commitments the user made that may need follow-up.
 

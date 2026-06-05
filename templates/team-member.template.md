@@ -1,15 +1,19 @@
-# [Name] - [Role]
-
-## Overview
-
-| Field | Value |
-|-------|-------|
-| Role | [Title] |
-| Reports to | You |
-| Start date | [Add] |
-| Location | [Add] |
+---
+type: person
+job_title: [Job Title]
+role: direct-report
+team: [Team Name]
+manager: "[[Your Name]]"
+location: [City / Region]
+start_date: YYYY-MM-DD
+status: active
+last_1on1: YYYY-MM-DD
+tags: [person/direct-report]
+---
 
 ## Current Focus Areas
+
+> What they're actively working on right now. Update after 1:1s and transcript processing.
 
 -
 
@@ -45,39 +49,22 @@
 
 ## Active Projects
 
-> Tracked work this person owns or has been delegated. Surface this section in 1:1 prep. Newest first.
->
-> Each entry should capture: status, owner / collaborators, when delegated or started, scope, why it matters, cadence for follow-up, last update, and next step.
+> Live view of the projects this person leads or is a stakeholder on, pulled from the `Projects/` notes via Dataview. Update the project note, not this table. Requires the Dataview community plugin.
 
-### [Project Name]
-
-- **Status**:
-- **Owner**:
-- **Delegated / Started**:
-- **Scope**:
-- **Why it matters**:
-- **Cadence**:
-- **Last update**:
-- **Next step**:
+```dataview
+TABLE WITHOUT ID
+  file.link AS Project,
+  choice(lead = this.file.link, "Lead", "Stakeholder") AS Role,
+  status AS Status,
+  phase AS "Phase / latest"
+FROM "Projects"
+WHERE (lead = this.file.link OR contains(stakeholders, this.file.link)) AND status != "done"
+SORT status ASC, file.name ASC
+```
 
 ## Observations
 
-> Insights gathered from meetings, transcripts, and interactions. Newest first.
-
-### Team Dynamics & Leadership
-<!-- Cross-team collaboration, leadership opportunities -->
-
-### Projects & Initiatives
-<!-- What they're working on, their perspective, blockers mentioned -->
-
-### Communication Style
-<!-- How they present in meetings, patterns noticed -->
-
-### Wins & Concerns
-<!-- Things they're excited about, things causing stress -->
-
-### Relationships & Dynamics
-<!-- How they interact with stakeholders, team dynamics observed -->
+<!-- Add dated entries as "### YYYY-MM-DD - context", newest first -->
 
 ---
 
