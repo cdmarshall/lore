@@ -20,9 +20,10 @@ This workflow requires three connectors. Tool names below are the logical names;
 | Email | Microsoft 365 | Read-only | `outlook_email_search`, `read_resource` |
 | Teams | Microsoft 365 | Read-only | `chat_message_search`, `read_resource` |
 | Slack | Slack | Read + write (drafts) | `slack_search_users`, `slack_search_channels`, `slack_search_public_and_private`, `slack_read_channel`, `slack_read_thread`, `slack_read_user_profile`, `slack_send_message_draft` |
+| Jira / Confluence | Atlassian | Read-only | `getJiraIssue`, `searchJiraIssuesUsingJql`, `getConfluencePage`, `searchConfluenceUsingCql` |
 | Knowledge base | basic-memory | Read + write | `search_notes` (search_type: "hybrid"), `read_note`, `edit_note`, `write_note` |
 
-If a connector is missing at run time, skip that source, note it in the briefing, and continue with the others. Do not fail the whole run because one source is unavailable.
+If a connector is missing at run time, skip that source (or that enrichment step), note it in the briefing, and continue with the others. Do not fail the whole run because one source is unavailable. The Atlassian connector is additive: its absence degrades draft quality but does not block the sweep.
 
 ## When to invoke
 
@@ -129,6 +130,42 @@ Applied to each new email. Stop at the first matching categorization rule. Ancho
    - The native draft is created for the user to review and send from Slack. The workflow never sends; if the inline send fails, the draft still lives in the user's Slack "Drafts & Sent" to send manually.
 8. Append processed `ts` values to `inbox/.slack-processed`.
 
+### 2b. Link enrichment (Slack + Teams)
+
+After completing the Slack pass (and Teams pass, once done), and before writing any draft, resolve external links found in message and thread text. This step runs once over all items queued for drafting or summarizing.
+
+**What to extract:**
+
+- **Jira ticket keys**: any match of `[A-Z]{2,10}-[0-9]+` in message text (e.g., `LI-1234`, `CORE-567`, `ENG-89`). Also follow bare URLs to Jira (e.g., `https://*.atlassian.net/browse/PROJ-123`).
+- **Confluence page URLs**: any `https://*.atlassian.net/wiki/...` link in the message text. Extract the page ID or slug.
+- **Deduplicate**: if the same ticket key or page URL appears in multiple messages, fetch it once and reuse the context across all items referencing it.
+
+**How to fetch:**
+
+1. For each unique Jira key: call `getJiraIssue(issueIdOrKey: "PROJ-123")`. Extract: summary (title), status, assignee, reporter, description (first 300 chars), and the most recent 1 to 2 comments. Discard boilerplate fields (attachments lists, changelog history, etc.).
+2. For each unique Confluence URL: call `getConfluencePage` with the page ID or slug extracted from the URL. Extract: title, space, last-modified date, and the body (first 500 chars). If the page ID cannot be parsed from the URL, skip it and note "Confluence link unresolved" in the briefing.
+3. If the Atlassian connector is unavailable, skip this step entirely. Note "Atlassian connector unavailable, links not resolved" once in the briefing. Do not fail the run.
+
+**Attach context to items:**
+
+For each queued item, build a `linked_context` packet: a compact, bulleted summary of all Jira tickets and Confluence pages referenced in that message or thread. This packet is passed to the drafting step (step 4) as grounding material alongside the vault lookup.
+
+Example compact format:
+```
+Linked: LI-1234 "Carrier retry logic" [In Progress / assigned: Jane Doe] — "Investigate why retries are firing twice on..."
+Linked: Confluence "Carrier Integration Runbook" [updated 2026-05-15] — "Step 1: Validate carrier config in..."
+```
+
+**Extract KB candidates from linked resources:**
+
+While building the context packet, flag any vault-worthy facts:
+- A Jira ticket status that has changed (e.g., a ticket the vault shows as "open" is now "Done").
+- A ticket assignee or owner that is a person in the vault.
+- A Confluence page documenting a decision, architecture choice, or project phase that the vault's project note should reference or summarize.
+- Any new risk, blocker, or commitment stated in a Jira comment.
+
+These candidates are appended to the KB candidates pool alongside the Teams group-chat candidates from step 3b. They follow the same confirmation rules (interactive run: ask; scheduled run: list in briefing under "Knowledge base candidates (your call)").
+
 ### 3. Teams pass (via MS365 connector)
 
 1. `chat_message_search` with `afterDateTime = window_start`. Page through results. Pull key people from `triage-config.md`.
@@ -156,7 +193,7 @@ Applied to each new email. Stop at the first matching categorization rule. Ancho
 
 For every draft, before writing:
 
-1. Identify the people and projects involved. Look them up in the vault: `search_notes(query, search_type: "hybrid")` by name/topic, then `read_note` for each relevant person/project note. Cross-reference `context.md` Active Initiatives.
+1. Identify the people and projects involved. Look them up in the vault: `search_notes(query, search_type: "hybrid")` by name/topic, then `read_note` for each relevant person/project note. Cross-reference `context.md` Active Initiatives. **Also include the `linked_context` packet from step 2b** (Jira ticket summaries and Confluence page excerpts). Treat linked-resource context as grounding material with the same weight as vault notes: it informs the reply but is never quoted verbatim or over-explained to the recipient.
 2. Apply terminology corrections from `context.md` silently (e.g., normalize "Omsite" variants).
 3. Match voice:
    - **Email** drafts follow the `## Email Writing Style` section of `context.md` exactly (and `outbox/dictation-style-prompt.md` for nuance). No greeting on mid-thread replies, no sign-off, contractions default, hedge opinions / commit on facts, 25 to 120 words for most replies.
@@ -168,7 +205,14 @@ For every draft, before writing:
 
 After drafting, capture what the sweep revealed:
 
-1. **Observations:** new, durable facts about a person or project (a status change, a commitment someone made, a risk surfaced). Write once, on the entity's own note, never elsewhere.
+1. **Observations from linked resources (auto-apply when high-confidence):** for any Jira ticket or Confluence page fetched in step 2b, apply the following without waiting for user confirmation, since these are structured, authoritative sources:
+   - **Jira status update**: if the ticket is linked to a vault project or person and its status has changed, append a dated observation to the relevant project note (e.g., "LI-1234 moved to Done as of 2026-06-09"). Use `edit_note` with `operation: "find_replace"` targeting the last line of the project's `Current Phase` section (Obsidian mode) or the `## Current Phase` block (filesystem mode).
+   - **New ticket assignee**: if the assignee is a person in the vault, append a brief observation to their person note (e.g., "Assigned LI-1234 Carrier retry logic").
+   - **Confluence page reference**: if a Confluence page is relevant to an active project, append a reference line to the project note (e.g., "Confluence: Carrier Integration Runbook — last updated 2026-05-15"). Do not dump the full page body into the vault.
+   - All auto-applied writes are listed in the briefing under "Knowledge base updated (applied)" exactly like other KB writes.
+   - If the link context is ambiguous (ticket not clearly tied to a vault entity), add it to "Knowledge base candidates (your call)" rather than auto-applying.
+
+2. **Observations from message threads:** new, durable facts about a person or project (a status change, a commitment someone made, a risk surfaced). Write once, on the entity's own note, never elsewhere.
    - **Obsidian mode:** append to the relevant vault note with `edit_note(identifier: "People/<Name>", operation: "find_replace", find_text: "<last observation line>", content: "<last observation line>\n<new observation>")`. For projects, use `identifier: "Projects/<Name>"` and target the last line of the `Current Phase` section.
    - **Filesystem mode:** append to `team/[name].md` or `stakeholders/[name].md` for person observations; append a dated block to `projects/[slug].md` under `## Current Phase` for project updates. Run the standard two-step existence check before writing.
 2. **Decisions:** if a thread contains a clearly-stated decision, log it. In Obsidian mode, create a note under `<vault>/Decisions/` using the decision frontmatter schema. In filesystem mode, append to `decisions/log.md` using `templates/decision-log-entry.template.md`.
@@ -217,8 +261,13 @@ After drafting, capture what the sweep revealed:
 ## New Slack channels detected
 - #channel-name (Cxxxx): seen via <mention/DM/ambient>. Auto-added to watch-list. (Or: "confirm to add" if ambient-only.)
 
+## Linked resources resolved
+- LI-1234 "Carrier retry logic" [In Progress / Jane Doe] — used to draft reply in #channel-name.
+- Confluence "Carrier Integration Runbook" — used to draft reply in #other-channel.
+- (Or: "Atlassian connector unavailable, links not resolved.")
+
 ## Knowledge base candidates (your call)
-- #1 From <Teams group chat>: <candidate fact/decision> → would append to [[Project]]. Reply "update KB with #1" to apply.
+- #1 From <Teams group chat or linked Jira/Confluence>: <candidate fact/decision> → would append to [[Project]]. Reply "update KB with #1" to apply.
 - #2 ...
 
 - 📜 Lore
@@ -266,5 +315,7 @@ The workflow does NOT auto-push to the action items artifact. The briefing flags
 - **Skip stale threads.** A thread with no new messages since its last processed marker gets no draft and no briefing line.
 - **Read-only on email and Teams.** The MS365 connector cannot create drafts or send. Email and Teams drafts are always staged as files.
 - **Additive vault writes only.** Observations and decisions are appended. Changing an existing fact requires user confirmation, surfaced in the briefing.
+- **Link enrichment is best-effort.** Resolve Jira keys and Confluence URLs from message text before drafting. If a link is unresolvable (bad key, access error, connector absent), note it once and continue. Never block a draft waiting for a link to resolve.
+- **Linked-resource context is grounding, not quotation.** Use Jira/Confluence content to inform replies; do not paste ticket descriptions or page bodies into drafts verbatim.
 - **No em dashes.** Per CLAUDE.md global rule, in every draft and in the briefing.
 - **Scope creep check.** If the briefing's FYI section grows large run after run, the project-channel list or scope rules in `triage-config.md` need tightening.
