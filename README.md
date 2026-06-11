@@ -19,6 +19,7 @@ Clone to `~/src/lore` (Mac/Linux) or `$HOME\src\lore` (Windows). Companion speci
 mkdir -p ~/src
 git clone https://github.com/Guaranteed-Rate/lore.git ~/src/lore
 cd ~/src/lore
+git submodule update --init
 ```
 
 **Windows (PowerShell):**
@@ -26,7 +27,10 @@ cd ~/src/lore
 New-Item -ItemType Directory -Force "$HOME\src"
 git clone https://github.com/Guaranteed-Rate/lore.git "$HOME\src\lore"
 cd "$HOME\src\lore"
+git submodule update --init
 ```
+
+The submodule step pulls `external/skills/` ([mattpocock/skills](https://github.com/mattpocock/skills)), an upstream skills library that some workflows wrap. To pull upstream updates later, run `./scripts/update-external-skills.sh`.
 
 ### 2. Open the folder in your AI agent
 
