@@ -55,6 +55,8 @@ Both modes push the user's action items to the live artifact identically. The ac
 
 ### 3. Extract Information
 
+**Glossary pass (applies to the whole transcript):** apply the corrections from `context.md` → Terminology & Corrections silently, per the CLAUDE.md rule. While extracting, also maintain the glossary: if a term is used in a way that conflicts with its glossary definition, flag the conflict in the output summary instead of silently picking a meaning; if a recurring term appears that the glossary lacks (project codename, acronym, team jargon), propose adding it in the output summary with a suggested definition and the variants observed.
+
 **For each identified person (except the user), extract:**
 
 **Projects & Initiatives**
@@ -75,6 +77,8 @@ Both modes push the user's action items to the live artifact identically. The ac
 **Decisions Made**
 - Any decisions reached in this meeting
 - Context and rationale if discussed
+- Options that were considered and rejected, if discussed
+- Apply the decision-log test from CLAUDE.md Key Behaviors before logging: hard to reverse, surprising without context, AND a real trade-off between genuine alternatives. Decisions that fail the test stay in the meeting note only; do not create a decision log entry for routine calls like "we'll meet Tuesday" or "Jane will take the ticket"
 
 **Action Items**
 - Commitments THEY made (not the user)
