@@ -49,8 +49,8 @@ Both modes push the user's action items to the live artifact identically. The ac
 - Key stakeholders are listed in `context.md` under **Key Stakeholders** and have profiles in `stakeholders/*.md`.
 
 **Unknown participants:**
-- Note them in the summary
-- Ask the user: "Should I create a stakeholder file for [Name]?"
+- In Obsidian mode, always call `read_note("People/<Full Name>")` before concluding a person has no profile. This applies to everyone mentioned in the transcript, not just speakers — including new hires being announced, people referenced in passing, or anyone who didn't speak but was named. A `read_note` miss is the only reliable signal that a note doesn't exist; never infer absence from `search_notes` results or from the person not being a known direct report or stakeholder in `context.md`.
+- Only after confirming the note truly doesn't exist: note them in the summary and ask the user: "Should I create a stakeholder file for [Name]?"
 - If yes, create `stakeholders/{firstname-lastname}.md` from `templates/stakeholder.template.md`
 
 ### 3. Extract Information
@@ -137,7 +137,7 @@ Branch on storage mode (see "Storage Mode" at the top of this file).
 **For each identified person:**
 
 **Step 1 — Check existence with `read_note`, not `search_notes`.**
-Always call `read_note("People/<Full Name>")` directly. `search_notes` is a fuzzy/semantic search and will silently miss existing notes. `read_note` either returns the note or errors — it is the only reliable existence check. **Never assert a note doesn't exist based on a `search_notes` miss; always confirm with `read_note` first.**
+Always call `read_note("People/<Full Name>")` directly. `search_notes` is a fuzzy/semantic search and will silently miss existing notes. `read_note` either returns the note or errors — it is the only reliable existence check. **Never assert a note doesn't exist based on a `search_notes` miss; always confirm with `read_note` first.** This check applies to ALL people mentioned in the transcript, not just speakers and confirmed attendees — including new hires being announced, people referenced in passing, and anyone named who didn't speak. Do not skip this check for anyone on the assumption that they are "new" or "not yet in the vault."
 
 **Step 2 — If the note exists**, add the new observation inside the `## Observations` section using `edit_note` with `operation: "find_replace"`. **NEVER use `operation: "append"` for observations on an existing note — appending dumps content at the end of the file, outside the Observations section, which is wrong.** Instead: (1) read the note (already done in Step 1), (2) find the correct insertion anchor inside `## Observations`, (3) use `find_replace`. If the note has a "Newest first" instruction, insert the new entry *before* the first existing `###` entry. Otherwise, insert after the last observation entry. If `## Observations` doesn't exist yet, then (and only then) use `edit_note(operation: "append")` to add the full section. Format for each entry:
   ```markdown
