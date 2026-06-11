@@ -142,13 +142,13 @@ Do this for each unknown person, one at a time.
 Apply these without asking, unless the user's answers override them:
 
 - If action items are found in any note type, offer to push them to the live artifact as `add` operations at the end (don't silently push, confirm once in the output summary)
-- If a decision is clearly stated ("we decided to…"), flag it for `decisions/log.md`
+- If a decision is clearly stated ("we decided to…"), flag it for `decisions/log.md` only if it passes the decision-log test in CLAUDE.md Key Behaviors (hard to reverse, surprising without context, real trade-off); otherwise it stays in the note. Capture options considered when stated
 - If the notes are clearly about a known team member or stakeholder, offer to add relevant observations to their profile
 - Use today as the date if none was provided or inferred
 
 ### Terminology corrections
 
-If `context.md` includes a `## Terminology & Corrections` section, silently apply those corrections to all output.
+If `context.md` includes a `## Terminology & Corrections` section, silently apply those corrections to all output. Also maintain the glossary per the CLAUDE.md rule: flag any usage that conflicts with a glossary definition, and propose new entries (with suggested definition and observed variants) when the notes use a recurring term the glossary lacks. Surface both in the output summary.
 
 ---
 
