@@ -112,6 +112,9 @@ lore/
 ├── decisions/
 │   └── log.md                 ← Log of key decisions with context and rationale              [GITIGNORED]
 │
+├── external/
+│   └── skills/                ← Git submodule: mattpocock/skills (upstream agent skills)     [committed pointer]
+│
 ├── playbooks/                 ← Frameworks for difficult conversations, feedback, etc.       [committed]
 ├── projects/                  ← One file per active project/initiative                       [GITIGNORED]
 ├── strategy/                  ← Strategy docs only: vision, roadmap, positioning             [GITIGNORED]
@@ -299,10 +302,14 @@ These workflows are defined as instruction files in `workflows/`. When the user 
 | "Sync Plaud" / "Pull Plaud transcripts from the last [N] days/week" | `workflows/plaud-sync.md` |
 | "Triage my email" / "Process my inbox" / "What's new in email?" / "Inbox briefing" / "Triage everything" / "Catch me up" / "What needs me across email, Slack, and Teams" / "Any drafts waiting" / scheduled 2x/day triage run | `workflows/triage.md` |
 | "Set up Obsidian" / "Configure my vault" / "Migrate to Obsidian" / (auto-offered on first session with Obsidian connected after `context.md` exists) | `workflows/obsidian-setup.md` |
+| "Grill me" / "Stress-test this plan" / "Poke holes in this" / "Pressure-test this proposal/decision" | `workflows/grill-me.md` |
+| "Write a handoff" / "Hand this off" / "Wrap up this session for next time" | `workflows/handoff.md` |
 
 > **Note on morning-sync**: This workflow operates on calendar and priorities content the user provides manually (paste, screenshot, or summary). Live fetching is not built in by default. If the user wants automation, they can wire up an MCP connector and the workflow logic will adapt naturally.
 
 > **Note on triage (unified)**: `workflows/triage.md` is the single triage entry point. It sweeps Outlook (MS365 connector), Slack, and Teams in one pass and is draft-and-hold (it never sends). It replaces the retired Mac Mail `email-triage.md` workflow and sources email directly from the MS365 connector. Slack replies become native drafts; email and Teams replies are staged as paste-ready files in `outbox/drafts/` because those connectors are read-only. Teams DMs and @mentions are drafted; multi-person Teams group chats are summarized only, with knowledge-base candidates surfaced for the user to approve. Drafts are grounded in the Obsidian vault and `context.md` writing style. Reads `triage-config.md` at the workspace root (created on first run from `templates/triage-config.template.md`) and `email-config.md` for email sender tiers; tracks state in `inbox/.slack-processed`, `inbox/.teams-processed`, `inbox/.email-processed`, and `inbox/.triage-last-run`.
+
+> **Note on external skills**: `external/skills/` is a git submodule pinning [mattpocock/skills](https://github.com/mattpocock/skills). Some Lore workflows (currently `grill-me` and `handoff`) are thin wrappers: they say to read the upstream `SKILL.md` and then apply a Lore adaptation layer. When following a wrapper workflow, always read the upstream file it points to, then apply the wrapper's adaptations on top; where they conflict, the wrapper wins. To pull upstream updates deliberately, run `scripts/update-external-skills.sh` and review the diff before committing the pointer bump. On a fresh clone, `git submodule update --init` is required. If the submodule directory is empty and can't be initialized, fall back to following the wrapper's adaptation layer alone and tell the user the upstream source is missing.
 
 > **Note on Obsidian mode**: Each workflow file has (or will have, as it's migrated) an "Obsidian Mode" branch describing how it behaves when the vault is connected. If a workflow does not yet have an Obsidian branch documented, fall back to filesystem mode for that workflow and surface this to the user. As of this writing, `process-transcript` and `plaud-sync` are migrated; remaining workflows are migrated incrementally per the rollout in `OBSIDIAN_PLAN.md`.
 
