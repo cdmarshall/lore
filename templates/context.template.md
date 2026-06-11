@@ -86,11 +86,19 @@
 
 ## Terminology & Corrections
 
-> Company- or role-specific terms that transcription software frequently mangles. Lore will silently correct these when processing transcripts and ingesting documents.
+> A living glossary of company- and role-specific terms. Lore silently normalizes the "Avoid" variants when processing transcripts and ingesting documents, uses the definitions to keep outputs precise, and proposes new entries when a recurring term shows up that isn't here yet.
 
-| Correct term | Common misspellings / variants to fix |
-|--------------|--------------------------------------|
-| | |
+### Glossary
+
+| Term | Means | Avoid (misspellings, variants, wrong usages) |
+|------|-------|---------------------------------------------|
+| | | |
+
+### Flagged ambiguities
+
+> When a term has been used to mean two different things and the conflict was resolved, record the resolution here so it never gets re-litigated.
+
+-
 
 ## Notes for Lore
 
