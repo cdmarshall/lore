@@ -88,9 +88,9 @@ If you use [Obsidian](https://obsidian.md/), Lore can store entity data (people,
 
 ## Obsidian integration
 
-Lore detects at session start whether [basic-memory](https://github.com/basicmachines-co/basic-memory) is connected. If it is, Lore operates in **Obsidian mode**: the vault becomes the canonical store for entity data, and the agent uses wikilinks, backlinks, frontmatter, and semantic search instead of folder paths and grep. If the MCP isn't connected, Lore operates in **Filesystem mode**, which is the original behavior described in the rest of this README, unchanged.
+Lore detects at session start whether a vault path is recorded in `context.md` (under "Notes for Lore" → "Vault Configuration"). If it is, Lore operates in **Obsidian mode**: the vault becomes the canonical store for entity data, and the agent uses wikilinks, backlinks, and frontmatter instead of the repo's data folders. If not, Lore operates in **Filesystem mode**, which is the original behavior described in the rest of this README, unchanged.
 
-basic-memory is a local-first MCP server that sits between AI clients and a folder of Markdown files. It builds a SQLite index over your vault and exposes read, write, search, and graph-traversal tools. Obsidian reads and writes the same files through its own UI with no sync step required -- they share the same folder.
+Vault access is direct: Lore reads and writes the vault's markdown files with its native file tools. No intermediary server, no index to maintain, and the Obsidian app doesn't need to be open. Obsidian picks up changes automatically. One optional plugin adds live Dataview query execution for interactive sessions (see Setup, step 3).
 
 As your vault fills with people, meetings, decisions, and projects, Obsidian's graph view turns it into an explorable knowledge graph. Each node is an entity and each edge is a wikilink, so you can see at a glance how teammates, initiatives, and decisions connect:
 
@@ -102,9 +102,9 @@ As your vault fills with people, meetings, decisions, and projects, Obsidian's g
 
 - **Each fact lives in exactly one place.** A teammate's role lives on their note in `Lore/People/`. Meeting notes wikilink to the person rather than restating role. Obsidian's backlinks pane on the person's note shows every meeting, decision, and observation involving them, without any duplication.
 - **Native graph view.** People, projects, decisions, and meetings become nodes you can explore visually.
-- **Semantic hybrid search.** basic-memory uses full-text and vector search together, so Lore finds relevant notes by meaning -- not just exact keyword matches.
-- **Surgical updates.** Lore uses `edit_note` with targeted operations (`find_replace`, `replace_section`) instead of rewriting whole files. This is more reliable than section-based patching and works without Obsidian needing to be open.
-- **No dependency on Obsidian being open.** basic-memory reads files directly. The Obsidian app can be closed; vault operations still work.
+- **Surgical updates.** Lore edits notes in place (a new observation, a table row, one frontmatter key) instead of rewriting whole files, and validates frontmatter after every edit so your Dataview views never silently break.
+- **No dependency on Obsidian being open.** Vault files are read and written directly, so scheduled jobs work with the app closed.
+- **Live Dataview answers when Obsidian is open.** With the Semantic Notes Vault MCP plugin connected, Lore can execute the same Dataview queries you see rendered (like a person's Active Projects table) and reason from the actual results.
 
 ### Where Lore stores things in the vault
 
@@ -133,71 +133,33 @@ The action-items artifact is unchanged in Obsidian mode. The artifact's IndexedD
 
 ### Setup
 
-**Step 1: Install basic-memory**
-
-basic-memory requires Python 3.12+. Install it via `uv`, which handles the Python version automatically:
-
-```bash
-uv tool install basic-memory
-```
-
-If you don't have `uv` installed: `brew install uv` on macOS, or see [docs.astral.sh/uv](https://docs.astral.sh/uv/).
-
-**Step 2: Install the Dataview community plugin in Obsidian**
+**Step 1: Install the Dataview community plugin in Obsidian**
 
 Lore's People notes include a live "Active Projects" table that shows every project a person leads or is a stakeholder on, pulled automatically from the `Projects/` folder via Dataview. This means you update a project note once and every connected person note reflects it instantly, no manual list maintenance needed. Dataview also enables roster-style views across your vault (e.g., all active direct reports, all projects a person touches).
 
 To install: open Obsidian, go to **Settings → Community plugins → Browse**, search for **Dataview**, and click Install then Enable. No configuration needed; the queries in People notes work out of the box once the plugin is active.
 
-**Step 3: Register your vault as a project**
-
-Use `--default` in the `add` command to register and set the default in one step (see Troubleshooting below for why this matters):
-
-```bash
-bm project add lore "/path/to/your/obsidian-vault" --default
-```
-
-Replace the path with the actual path to your vault. On macOS with iCloud sync, this is typically:
-`~/Library/Mobile Documents/iCloud~md~obsidian/Documents/<VaultName>`
-
-Confirm it registered:
-
-```bash
-bm project list
-# Should show "lore" marked as default
-```
-
-**Step 4: Index the vault**
-
-```bash
-bm doctor
-```
-
-This builds the SQLite index over your existing notes. Takes a moment for a large vault; only needs to run once.
-
-**Step 5: Add basic-memory to your Cowork / Claude Code config**
-
-Claude Code reads MCP config from `~/.claude.json` (global) or `.claude/settings.json` (project-level). Add:
-
-```json
-"mcpServers": {
-  "basic-memory": {
-    "command": "uvx",
-    "args": ["basic-memory", "mcp"]
-  }
-}
-```
-
-Restart Cowork or Claude Code after saving.
-
-**Step 6: Record the vault path in context.md**
+**Step 2: Record the vault path in context.md**
 
 Under "Notes for Lore" → "Vault Configuration", add:
-- The vault's full filesystem path
-- The MCP name (`basic-memory`) and project name (`lore`)
-- The active subfolder convention (e.g., no prefix if your content is at the vault root)
+- The vault's full filesystem path. On macOS with iCloud sync, this is typically `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/<VaultName>`
+- The active subfolder convention (e.g., `Lore/`, or no prefix if Lore's content is at the vault root)
 
-On first launch after setup, Lore will announce "Obsidian mode active" and begin using the vault.
+This is all Lore needs for vault reads and writes. On first launch after this step, Lore will announce "Obsidian mode active" and begin using the vault.
+
+**Step 3 (optional, recommended): Install Semantic Notes Vault MCP for live Dataview queries**
+
+Everything above works with plain file access, but Lore can't *execute* a Dataview query that way; it can only read the query text (Dataview runs inside the Obsidian app). The [Semantic Notes Vault MCP](https://community.obsidian.md/plugins/semantic-vault-mcp) plugin ([aaronsb/obsidian-mcp-plugin](https://github.com/aaronsb/obsidian-mcp-plugin)) closes that gap: while Obsidian is open, Lore can run your Dataview queries and get the same results you see rendered, traverse the link graph, and query Bases.
+
+1. In Obsidian: **Settings → Community plugins → Browse**, search for **Semantic Notes Vault MCP**, Install and Enable.
+2. In the plugin's settings tab, copy the API key.
+3. Connect Claude Code / Cowork:
+
+```bash
+claude mcp add --transport http obsidian-vault http://localhost:3001/mcp --header "Authorization: Bearer YOUR_API_KEY"
+```
+
+Once connected, Lore prefers this plugin for queries whenever Obsidian is open, including scheduled jobs. When Obsidian is closed, Lore falls back to reading frontmatter directly, so everything still works; the answers just don't come from a live query run.
 
 ### Migration of existing filesystem data
 
@@ -205,42 +167,21 @@ If you have existing files in `team/`, `stakeholders/`, `decisions/log.md`, or `
 
 ### Workflow coverage
 
-All workflows support Obsidian mode. When basic-memory is connected, every workflow reads from and writes to the vault. Filesystem mode remains available as a fallback if basic-memory is not connected.
+All workflows support Obsidian mode. When a vault path is configured, every workflow reads from and writes to the vault. Filesystem mode remains available as a fallback if no vault is configured.
 
 ### Troubleshooting
 
-**`bm project default <name>` reports "No default project is currently set"**
+**Lore says "Filesystem mode" but you expect Obsidian mode**
 
-This error can appear even when the project was successfully registered. Always verify with `bm project list`. If your project isn't marked as default, set it manually:
+Check that `context.md` has a "Vault Configuration" subsection under "Notes for Lore" with the vault's full filesystem path, and that the path exists (`ls "<path>"`). That path is the only thing mode detection looks at.
 
-```bash
-python3 -c "
-import json, pathlib
-p = pathlib.Path.home() / '.basic-memory/config.json'
-c = json.loads(p.read_text())
-c['default_project'] = 'lore'
-p.write_text(json.dumps(c, indent=2))
-print('Done:', json.dumps(c, indent=2))
-"
-```
+**Dataview queries aren't returning results to Lore**
 
-This is why the setup steps above use `--default` in the `add` command -- it avoids this issue entirely.
+The Semantic Notes Vault MCP only works while the Obsidian app is running. Open Obsidian and confirm the plugin is enabled, then check the MCP connection (`claude mcp list`). If the API key changed, re-add the server with the new key. When the plugin is unreachable, Lore falls back to reading frontmatter directly, so answers still work; they just don't come from a live DQL run.
 
-**`bm project remove <name>` reports "not found"**
+**A note stopped appearing in a Dataview view**
 
-basic-memory sometimes creates a default `main` project pointing at `~/basic-memory` that wasn't registered through the CLI, so the `remove` command can't find it by name. Remove it directly from the config:
-
-```bash
-python3 -c "
-import json, pathlib
-p = pathlib.Path.home() / '.basic-memory/config.json'
-c = json.loads(p.read_text())
-before = len(c.get('projects', []))
-c['projects'] = [proj for proj in c.get('projects', []) if proj.get('name') != 'main']
-p.write_text(json.dumps(c, indent=2))
-print(f'Removed {before - len(c[\"projects\"])} project(s). Remaining:', [proj.get('name') for proj in c['projects']])
-"
-```
+Almost always malformed YAML frontmatter (an unquoted wikilink value or a stray tab). Open the note's properties in Obsidian; if Obsidian shows a parse warning, fix the YAML and the note reappears. Lore validates frontmatter after its own edits to avoid causing this.
 
 **Notes disappear from search or `doctor` reports inconsistencies**
 

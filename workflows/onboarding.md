@@ -167,15 +167,15 @@ Capture the choice (and any custom description) under **Lore's tone** in the **W
 
 ## Phase 7.5, Obsidian setup (optional)
 
-This phase only runs if basic-memory is connected. Otherwise, skip it entirely; the user can set up basic-memory later per the instructions in `README.md` → "Obsidian integration".
+This phase only runs if the user has an Obsidian vault. Otherwise, skip it entirely; the user can set up Obsidian later per the instructions in `README.md` → "Obsidian integration".
 
 **Detect:**
 
-Attempt `list_memory_projects`. If the tool isn't available or errors, skip this phase, you're done. If it succeeds and shows the Lore project, continue.
+Ask the user whether they use Obsidian (or check for Semantic Notes Vault MCP tools in the session, which imply they do). If no vault, skip this phase, you're done.
 
 **Ask:**
 
-> "I noticed you have an Obsidian vault connected. I can use it as the canonical store for people, meetings, decisions, and projects, instead of (or alongside) the filesystem folders in this repo. The big advantage is Obsidian's wikilinks and backlinks, each fact lives in exactly one place, and you can see every meeting / decision a person appears in with one click. Want me to set that up?"
+> "Do you use Obsidian? I can use your vault as the canonical store for people, meetings, decisions, and projects, instead of (or alongside) the filesystem folders in this repo. The big advantage is Obsidian's wikilinks and backlinks, each fact lives in exactly one place, and you can see every meeting / decision a person appears in with one click. All I need is the vault's filesystem path. Want me to set that up?"
 
 If the user says no, skip to Phase 8. If yes, continue.
 
@@ -192,17 +192,18 @@ Present these options:
 
 **Output:**
 
-1. Write the choice to `context.md` under **Notes for Lore** → **Vault Configuration** (create the subsection if it doesn't already exist):
+1. Ask the user for the vault's full filesystem path (on macOS with iCloud sync, typically `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/<VaultName>`). Verify it with `bash ls`. Then write the configuration to `context.md` under **Notes for Lore** → **Vault Configuration** (create the subsection if it doesn't already exist):
    ```markdown
    ### Vault Configuration
 
+   - **Vault path**: `<full filesystem path to the vault>`
    - **Obsidian vault subfolder**: `<chosen name>/`
    - This is the active subfolder name. Whenever a workflow file references `Lore/<subfolder>/` as a vault path, substitute `<chosen name>/<subfolder>/`.
    - Active subfolders: `<chosen name>/People/`, `<chosen name>/Meetings/`, `<chosen name>/Transcripts/`, `<chosen name>/Decisions/`, `<chosen name>/Projects/`, `<chosen name>/Strategy/`. Periodic notes (Daily/Weekly) will land under the same prefix when configured.
    - `Projects/` holds one note per active project/initiative. `Strategy/` holds only vision and roadmap content.
    ```
 
-2. **Seed the folder structure** in the vault with small placeholder READMEs so the folders are visible in Obsidian's file explorer from day one. For `Meetings/`, `Transcripts/`, and `Projects/`, write a `_README.md` via `write_note(title: "_README", directory: "Meetings/", content: "...")` that briefly states the naming convention for that folder. Keep them short (2-3 lines); the user can delete them whenever. Also write the vault `Context.md` file (a wikilink-enabled version of `context.md`) to the vault root via `write_note` -- use the same content as `context.md`, converting the My Team, Key Stakeholders, and Active Initiatives table entries to wikilinks.
+2. **Seed the folder structure** in the vault with small placeholder READMEs so the folders are visible in Obsidian's file explorer from day one. For `Meetings/`, `Transcripts/`, and `Projects/`, Write a `_README.md` into the folder that briefly states the naming convention for that folder. Keep them short (2-3 lines); the user can delete them whenever. Also Write the vault `Context.md` file (a wikilink-enabled version of `context.md`) to the vault root -- use the same content as `context.md`, converting the My Team, Key Stakeholders, and Active Initiatives table entries to wikilinks.
 
 3. **Do NOT migrate existing filesystem data here.** Onboarding is a fresh-install workflow; the user shouldn't have existing `team/` / `stakeholders/` / `decisions/log.md` content yet. If for some reason they do (e.g., they're re-running onboarding), point them at `workflows/obsidian-setup.md` for the migration path.
 
