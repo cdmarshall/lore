@@ -21,7 +21,7 @@ This workflow requires three connectors. Tool names below are the logical names;
 | Teams | Microsoft 365 | Read-only | `chat_message_search`, `read_resource` |
 | Slack | Slack | Read + write (drafts) | `slack_search_users`, `slack_search_channels`, `slack_search_public_and_private`, `slack_read_channel`, `slack_read_thread`, `slack_read_user_profile`, `slack_send_message_draft` |
 | Jira / Confluence | Atlassian | Read-only | `getJiraIssue`, `searchJiraIssuesUsingJql`, `getConfluencePage`, `searchConfluenceUsingCql` |
-| Knowledge base | basic-memory | Read + write | `search_notes` (search_type: "hybrid"), `read_note`, `edit_note`, `write_note` |
+| Knowledge base | Obsidian vault (direct filesystem) | Read + write | Read, Edit, Write, Grep against the vault path in `context.md` → "Vault Configuration" |
 
 If a connector is missing at run time, skip that source (or that enrichment step), note it in the briefing, and continue with the others. Do not fail the whole run because one source is unavailable. The Atlassian connector is additive: its absence degrades draft quality but does not block the sweep.
 
@@ -221,7 +221,7 @@ After drafting, capture what the sweep revealed:
 
 ### 6. Output
 
-1. Write the briefing to `outbox/triage-YYYY-MM-DD.md` (append `-HHMM` if a second run lands the same day).
+1. Write the briefing to `outbox/triage/triage-YYYY-MM-DD.md` (append `-HHMM` if a second run lands the same day).
 2. Save staged email drafts under `outbox/drafts/email/YYYY-MM-DD-<slug>.md` and Teams drafts under `outbox/drafts/teams/YYYY-MM-DD-<slug>.md`. Each staged draft file includes the recipient, subject (email), the thread/source link, and the ready-to-paste body.
 3. Update `inbox/.triage-last-run` to `run_start`.
 4. Print a one-paragraph summary to chat and link the briefing file.
@@ -278,7 +278,7 @@ After drafting, capture what the sweep revealed:
 User says: "triage my backlog" or "catch me up on everything I missed."
 
 1. Same sweep, but widen the window (ask the user how far back, default 7 days) and ignore the processed trackers.
-2. Output to `outbox/triage-backlog-YYYY-MM-DD.md`.
+2. Output to `outbox/triage/triage-backlog-YYYY-MM-DD.md`.
 3. Do NOT append to the processed trackers automatically. After the user reviews, they decide whether to mark the backlog as seen.
 4. Be conservative with drafting in backlog mode: produce drafts for clear Tier 1 items only; list the rest for the user to selectively request.
 
@@ -299,8 +299,8 @@ The workflow does NOT auto-push to the action items artifact. The briefing flags
 
 ## Outputs
 
-- `outbox/triage-YYYY-MM-DD.md`: per-run briefings.
-- `outbox/triage-backlog-YYYY-MM-DD.md`: one-time backlog briefing.
+- `outbox/triage/triage-YYYY-MM-DD.md`: per-run briefings.
+- `outbox/triage/triage-backlog-YYYY-MM-DD.md`: one-time backlog briefing.
 - `outbox/drafts/email/`, `outbox/drafts/teams/`: staged paste-ready drafts.
 - Native Slack drafts in the user's "Drafts & Sent."
 - Additive vault updates (observations, decisions), each listed in the briefing.
