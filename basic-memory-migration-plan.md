@@ -1,6 +1,7 @@
 # basic-memory Migration Plan
 
-> Migrate vault MCP from cyanheads/obsidian-mcp-server to basic-memory.
+> **OBSOLETE (2026-07-02).** This plan migrated the vault MCP from cyanheads/obsidian-mcp-server to basic-memory. basic-memory has since been retired too: Lore now accesses the vault directly through the filesystem, with the optional Semantic Notes Vault MCP plugin (aaronsb/obsidian-mcp-plugin) for live Dataview queries. See `README.md` → "Obsidian integration" for current setup. Kept for history only; do not follow.
+>
 > Vault path: `/Users/cmarshall/Library/Mobile Documents/iCloud~md~obsidian/Documents/Lore - Rate`
 >
 > **Status as of 2026-06-03**: Phases 1–6 complete. Phase 7 (commit) remaining.
