@@ -26,7 +26,7 @@ Process a document and extract relevant information to update the knowledge base
    If the document is clearly scoped to an active project (vendor SOW, product spec, project brief), default the suggestion to "update project file" and name the likely match. Don't suggest project-status content for `strategy/`; that folder holds vision and roadmap only.
 
 4. **Process accordingly and confirm what was updated.** Storage mode: `_conventions.md` → Storage-mode branching.
-   - Obsidian mode: `edit_note(identifier: "Projects/<Name>", operation: "find_replace", find_text: "<last line of Current Phase section>", content: "<last line>\n<new content>")` (or `"People/<Name>"` with the Observations section). No heading yet: `edit_note(operation: "append")`. New note: `write_note(title, directory, content, metadata)`. Tool-name mapping: `_conventions.md` → Vault access tooling.
+   - Obsidian mode: Edit the project note `Projects/<Name>.md`, inserting the new content after the last line of the `Current Phase` section (or the person note `People/<Name>.md`, inserting the new observation above the first existing `###` entry in `## Observations`). No heading yet: Edit to add the full section to the note. New note: Write it at the target vault path. Vault access tooling: `_conventions.md` → Vault access tooling.
    - Filesystem mode: edit `projects/[slug].md` or the `team/`/`stakeholders/` file directly. Two-step existence check first: `_conventions.md` → Two-step existence check.
 
 ## File Locations

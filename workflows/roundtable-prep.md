@@ -25,7 +25,7 @@ Storage mode: see `_conventions.md` → Storage-mode branching.
 Read in parallel:
 - `context.md`: priorities, active initiatives, team list
 - `strategy/roadmap.md` if it exists
-- Each active project file in `projects/` (filesystem mode) or `Projects/` vault notes (Obsidian mode): `search_notes(note_types: ["project"], metadata_filters: {status: "active"})`. Tool mapping: `_conventions.md` → Vault access tooling.
+- Each active project file in `projects/` (filesystem mode) or `Projects/` vault notes (Obsidian mode): query for `status: active` via the dataview MCP tool, falling back to Grep per `_conventions.md` → Vault access tooling.
 - One file per direct report under `team/`, recent observations
 
 For action items (completed-this-week, active blockers, delegated items), try in order:
