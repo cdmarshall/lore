@@ -57,11 +57,15 @@ Only when a message clearly signals a phase or status change: "we shipped X," "b
 
 Never auto-log a decision. Apply the test in `_conventions.md` → Decision-log discipline (hard to reverse, surprising, a real trade-off between genuine alternatives). Anything that passes goes in the changelog as a proposal with the source quote, not into `decisions/log.md` or `Decisions/`.
 
-### 5d. Glossary and new entities
+### 5d. Commitments
+
+Clear promises surfaced in messages (someone commits to the user, or the user commits to someone, outside the action-items artifact's shape) append to the commitments ledger with provenance, tagged `#inbox/needs-review` like observations (`workflows/commitments.md`). If ambiguous who owes whom or whether it's task-shaped, propose-only in the changelog instead of writing.
+
+### 5e. Glossary and new entities
 
 New recurring terms not already in `context.md` → Terminology & Corrections: propose adding per `_conventions.md` → Terminology and glossary. An unknown person or project appearing repeatedly (not a one-off mention): propose creating the note. Neither writes unsupervised; both go in the changelog.
 
-### 5e. Index maintenance
+### 5f. Index maintenance
 
 Any note created or archived on later approval updates `Index.md` per `_conventions.md` → Vault index. A run that only appends observations or phase lines needs no Index.md touch.
 
