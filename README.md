@@ -88,6 +88,24 @@ If you use [Obsidian](https://obsidian.md/), Lore can store entity data (people,
 
 ---
 
+## The daily brief
+
+Every triage run delivers a designed HTML brief, a single self-contained file in `outbox/briefs/` that opens in any browser:
+
+![The Lore daily brief](assets/daily-brief.png)
+
+What makes it more than a pretty inbox summary:
+
+- **It knows your work.** Every item is cross-referenced against your vault before it's ranked, so the "why it matters" line says what the message actually blocks or advances ("blocks Q3 Billing Migration"), not just who sent it.
+- **Drafts are inline.** Items that need a reply carry the ready-to-send draft in an expandable block, with a grounding note naming the vault notes and messages it drew from. Review, click through, send.
+- **Deep links, never fabricated.** Each item links straight to the source message in Outlook, Slack, or Teams. If a link can't be resolved, the item simply shows without one; Lore never invents an ID.
+- **The knowledge base section shows its work.** What triage appended to your vault, and what it's proposing but won't write without you.
+- **Verified before you see it.** An independent check confirms every claim traces to a source, every link is well-formed, and the tone passes `VOICE.md`.
+
+The plain-markdown briefing still lands in `outbox/triage/` as a grep-able fallback. Template: `templates/brief.template.html`; it contains nothing user-specific, so you can restyle it without touching behavior.
+
+---
+
 ## Obsidian integration
 
 Lore detects at session start whether a vault path is recorded in `context.md` (under "Notes for Lore" → "Vault Configuration"). If it is, Lore operates in **Obsidian mode**: the vault becomes the canonical store for entity data, and the agent uses wikilinks, backlinks, and frontmatter instead of the repo's data folders. If not, Lore operates in **Filesystem mode**, which is the original behavior described in the rest of this README, unchanged.
