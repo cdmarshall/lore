@@ -56,6 +56,10 @@
 # --- Strategy docs (user-specific) ---
 /strategy/*.md
 
+# --- Eval examples (personal artifacts; the harness README stays committed) ---
+/evals/examples/*
+!/evals/examples/.gitkeep
+
 # --- Personal artifacts (binary docs, almost always personal) ---
 *.xlsx
 *.xls
