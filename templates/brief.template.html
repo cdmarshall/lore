@@ -400,8 +400,10 @@
       <p class="item-why">{{ITEM_WHY}}</p>
       <!-- DEEP LINK: keep this anchor only when a real link exists. Omit the whole
            anchor if no link can be constructed (never fabricate an ID).
-           {{ITEM_LINK}}: full URL. {{ITEM_LINK_LABEL}}: e.g. "Open in Outlook", "Open in Slack". -->
-      <a class="item-link" href="{{ITEM_LINK}}">{{ITEM_LINK_LABEL}} &#8594;</a>
+           {{ITEM_LINK}}: full URL. {{ITEM_LINK_LABEL}}: e.g. "Open in Outlook", "Open in Slack".
+           Keep target="_blank": the brief renders inside an embedded webview that
+           swallows same-frame navigation, so anchors without it do nothing on click. -->
+      <a class="item-link" target="_blank" rel="noopener noreferrer" href="{{ITEM_LINK}}">{{ITEM_LINK_LABEL}} &#8594;</a>
 
       <!-- DRAFT: include this <details> only when a draft reply exists for the item. -->
       <details class="draft">
