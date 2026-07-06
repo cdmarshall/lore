@@ -26,8 +26,11 @@ Personal entity data lives under a dedicated subfolder inside the user's vault. 
 ├── Projects/      one note per project/initiative
 ├── Inbox/         notes pending processing; tag #inbox/unprocessed
 ├── Daily/         periodic daily notes, named by date
-└── Weekly/        periodic weekly notes
+├── Weekly/        periodic weekly notes
+└── Archive/       archived entities, mirrored by origin (Archive/People/, Archive/Projects/, Archive/Meetings/)
 ```
+
+Archiving is always propose-first and runs through vault-lint (`workflows/vault-lint.md`): synthesis written to the surviving entity note before the move, Index.md updated after. Wikilinks survive moves; Obsidian re-resolves them.
 
 - Note titles double as wikilink targets. Person notes are titled with the person's full name so `[[Jane Doe]]` resolves. Meeting notes follow `YYYY-MM-DD <kind> <subject>` so they sort chronologically.
 - Templates stay committed in the repo `templates/` folder. When writing to the vault, translate the template structure into the note (frontmatter, wikilinks, tags). Do not fork templates into the vault.
@@ -43,9 +46,9 @@ Personal entity data lives under a dedicated subfolder inside the user's vault. 
 ## Vault access tooling
 
 - **Writes and plain reads always use native tools** (Read, Write, Edit, `bash ls`) against the vault path, in both modes. One write path keeps notes identical whether Obsidian is open or not; exact-string edits are verifiable by reading the file back.
-- **Queries are MCP-first.** For Dataview DQL execution, graph/backlink traversal, Bases, and vault search, assume Obsidian is open and prefer the **Semantic Notes Vault MCP** plugin (aaronsb/obsidian-mcp-plugin), scheduled runs included. If it is unreachable (Obsidian closed) or errors, fall back automatically to filesystem Grep over frontmatter and wikilinks. Never fail a workflow because the MCP is down; **no workflow may hard-require it.**
+- **Queries are MCP-first.** For Dataview DQL execution, graph/backlink traversal, Bases, and ranked vault search, assume Obsidian is open and prefer the **Semantic Notes Vault MCP** plugin (aaronsb/obsidian-mcp-plugin), scheduled runs included. Its tools (resolve by suffix; the server prefix differs per install): `dataview` (execute DQL), `graph` (links/backlinks traversal), `vault` (list/read/search operations), `bases`. If the server is unreachable (Obsidian closed) or errors, fall back automatically to the filesystem query patterns below. Never fail a workflow because the MCP is down; **no workflow may hard-require it.**
+- **Filesystem query patterns (the fallback, and always valid):** find a note by name with `bash ls`; search content or frontmatter with Grep; find backlinks by Grepping for `[[Name]]` across the vault. **List-valued frontmatter fields (`stakeholders`, `attendees`, `projects`, `tags`) are usually multi-line YAML** (`stakeholders:` then `- '[[Name]]'` lines), so never match only on the key line: match the name anywhere in the frontmatter block (e.g. Grep the file for `[[Name]]`, then confirm the field by reading the block), or parse the block. Verified against real vault data: key-line-only matching silently dropped 6 of 22 results. Workflow steps say *what* to query ("projects where Jane is lead or stakeholder"); this section says *how*.
 - **Retired MCPs:** do not use basic-memory or the older obsidian REST MCP. If their tools appear in a session, ignore them.
-- **Legacy tool-name mapping.** Older workflow bodies may still say: `read_note` → Read the file; `write_note` → Write; `edit_note` (any operation) → Edit; `search_notes` → Grep; `list_directory` → `bash ls`; `build_context` → Grep for `[[Name]]` backlinks. Same conventions, same files, native tools.
 
 ### Frontmatter hygiene (hard rules)
 
@@ -53,6 +56,10 @@ Personal entity data lives under a dedicated subfolder inside the user's vault. 
 - Never use tabs in YAML.
 - After any frontmatter edit, re-read the block and confirm it is still valid YAML. Malformed YAML silently drops the note out of Dataview views with no error.
 - Treat existing ```dataview and ```base code fences as opaque. Never reformat or "fix" them.
+
+## Vault index (Index.md)
+
+`Index.md` at the vault root is the master catalog: one line per entity note (wikilink, key frontmatter, one-line hook), grouped People / Projects / Decisions, plus a Counts line. The agent reads it first for orientation, then drills into specific notes; it replaces broad discovery searches. **Maintenance rule:** any workflow step that creates, archives, or changes the status of an entity note updates the matching Index.md line (and Counts) in the same session. Vault-lint checks freshness.
 
 ## Linking and deduplication
 

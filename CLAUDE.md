@@ -16,7 +16,7 @@ The user's personal AI workspace. You are **Lore**, their second brain and execu
 
 ## Vault access (Obsidian mode), one paragraph
 
-Writes and plain reads use native tools (Read, Write, Edit, `bash ls`) against the vault path, always. Queries (Dataview DQL, graph/backlinks, Bases, search) are MCP-first via the Semantic Notes Vault MCP; fall back to Grep if it is unreachable, and never hard-require it. Retired: do not use basic-memory or the old obsidian REST MCP. Legacy tool names in workflow bodies (`read_note`, `write_note`, `edit_note`, `search_notes`, `list_directory`, `build_context`) map to native tools per `_conventions.md` → Vault access tooling.
+Writes and plain reads use native tools (Read, Write, Edit, `bash ls`) against the vault path, always. Queries (Dataview DQL, graph/backlinks, Bases, search) are MCP-first via the Semantic Notes Vault MCP; fall back to Grep if it is unreachable, and never hard-require it. Retired: do not use basic-memory or the old obsidian REST MCP. Tool details and fallback query patterns: `_conventions.md` → Vault access tooling.
 
 ## Skills: when NOT to use them
 
@@ -73,6 +73,7 @@ Read the matching file and follow it.
 | "ingest this document" / "process this file" | `workflows/ingest.md` |
 | "morning sync" / "what's on today?" | `workflows/morning-sync.md` |
 | "sync Plaud" / "pull Plaud transcripts from the last N days" | `workflows/plaud-sync.md` |
+| "lint the vault" / "vault health check" / "run vault lint" | `workflows/vault-lint.md` |
 | "triage everything" / "process my inbox" / "catch me up" / "any drafts waiting" / scheduled triage | `workflows/triage.md` |
 | "set up Obsidian" / "configure my vault" / "migrate to Obsidian" | No workflow file. Follow `README.md` → Obsidian integration: verify plugins, get the vault path, write "Vault Configuration" into `context.md`, seed folders per `_conventions.md` → Vault structure. For existing filesystem data, offer a previewed migration into the vault. |
 | "grill me" / "stress-test this" / "poke holes in this" | `workflows/grill-me.md` |

@@ -192,7 +192,7 @@ If no, skip to Phase 8. If yes, continue.
    - `Projects/` holds one note per active project/initiative. `Strategy/` holds only vision and roadmap content.
    ```
 
-2. **Seed the folder structure** with placeholder READMEs so folders show in Obsidian's file explorer from day one. For `Meetings/`, `Transcripts/`, and `Projects/`, Write a `_README.md` (2-3 lines) stating that folder's naming convention; the user can delete them anytime. Also Write the vault `Context.md` to the vault root: same content as `context.md`, converting My Team, Key Stakeholders, and Active Initiatives table entries to wikilinks.
+2. **Seed the folder structure** with placeholder READMEs so folders show in Obsidian's file explorer from day one. For `Meetings/`, `Transcripts/`, and `Projects/`, Write a `_README.md` (2-3 lines) stating that folder's naming convention; the user can delete them anytime. Also Write the vault `Context.md` to the vault root: same content as `context.md`, converting My Team, Key Stakeholders, and Active Initiatives table entries to wikilinks. Seed `Index.md` at the vault root from the people and projects created during onboarding (`_conventions.md` → Vault index).
 
 3. **Do NOT migrate existing filesystem data here.** Onboarding is fresh-install; the user shouldn't have existing `team/` / `stakeholders/` / `decisions/log.md` content yet. If they do (re-running onboarding), offer a previewed migration into the vault afterward (say "migrate to Obsidian"; routing per CLAUDE.md).
 

@@ -183,7 +183,7 @@ Append these to the KB candidates pool alongside the Teams group-chat candidates
 5. For each group chat with new activity, write a 1 to 3 sentence summary (topic, who is driving it, any conclusion or open question). Do NOT draft a reply. These go in the briefing's "Teams discussions" section.
 6. From those summaries, extract **knowledge-base candidates**: decisions reached, status changes on an initiative, new commitments, risks, or facts about a person or project the vault should capture. List each with the chat it came from and the vault note it would land on.
 7. **Do not auto-write group-chat candidates** (lower-confidence than direct-thread observations). Instead, prompt the user:
-   - **Interactive run:** after presenting summaries, ask "Want me to update the knowledge base with any of these?" and apply only the ones confirmed (additive, via `edit_note`).
+   - **Interactive run:** after presenting summaries, ask "Want me to update the knowledge base with any of these?" and apply only the ones confirmed (additive, via Edit on the entity note).
    - **Scheduled run:** list them in the briefing under "Knowledge base candidates (your call)" with a note that the user can reply "update KB with #1, #3" to apply. Hold until they do.
 8. Append processed IDs to `inbox/.teams-processed` for both direct and summarized messages.
 
@@ -191,7 +191,7 @@ Append these to the KB candidates pool alongside the Teams group-chat candidates
 
 For every draft, before writing:
 
-1. Identify the people and projects involved. Look them up in the vault: `search_notes(query, search_type: "hybrid")` by name/topic, then `read_note` for each relevant person/project note. Cross-reference `context.md` Active Initiatives. **Also include the `linked_context` packet from step 2b** (Jira/Confluence excerpts). Treat linked-resource context as grounding with the same weight as vault notes: it informs the reply but is never quoted verbatim or over-explained to the recipient.
+1. Identify the people and projects involved. Look them up in the vault: search by name/topic via the vault search or dataview MCP tools, falling back to Grep per `_conventions.md` → Vault access tooling, then Read each relevant person/project note. Cross-reference `context.md` Active Initiatives. **Also include the `linked_context` packet from step 2b** (Jira/Confluence excerpts). Treat linked-resource context as grounding with the same weight as vault notes: it informs the reply but is never quoted verbatim or over-explained to the recipient.
 2. Apply terminology corrections from `context.md` silently (see `_conventions.md` → Terminology and glossary).
 3. Match voice per VOICE.md and the source-specific section of `context.md`:
    - **Email** drafts follow `## Email Writing Style` in `context.md` (and `outbox/dictation-style-prompt.md` for nuance). No greeting on mid-thread replies, no sign-off, contractions default, hedge opinions / commit on facts, 25 to 120 words for most replies.
@@ -203,16 +203,16 @@ For every draft, before writing:
 After drafting, capture what the sweep revealed. **Never overwrite. Only append.** If an update would change an existing fact rather than add one, flag it in the briefing for the user to confirm instead of writing it. Decision-log test: `_conventions.md` → Decision-log discipline.
 
 1. **Observations from linked resources (auto-apply when high-confidence):** for any Jira ticket or Confluence page fetched in step 2b, apply without waiting for confirmation (structured, authoritative sources):
-   - **Jira status update**: if the ticket is linked to a vault project or person and its status changed, append a dated observation to the project note (e.g., "LI-1234 moved to Done as of 2026-06-09"). Use `edit_note` with `operation: "find_replace"` targeting the last line of the project's `Current Phase` section (Obsidian mode) or the `## Current Phase` block in `projects/[slug].md` (filesystem mode).
+   - **Jira status update**: if the ticket is linked to a vault project or person and its status changed, append a dated observation to the project note (e.g., "LI-1234 moved to Done as of 2026-06-09"). Use Edit, anchored on (inserting after) the last line of the project's `Current Phase` section (Obsidian mode) or the `## Current Phase` block in `projects/[slug].md` (filesystem mode).
    - **New ticket assignee**: if the assignee is a person in the vault, append a brief observation to their person note (e.g., "Assigned LI-1234 Carrier retry logic").
    - **Confluence page reference**: if relevant to an active project, append a reference line to the project note (e.g., "Confluence: Carrier Integration Runbook, last updated 2026-05-15"). Do not dump the full page body.
    - List all auto-applied writes in the briefing under "Knowledge base updated (applied)".
    - If the link context is ambiguous (ticket not clearly tied to a vault entity), add it to "Knowledge base candidates (your call)" instead.
 2. **Observations from message threads:** new, durable facts about a person or project (status change, commitment, risk). Write once, on the entity's own note.
-   - **Obsidian mode:** append via `edit_note(identifier: "People/<Name>", operation: "find_replace", find_text: "<last observation line>", content: "<last observation line>\n<new observation>")`. For projects, `identifier: "Projects/<Name>"`, targeting the last line of the `Current Phase` section.
+   - **Obsidian mode:** append via Edit on the person's vault note (`People/<Name>.md`), inserting the new observation above the first existing `###` entry in `## Observations` (newest first, `_conventions.md` → Person note structure). For projects, Edit `Projects/<Name>.md`, inserting after the last line of the `Current Phase` section.
    - **Filesystem mode:** append to `team/[name].md` or `stakeholders/[name].md` for person observations; append a dated block to `projects/[slug].md` under `## Current Phase` for project updates. Run the two-step existence check first (`_conventions.md` → Two-step existence check).
 3. **Decisions:** if a thread contains a clearly-stated decision, log it. Obsidian mode: a note under `<vault>/Decisions/` using the decision schema. Filesystem mode: append to `decisions/log.md` using `templates/decision-log-entry.template.md`.
-4. List every knowledge-base write in the briefing.
+4. List every knowledge-base write in the briefing. Any new entity note (e.g. a logged decision) also gets an `Index.md` line (`_conventions.md` → Vault index).
 
 ### 6. Verify drafts and briefing (independent grader)
 

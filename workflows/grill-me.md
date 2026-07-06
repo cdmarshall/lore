@@ -10,10 +10,10 @@ Canonical logic lives upstream in `external/skills/skills/productivity/grill-me/
 
 1. **"Explore the codebase" becomes "explore the workspace."** Upstream: if a question can be answered by exploring the codebase, explore instead of asking. In Lore, the equivalent sources, in order:
    - `context.md` (role, priorities, team, stakeholders, terminology)
-   - Obsidian vault in Obsidian mode: `read_note` on the relevant People, Projects, and Decisions notes; `build_context` to pull the linked neighborhood of an entity
+   - Obsidian vault in Obsidian mode: Read the relevant People, Projects, and Decisions notes directly; use the graph/backlink MCP tool (falling back to Grep for `[[Name]]`) to pull the linked neighborhood of an entity
    - `decisions/log.md` and `projects/*.md` in filesystem mode
    - Recent meeting notes and the action-items snapshot
-   Never ask the user a question the workspace can already answer. Look it up, state what you found, move to the next real question. Storage mode and legacy tool names: `_conventions.md` → Storage-mode branching, Vault access tooling.
+   Never ask the user a question the workspace can already answer. Look it up, state what you found, move to the next real question. Storage mode and vault tooling: `_conventions.md` → Storage-mode branching, Vault access tooling.
 
 2. **One question at a time, with a recommendation.** Carries over verbatim from upstream. Every question comes with your recommended answer and a one-line reason. The user should mostly be saying "yes" or "no, because", not writing essays.
 
