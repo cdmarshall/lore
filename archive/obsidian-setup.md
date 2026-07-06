@@ -1,6 +1,6 @@
 # Obsidian Setup
 
-> **DEPRECATED.** This workflow was written for the cyanheads obsidian-mcp-server. Lore now uses basic-memory as the vault MCP. Setup instructions for new users are in `README.md` → "Obsidian integration". The content below is preserved for reference but should not be followed directly -- tool names and parameter shapes no longer match.
+> **DEPRECATED.** This workflow was written for a retired MCP layer (cyanheads obsidian-mcp-server, then basic-memory; both are gone). Lore now accesses the vault directly through the filesystem, with the optional Semantic Notes Vault MCP plugin for live Dataview queries. Current setup instructions live in `README.md` → "Obsidian integration". The content below is preserved for reference but must not be followed; tool names and architecture no longer match. The vault-configuration and data-migration steps it describes are handled conversationally: record the vault path in `context.md` → "Vault Configuration" and migrate data per the README.
 
 For existing users (people who already have a `context.md` and accumulated filesystem-mode data) who connect Obsidian for the first time. Sets up the vault subfolder configuration and offers to migrate existing data.
 
