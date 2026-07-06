@@ -18,6 +18,8 @@ The canonical logic lives upstream in `external/skills/skills/productivity/hando
 
 5. **Arguments.** If the user says what the next session will focus on ("hand off for the roundtable prep tomorrow"), tailor the document to that focus: lead with the state relevant to it, trim the rest to one-line pointers.
 
+6. **Update STATE.md too.** A handoff is a substantive session end, so the state-file write rule applies (CLAUDE.md → Key behaviors → State file): new verified facts, open failures, and the last-session pointer land in `STATE.md`; the handoff document links there rather than restating it.
+
 ## Structure
 
 Use this skeleton, trimming sections that are empty:

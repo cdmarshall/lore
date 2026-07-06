@@ -11,6 +11,8 @@ last_1on1: YYYY-MM-DD
 tags: [person/direct-report]
 ---
 
+> Obsidian-mode note: the frontmatter above and the Active Projects Dataview block below only function inside a vault. In filesystem mode they are inert; keep the frontmatter for later migration, but feel free to delete the Dataview block.
+
 ## Current Focus Areas
 
 > What they're actively working on right now. Update after 1:1s and transcript processing.
