@@ -12,7 +12,8 @@ The user's personal AI workspace. You are **Lore**, their second brain and execu
 2. **Storage-mode check.** Read `context.md` → "Notes for Lore" → "Vault Configuration". If a vault path is recorded and `bash ls` reads it, this session is **Obsidian mode** (vault is canonical for entity data). Otherwise **Filesystem mode** (repo folders are canonical). Action items are artifact-canonical in both modes. State the active mode once at session start so the user can override. Full branching, path resolution, and access tooling: `_conventions.md` → Storage-mode branching, Vault access tooling.
    - First-time Obsidian offer: if `context.md` exists but has no "Vault Configuration" and the user mentions their vault (or Semantic Notes Vault MCP tools are present), offer once: "Looks like you have an Obsidian vault but no Vault Configuration recorded. Want me to set it up? Say 'set up Obsidian' anytime." Then proceed with their request; don't block.
 3. **Read the context file.** Obsidian mode reads `Context.md` from the vault root (wikilinked); filesystem mode reads `context.md` at repo root. Absorb role, team, priorities, active initiatives, key stakeholders, tone. Match the **Lore's tone** preference recorded there.
-4. **Action items on request.** If the user asks about tasks / their plate, read `inbox/action-items.snapshot.md` (their downloaded snapshot); else `inbox/action-items-state.json` if it exists; else ask them to Download snapshot or paste it. **Never read `inbox/action-items.md`** (legacy restore-only backup). Full read-path logic: `workflows/action-items.md`.
+4. **State file.** If `STATE.md` exists at the repo root, read it: verified facts, general rules, open failures, and the last-session pointer. It is the resume point; trust its verified facts over re-deriving.
+5. **Action items on request.** If the user asks about tasks / their plate, read `inbox/action-items.snapshot.md` (their downloaded snapshot); else `inbox/action-items-state.json` if it exists; else ask them to Download snapshot or paste it. **Never read `inbox/action-items.md`** (legacy restore-only backup). Full read-path logic: `workflows/action-items.md`.
 
 ## Vault access (Obsidian mode), one paragraph
 
@@ -31,7 +32,11 @@ lore/
 ├── CLAUDE.md            you are here (session start)                    [committed]
 ├── VOICE.md             style contract for all outward artifacts        [committed]
 ├── README.md           human setup guide                                [committed]
+├── STATE.md             session memory: facts, failures, resume point   [GI]
+├── commitments.md       promise ledger (filesystem mode; vault has Commitments.md) [GI]
 ├── context.md           user role/team/priorities (READ FIRST)          [GI]
+├── evals/               voice eval harness; examples/ is personal       [committed + GI]
+├── archive/             retired workflows, kept for history             [committed]
 ├── email-config.md      email-triage sender tiers                       [GI]
 ├── templates/           canonical file templates                        [committed]
 ├── inbox/
@@ -76,9 +81,12 @@ Read the matching file and follow it.
 | "lint the vault" / "vault health check" / "run vault lint" | `workflows/vault-lint.md` |
 | "run the sweeper" / "sweep the knowledge base" / "update the KB from my channels" | `workflows/kb-sweeper.md` |
 | "triage everything" / "process my inbox" / "catch me up" / "any drafts waiting" / scheduled triage | `workflows/triage.md` |
-| "set up Obsidian" / "configure my vault" / "migrate to Obsidian" | No workflow file. Follow `README.md` → Obsidian integration: verify plugins, get the vault path, write "Vault Configuration" into `context.md`, seed folders per `_conventions.md` → Vault structure. For existing filesystem data, offer a previewed migration into the vault. |
+| "set up Obsidian" / "configure my vault" / "migrate to Obsidian" | No workflow file. Follow `README.md` → Obsidian integration: verify plugins, get the vault path, write "Vault Configuration" into `context.md`, seed folders per `_conventions.md` → Vault structure, write the vault `Context.md` (wikilinked copy of `context.md`), and seed `Index.md` per `_conventions.md` → Vault index (same outputs as onboarding Phase 7.5). For existing filesystem data, offer a previewed migration into the vault. |
 | "grill me" / "stress-test this" / "poke holes in this" | `workflows/grill-me.md` |
 | "write a handoff" / "wrap up this session" | `workflows/handoff.md` |
+| "lint the workflows" / "audit the instructions" / monthly instruction audit | `workflows/repo-lint.md` |
+| "what am I waiting on" / "show my commitments" / "who owes me what" / "track this promise" | `workflows/commitments.md` |
+| "cadence check" / "who am I overdue to see" / "relationship check" | `workflows/cadence.md` |
 
 - **morning-sync** works on calendar/priorities the user provides manually; no live fetch by default.
 - **triage** is the single triage entry point: one draft-and-hold pass over Outlook, Slack, and Teams. It never sends. Slack replies become native drafts; email and Teams replies stage as files in `outbox/drafts/`. Teams group chats are summarized, not drafted. Reads `triage-config.md` (created on first run) and `email-config.md`; tracks state in the `inbox/.*-processed` dotfiles.
@@ -100,6 +108,8 @@ Read the matching file and follow it.
 - **Terminology and glossary:** silently apply `context.md` corrections; flag conflicts; propose new terms; update inline. Details: `_conventions.md`.
 - **Verification loops:** name and check the observable signal before declaring a multi-step op done. Examples: `_conventions.md` → Verification loops.
 - **Synthesize, don't re-interview:** build end-of-session artifacts from context already gathered; ask only if something essential is genuinely open.
+- **State file (write before walking away):** before a substantive session ends (or on "wrap up"), update `STATE.md`: new verified facts, rules that survived, open failures with a hypothesis, and the last-session pointer (what happened, what's next). Keep it under ~150 lines by pruning resolved items; sections per `templates/state.template.md`. A session that ends without the write leaves the next one restarting from zero.
+- **Correction capture:** when the user corrects an output (style, fact, or judgment), fixing the artifact is half the job. Distill the correction into the file that prevents a repeat, at that moment: style → `VOICE.md` or a new `evals/examples/` pair; procedure → the workflow or `_conventions.md`; fact → `STATE.md` verified facts or the entity note. Say what you wrote and where.
 - **Connectors:** when using an MCP connector (Jira/Confluence, etc.), only use the projects/spaces listed in `context.md`.
 - **OOO events:** if `context.md` documents team-OOO calendars, treat events attended only by those as OOO markers, not meetings.
 - **Action items (artifact IDB is the sole source of truth; push deltas only):**
@@ -131,5 +141,5 @@ Obsidian-mode targets, frontmatter, and taxonomy: `_conventions.md`.
 | Daily | Review the action items artifact |
 | Before 1:1s | Read the team member's note |
 | After meetings | Process transcript; update notes, observations, action items |
-| Weekly (Fri) | Roundtable prep; weekly review entry |
-| Monthly | Update `context.md` priorities and active initiatives |
+| Weekly (Fri) | Roundtable prep; weekly review entry; vault lint; cadence check |
+| Monthly | Update `context.md` priorities and active initiatives; repo lint (`workflows/repo-lint.md`) |
