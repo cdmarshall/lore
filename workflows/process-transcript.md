@@ -1,223 +1,151 @@
 # Process Meeting Transcript
 
-Extract insights from meeting transcripts (especially Plaud AI exports) and update relevant files.
+Extract insights from meeting transcripts (especially Plaud AI exports) and update relevant files. All output follows VOICE.md.
 
 ## Input
 
-**How to invoke**, tell the agent one of the following:
-- "Process any new transcripts", check `meetings/transcripts/` for unprocessed files
-- "Process [filename]", process a specific transcript file
-- "Process this transcript: [Meeting context]" then paste the content, use when pasting a transcript directly
+Invoke with one of:
+- "Process any new transcripts", check `meetings/transcripts/` for unprocessed files.
+- "Process [filename]", process a specific transcript file.
+- "Process this transcript: [meeting context]" then paste the content, use when pasting directly.
 
-## Storage Mode
+## Storage mode
 
-This workflow operates differently depending on whether Obsidian mode is active (see `CLAUDE.md` → Obsidian Detection). Both modes follow the same extraction logic in sections 1–4; the difference is in section 5 (Update Files), where the targets diverge:
-
-- **Filesystem mode**: writes meeting notes to `meetings/notes/`, observations into `team/*.md` and `stakeholders/*.md`, decisions to `decisions/log.md`. See "Section 5, Filesystem Mode" below.
-- **Obsidian mode**: writes meeting notes into the vault under `Lore/Meetings/`, observations into the person's vault note via `edit_note`, decisions as one-note-per-decision under `Lore/Decisions/`. Cross-references use wikilinks. See "Section 5, Obsidian Mode" below.
-
-Both modes push the user's action items to the live artifact identically. The action-items hard rule from `CLAUDE.md` applies in both modes.
+Sections 0–4 are mode-independent. Section 5 (Update Files) diverges by mode. Decide the mode once per session: see `_conventions.md` → Storage-mode branching. Action items push identically in both modes (section 5, Both Modes).
 
 ## Instructions
 
-### 0. Identify the User in the Transcript
+### 0. Identify the user in the transcript
 
-**IMPORTANT**: The user (you, the agent's principal) is named in `context.md` under the **Role** section. When their name appears as a speaker in the transcript, that's the user. Anything they said or committed to belongs to them, don't create observations about the user themselves.
+The user is named in `context.md` under **Role**. When their name appears as a speaker, that's the user. Do not create observations about the user (CLAUDE.md hard rule).
 
-### 1. Check for New Transcripts
+### 1. Check for new transcripts
 
-**If no arguments provided, check for unprocessed files:**
+If no arguments given, find unprocessed files:
 
-1. List files in `meetings/transcripts/` directory
-2. Compare against `meetings/transcripts/.processed` (list of already-processed filenames)
-3. If new files exist, report them and ask which to process (or process all)
+1. List `meetings/transcripts/` (`bash ls`, per CLAUDE.md folder rule).
+2. Compare against `meetings/transcripts/.processed` (already-processed filenames).
+3. If new files exist, report them and ask which to process (or process all).
 
-**File naming convention:**
-- Recommended format: `YYYY-MM-DD - Meeting Title.md` or `.txt`
-- Extract date and meeting name from filename when possible
+File naming: recommended `YYYY-MM-DD - Meeting Title.md` or `.txt`. Extract date and meeting name from the filename when possible.
 
-**After processing each file:**
-1. Add filename to `meetings/transcripts/.processed`
-2. Optionally move to `meetings/transcripts/archive/` if user prefers
+After processing each file, append the filename to `meetings/transcripts/.processed` (append-only, never rewrite). Optionally move to `meetings/transcripts/archive/` if the user prefers.
 
-### 2. Identify Participants
+### 2. Identify participants
 
-**Match speakers to known people using `context.md` and the existing files:**
+Match speakers to known people via `context.md`: user's name under **Role**; direct reports under **My Team** (profiles in `team/*.md`); key stakeholders under **Key Stakeholders** (profiles in `stakeholders/*.md`).
 
-- The user's name is in `context.md` under **Role**.
-- Direct reports are listed in `context.md` under **My Team** and have profiles in `team/*.md`.
-- Key stakeholders are listed in `context.md` under **Key Stakeholders** and have profiles in `stakeholders/*.md`.
+Unknown participants:
+- In Obsidian mode, always Read `<vault-path>/People/<Full Name>.md` before concluding a person has no profile. Applies to everyone named, not just speakers (new hires, people referenced in passing, anyone who didn't speak). If the exact path is missing, `bash ls` the `People/` folder for near-matches before concluding the note is new. A direct Read/ls miss is the only reliable absence signal; never infer absence from a vault search or dataview query, or from the person not being a known report/stakeholder.
+- Only after confirming the note doesn't exist: note them in the summary and ask "Should I create a stakeholder file for [Name]?" If yes, create `stakeholders/{firstname-lastname}.md` from `templates/stakeholder.template.md`.
 
-**Unknown participants:**
-- Note them in the summary
-- Ask the user: "Should I create a stakeholder file for [Name]?"
-- If yes, create `stakeholders/{firstname-lastname}.md` from `templates/stakeholder.template.md`
+### 3. Extract information
 
-### 3. Extract Information
+**Glossary pass (whole transcript):** apply `context.md` → Terminology & Corrections and maintain the glossary per `_conventions.md` → Terminology and glossary. Flag conflicts and propose new recurring terms in the output summary.
 
-**For each identified person (except the user), extract:**
+For each identified person (except the user), extract:
+- **Projects & initiatives**: what they're working on, updates, blockers/dependencies, timeline references.
+- **Wins & concerns**: accomplishments and excitement; frustrations and stress indicators.
+- **Communication patterns**: how they engaged (dominant, quiet, collaborative), notable dynamics.
+- **Decisions made**: decisions reached, context/rationale, options considered and rejected. Before logging, apply the decision-log test (`_conventions.md` → Decision-log discipline). Failing decisions stay in the meeting note only; no log entry for routine calls ("we'll meet Tuesday," "Jane takes the ticket").
+- **Action items**: commitments they made, requests made of them, follow-ups they own.
 
-**Projects & Initiatives**
-- What are they working on?
-- What updates did they share?
-- Any blockers or dependencies mentioned?
-- Timeline or deadline references?
+For the user: extract their action items and commitments. These push to the artifact as `add` ops (section 5, Both Modes). Never write `inbox/action-items.md`.
 
-**Wins & Concerns**
-- Positive updates, accomplishments, excitement
-- Frustrations, concerns, stress indicators
-- Things going well vs. struggling
+### 4. Identify and update projects
 
-**Communication Patterns**
-- How did they engage? (dominant, quiet, collaborative)
-- Any notable interactions or dynamics?
+Look for projects, initiatives, or ongoing work named in the transcript. Cross-reference the Active Initiatives table in `context.md`.
 
-**Decisions Made**
-- Any decisions reached in this meeting
-- Context and rationale if discussed
-
-**Action Items**
-- Commitments THEY made (not the user)
-- Requests made of them
-- Follow-ups they need to handle
-
-**For the user:**
-- Extract their action items and commitments
-- These will be pushed to the live action items artifact as `add` operations. **Do not** write to `inbox/action-items.md` (see `workflows/action-items.md`).
-
-### 4. Identify and Update Projects
-
-**Look for mentions of projects, initiatives, or ongoing work** named in the transcript. Cross-reference against the Active Initiatives table in `context.md`.
-
-**For each project mentioned:**
-
-- **If a project file exists** (`projects/[slug].md` in filesystem mode; `Projects/[Name].md` in Obsidian mode): append a dated status block under `## Current Phase` with any meaningful updates from the transcript (decisions reached, blockers surfaced, phase progress, next steps). In Obsidian mode, use `edit_note(identifier: "Projects/<Name>", operation: "find_replace")` with the last line of that section as the anchor.
+For each project mentioned:
+- **Project file exists** (`projects/[slug].md` filesystem; `Projects/[Name].md` Obsidian): append a dated status block under `## Current Phase` with meaningful updates (decisions, blockers, phase progress, next steps). In Obsidian mode, Edit the project note, anchored on (inserting after) the last line of that section.
   ```markdown
   **YYYY-MM-DD:**
   - [Update from this meeting]
   ```
-- **If no project file exists yet** for a recognized initiative: create one using `templates/project.template.md`, filling in what's known from the transcript and `context.md`. Ask the user to confirm before creating.
-- **If the initiative is brand new** (not in `context.md`): note it in the meeting summary and ask the user whether to add it to `context.md` Active Initiatives and create a project file.
+- **No project file for a recognized initiative:** create from `templates/project.template.md` with what's known; ask the user to confirm first.
+- **Brand-new initiative** (not in `context.md`): note it in the summary and ask whether to add it to `context.md` Active Initiatives and create a project file.
 
-Do not create or update `context.md` Active Initiatives rows automatically; prompt the user for new entries.
+Do not touch `context.md` Active Initiatives rows automatically; prompt the user.
 
-### 5. Update Files
+### 5. Update files
 
-Branch on storage mode (see "Storage Mode" at the top of this file).
+Branch on storage mode (`_conventions.md` → Storage-mode branching). Targets by mode:
 
-#### Section 5, Filesystem Mode
+| Artifact | Filesystem | Obsidian |
+|----------|-----------|----------|
+| Meeting note | `meetings/notes/{date}-{meeting-name}.md` | `Lore/Meetings/<YYYY-MM-DD> <kind> <subject>.md` |
+| Raw transcript | `meetings/transcripts/{date}-{meeting-name}.md` | `Lore/Transcripts/<YYYY-MM-DD> <kind> <subject>.md` |
+| Observations | `team/*.md`, `stakeholders/*.md` | person's vault note via Edit |
+| Decisions | `decisions/log.md` | one note per decision, `Lore/Decisions/` |
 
-**For team members and stakeholders with existing files:**
-- Append a new dated entry to the `## Observations` section, newest first (insert before the first existing `###` entry)
-- Do NOT use thematic subsections (Communication Style, Wins & Concerns, Relationships & Dynamics, Team Dynamics, etc.)
-- Append to existing content, don't overwrite
-- Use this format:
+Obsidian path resolution and the `Lore/` subfolder override: `_conventions.md` → Path resolution. Templates translate into vault notes; don't fork templates into the vault (`_conventions.md`). Any new person, project, or decision note also gets an `Index.md` line (`_conventions.md` → Vault index).
+
+**Observations (both modes):** append a dated entry to `## Observations`, newest first (insert before the first existing `###`). No thematic subsections. Append, never overwrite. Format:
   ```markdown
   ### YYYY-MM-DD - [Meeting context]
 
   - [Observation 1]
   - [Observation 2]
   ```
+  In Obsidian mode the entry header wikilinks the meeting note: `### YYYY-MM-DD - [[YYYY-MM-DD <kind> <subject>]]`, so observations backlink to the meeting.
 
-**For decisions:**
-- Add significant decisions to `decisions/log.md` using the format from `templates/decision-log-entry.template.md`
+**Meeting note (both modes):**
+- **Plaud note available** (fetched via `mcp__plaud__get_note` during plaud-sync): use its body as primary content. Apply terminology corrections; in Obsidian mode also resolve all participant/project names to `[[Name]]`. Save from `templates/meeting-note.template.md`. Do not regenerate a summary the Plaud note already covers.
+- **No Plaud note** (manual drop or fetch failed): generate the summary from the transcript.
+- The body summarizes the meeting; it does not restate any attendee's role, team, or history (Obsidian: wikilink instead, per `_conventions.md` → Linking and deduplication).
 
-**For meeting notes:**
-- **If a Plaud note is available** (fetched via `mcp__plaud__get_note` during plaud-sync): use its body as the primary content. Apply terminology corrections from `context.md`, then save to `meetings/notes/{date}-{meeting-name}.md` using the format from `templates/meeting-note.template.md`. Do not regenerate a summary the Plaud note already covers.
-- **If no Plaud note is available** (transcript was dropped in manually or Plaud note fetch failed): generate the summary from the transcript as before.
+**Raw transcript:** save to the mode's transcript path, keeping original timestamps and speaker labels.
 
-**Save raw transcript:**
-- Save to `meetings/transcripts/{date}-{meeting-name}.md`
-- Keep original format (timestamps and speaker labels)
+#### Section 5, Obsidian-specific details
 
-#### Section 5, Obsidian Mode
+**Person notes:**
+- **Existence check** via a direct Read of the exact expected path (done in section 2 for everyone named); if missing, `bash ls` the `People/` folder for near-matches before concluding the note is new. Never assert a note is missing from a vault search or dataview query miss.
+- **Note exists:** add the observation inside `## Observations` via Edit. **Never append to the end of the file for observations on an existing note** (it dumps content outside the section). Read the note, find the anchor inside `## Observations` (the first existing `###` entry), and Edit to insert the new entry immediately above it. Only if `## Observations` does not exist, Edit to add the full section (heading plus entry) in the right place in the note.
+- **Note missing for a known report/stakeholder:** create from `templates/team-member.template.md` or `templates/stakeholder.template.md` translated into the vault, saved to `Lore/People/<Full Name>.md`.
+- **Unknown participants:** same ask-first flow as filesystem mode. On confirmation, create `Lore/People/<Full Name>.md` from the stakeholder template, frontmatter `type: person, role: stakeholder/external` (or as specified), tag `#person/stakeholder/external`.
 
-**Path resolution:** all vault paths are under the configured Lore subfolder (default `Lore/`). If the user has overridden the subfolder name in `context.md` under "Notes for Lore" → "Vault Configuration" (e.g., `Lore - Rate/`), substitute that everywhere `Lore/` appears below.
+**Decisions:** one note per decision, `Lore/Decisions/<YYYY-MM-DD> <Short Title>.md`, from `templates/decision-log-entry.template.md` translated into the vault. Frontmatter per `_conventions.md` → Frontmatter schemas (Decision), tag `#decision/active`, body wikilinks every person and project. Do **not** append to `decisions/log.md` in Obsidian mode; the vault is canonical.
 
-**For each identified person:**
+**Meeting note frontmatter** per `_conventions.md` → Frontmatter schemas (Meeting); tag `#meeting/<kind>`.
 
-**Step 1 — Check existence with `read_note`, not `search_notes`.**
-Always call `read_note("People/<Full Name>")` directly. `search_notes` is a fuzzy/semantic search and will silently miss existing notes. `read_note` either returns the note or errors — it is the only reliable existence check. **Never assert a note doesn't exist based on a `search_notes` miss; always confirm with `read_note` first.**
+**Tracking files:** `.processed` and `.plaud-processed` stay in the repo (not the vault); append as in filesystem mode.
 
-**Step 2 — If the note exists**, add the new observation inside the `## Observations` section using `edit_note` with `operation: "find_replace"`. **NEVER use `operation: "append"` for observations on an existing note — appending dumps content at the end of the file, outside the Observations section, which is wrong.** Instead: (1) read the note (already done in Step 1), (2) find the correct insertion anchor inside `## Observations`, (3) use `find_replace`. If the note has a "Newest first" instruction, insert the new entry *before* the first existing `###` entry. Otherwise, insert after the last observation entry. If `## Observations` doesn't exist yet, then (and only then) use `edit_note(operation: "append")` to add the full section. Format for each entry:
-  ```markdown
-  ### YYYY-MM-DD — [[YYYY-MM-DD <kind> <subject>]]
+#### Section 5, Both Modes: user's action items
 
-  - [Observation 1]
-  - [Observation 2]
-  ```
-  The wikilink in the entry header points back to the meeting note created below, so the observation timeline naturally backlinks to the meeting.
+Push as `add` operations to the live artifact per the procedure in CLAUDE.md → Action items and `workflows/action-items.md`. Never write `inbox/action-items.md`.
 
-**Step 3 — If the note does not exist** for someone who is a known direct report or stakeholder (per `context.md`), create it from `templates/team-member.template.md` or `templates/stakeholder.template.md` translated into the vault (frontmatter applied, tag set, body sections preserved). Save to `Lore/People/<Full Name>.md`.
+Per `add` op:
+- `item.date` = meeting/source date (when the item originated)
+- `item.created` = today (`YYYY-MM-DD`)
+- `item.from` = meeting name or context
+- `item.subject` = short title
+- `item.actionNeeded` = full description
+- `item.due` = `ASAP`, `Soon`, `This week`, `TBD`, or `YYYY-MM-DD`
+- `item.lore` = `"Y"` if Lore could plausibly do or advance it from inside the workspace, else `""`
+- `item.specialist` = `"Y"` if a sibling specialist agent (e.g., Sigil) could pick it up autonomously, else `""`
+- `item.notes` = blank unless the transcript gives notes-worthy context
 
-**For unknown participants:**
-- Same flow as filesystem mode (ask user before creating). On confirmation, create `Lore/People/<Full Name>.md` from the stakeholder template translated into the vault, with frontmatter `type: person, role: stakeholder/external` (or whatever the user specifies), plus tag `#person/stakeholder/external`.
-
-**For decisions:**
-- One note per decision under `Lore/Decisions/<YYYY-MM-DD> <Short Title>.md`, using `templates/decision-log-entry.template.md` translated into the vault. Frontmatter:
-  ```yaml
-  type: decision
-  date: YYYY-MM-DD
-  status: active
-  owner: "[[Owner Name]]"
-  projects: ["[[Project Name]]"]
-  ```
-  Tag `#decision/active`. Body wikilinks every person and project involved.
-- Do **not** append to `decisions/log.md` in Obsidian mode. The vault is canonical for decisions. (The filesystem `decisions/log.md` remains untouched if it exists from prior sessions; it's not used as a source of truth in Obsidian mode.)
-
-**For meeting notes:**
-- **If a Plaud note is available** (fetched via `mcp__plaud__get_note` during plaud-sync): use its body as the primary content. Apply wikilinks (resolve all participant and project names to `[[Name]]` form), apply terminology corrections from `context.md`, then save to `Lore/Meetings/<YYYY-MM-DD> <kind> <subject>.md` with the frontmatter below. Do not regenerate a summary the Plaud note already covers.
-- **If no Plaud note is available**: generate the summary from the transcript as before.
-- Save to `Lore/Meetings/<YYYY-MM-DD> <kind> <subject>.md`, using `templates/meeting-note.template.md` translated into the vault. Frontmatter:
-  ```yaml
-  type: meeting
-  kind: 1on1 | staff | roundtable | decision | external
-  date: YYYY-MM-DD
-  attendees: ["[[Name1]]", "[[Name2]]"]
-  related_projects: ["[[Project Name]]"]
-  ```
-  Tag with the appropriate `#meeting/<kind>` tag.
-- The body summarizes the meeting. It does **not** restate any attendee's role, team, or history. Use wikilinks. The reader can follow the link to the person's note for that context.
-- Save the raw transcript to `Lore/Transcripts/<YYYY-MM-DD> <kind> <subject>.md` (keep original timestamps and speaker labels).
-
-**Tracking files:**
-- `meetings/transcripts/.processed` and `meetings/transcripts/.plaud-processed` still live in the workspace repo (not in the vault). Append to them as in filesystem mode. Obsidian ignores dotfiles; keeping them in the repo preserves the existing tracking semantics.
-
-#### Section 5, Both Modes: For the user's action items
-- **Push as `add` operations to the live artifact.** Build one `add` operation per new action item, then push via the procedure in `workflows/action-items.md` → "Procedure for agent-driven changes." Do NOT write to `inbox/action-items.md`.
-- For each `add` op:
-  - `item.date` = meeting/source date (the date the item originated)
-  - `item.created` = today's date (`YYYY-MM-DD`)
-  - `item.from` = meeting name or context
-  - `item.subject` = short title
-  - `item.actionNeeded` = full description of what needs to happen
-  - `item.due` = `ASAP`, `Soon`, `This week`, `TBD`, or `YYYY-MM-DD`
-  - `item.lore` = `"Y"` if Lore could plausibly do or substantially advance the item from inside the workspace, else `""`
-  - `item.specialist` = `"Y"` if a sibling specialist agent (e.g., Sigil) could pick it up autonomously, else `""`
-  - `item.notes` = blank unless the transcript provides notes-worthy context
-- **Dedup is handled by the artifact** on `subject + from` (normalized). The artifact will no-op an `add` if the key already exists. For consolidation (the new context adds real value to an existing item), emit an `update` op on the existing item instead of a duplicate `add`, and report it in the summary:
+Dedup is authoritative on `subject + from` (normalized): the artifact no-ops a duplicate `add`. When new context adds real value to an existing item, emit an `update` op instead of a duplicate `add` and report it:
   ```
   Consolidated: "[Proposed item]" → updated existing item "[Existing Subject]" with [new context].
   ```
-- After pushing, surface every operation to the user in the Output Summary so they can verify (the artifact's bootstrap toast also confirms how many ops applied).
+After pushing, verify per `_conventions.md` → Verification loops (confirm the build succeeded, report the op count) and surface every operation in the Output Summary.
 
-### 6. Output Summary
-
-After processing, provide:
+### 6. Output summary
 
 ```markdown
 ## Meeting Processed: [Date] - [Meeting Name]
 
 ### Summary
-[2-3 sentence overview of the meeting]
+[2-3 sentence overview]
 
 ### Participants
 - **You** (the user)
-- [Other attendee 1] - [Known team member / Known stakeholder / New]
-- [Other attendee 2]
+- [Attendee 1] - [Known team member / Known stakeholder / New]
+- [Attendee 2]
 
 ### Files Updated
-(Filesystem mode paths shown; in Obsidian mode substitute `Lore/Meetings/`, `Lore/Transcripts/`, `Lore/People/`, `Lore/Decisions/`.)
+(Filesystem paths shown; in Obsidian mode substitute `Lore/Meetings/`, `Lore/Transcripts/`, `Lore/People/`, `Lore/Decisions/`.)
 - meetings/notes/{date}-{meeting-name}.md - Meeting summary created
 - meetings/transcripts/{date}-{meeting-name}.md - Raw transcript saved
 - team/{person}.md - Added observations
@@ -229,10 +157,10 @@ After processing, provide:
 - [ ] [Action 1] - Due: [date/TBD]
 - [ ] [Action 2] - Due: [date/TBD]
 
-**Consolidated into existing items** (only include if any):
+**Consolidated into existing items** (only if any):
 - Consolidated: "[Proposed item]" → updated existing item "[Existing Subject]" with [new context]
 
-(The artifact also dedupes `add` ops authoritatively on subject + from, so any exact duplicates are silently no-oped.)
+(The artifact dedupes `add` ops on subject + from, so exact duplicates are silently no-oped.)
 
 ### Others' Action Items (Tracked in meeting notes)
 - [ ] [Person]: [Action] - Due: [date]
@@ -260,31 +188,23 @@ Transcript processed and archived.
 
 ## Tips
 
-- **The user is named in `context.md`**, don't create observations about them.
-- When uncertain if something is noteworthy, err on the side of capturing it.
-- Personal observations (mood, engagement level) go in Observations, not 1:1 Notes.
+- The user is named in `context.md`; don't create observations about them.
+- When uncertain if something is noteworthy, capture it.
+- Personal observations (mood, engagement) go in Observations, not 1:1 notes.
 - Look for patterns across meetings over time.
 - Flag anything that might indicate someone needs support.
-- For Plaud transcripts: speaker labels are consistent, timestamps can be ignored for analysis.
-- If the meeting involves external parties (customers, partners, vendors), note the business context.
+- Plaud transcripts: speaker labels are consistent; timestamps can be ignored for analysis.
+- External parties (customers, partners, vendors): note the business context.
 
-## Adding Transcripts
+## Adding transcripts
 
-**Option 1: Drop files in the folder**
-```
-meetings/transcripts/
-```
-Recommended filename format: `YYYY-MM-DD - Meeting Title.md`
+- **Drop files** in `meetings/transcripts/` (recommended `YYYY-MM-DD - Meeting Title.md`).
+- **Paste directly:** "Process this transcript: [meeting context]" then paste (with timestamps and speaker labels).
+- **Let the agent check:** "Process any new transcripts" scans `meetings/transcripts/` for unprocessed files.
 
-**Option 2: Paste directly**
-Tell the agent "Process this transcript: [Meeting context]" and paste the transcript content (with timestamps and speaker labels).
+## Plaud AI specifics
 
-**Option 3: Let the agent check for new files**
-Say "Process any new transcripts", the agent will check `meetings/transcripts/` for unprocessed files.
-
-## Plaud AI Specifics
-
-Plaud transcripts have this format:
+Plaud format:
 ```
 00:00:01 Speaker Name
 Transcript text here...
@@ -292,9 +212,4 @@ Transcript text here...
 00:00:27 Other Speaker
 More text...
 ```
-
-When processing:
-- Extract speaker names from label lines
-- Timestamps help with context but aren't critical for analysis
-- Speaker labels are consistent throughout
-- Multiple lines can belong to the same speaker before the next timestamp
+Extract speaker names from label lines; timestamps aid context but aren't critical; speaker labels are consistent; multiple lines can belong to one speaker before the next timestamp.
