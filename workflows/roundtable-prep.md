@@ -2,15 +2,17 @@
 
 Prepare for a recurring team roundtable / leadership meeting.
 
-> **Note**: This workflow assumes a weekly meeting where the user gives a status update, hears from each direct report, surfaces blockers, and assigns action items. Adjust the agenda to fit the actual meeting cadence and structure.
+> Assumes a weekly meeting: user status update, round-robin from each direct report, blockers, action items. Adjust the agenda to the actual cadence.
+
+All output follows VOICE.md.
 
 ## Default Agenda (for reference)
 
-1. **North Star & Leadership Check-In** (5 min), Strategic alignment, top-down updates from leadership
+1. **North Star & Leadership Check-In** (5 min), strategic alignment, top-down updates
 2. **Roadmap Review, Active Project Updates, & Milestone Celebrations** (15 min), Green/Yellow/Red health check, milestone celebrations, upcoming initiatives
-3. **Team Round-Robin** (25 min), Each team member: Recap / Focus / Blockers
-4. **Parking Lot** (10 min), Complex issues flagged during Round-Robin
-5. **Action Items & Wrap-Up** (5 min), Who unblocks whom, who schedules what
+3. **Team Round-Robin** (25 min), each team member: Recap / Focus / Blockers
+4. **Parking Lot** (10 min), complex issues flagged during Round-Robin
+5. **Action Items & Wrap-Up** (5 min), who unblocks whom, who schedules what
 
 ---
 
@@ -18,50 +20,50 @@ Prepare for a recurring team roundtable / leadership meeting.
 
 ### 1. Read Source Files
 
-Read the following files in parallel:
-- `context.md`, current priorities, active initiatives, and the user's team list
-- `strategy/roadmap.md` if it exists, for high-level strategic direction
-- Each active project file in `projects/` (filesystem mode) or `Projects/` vault notes (Obsidian mode) for current phase and status. In Obsidian mode, use `search_notes(note_types: ["project"], metadata_filters: {status: "active"})` to pull all active project notes.
-- One file per direct report under `team/`, each team member's recent observations
+Storage mode: see `_conventions.md` → Storage-mode branching.
 
-For action items (completed-this-week, active blockers, delegated items), try the read paths in order:
+Read in parallel:
+- `context.md`: priorities, active initiatives, team list
+- `strategy/roadmap.md` if it exists
+- Each active project file in `projects/` (filesystem mode) or `Projects/` vault notes (Obsidian mode): query for `status: active` via the dataview MCP tool, falling back to Grep per `_conventions.md` → Vault access tooling.
+- One file per direct report under `team/`, recent observations
 
-1. **Check `inbox/action-items.snapshot.md`** (`bash ls inbox/action-items.snapshot.md`). If present, parse it once at the start of prep and use it for sections 2, 3, and 4. Primary path.
-2. **Check `inbox/action-items-state.json`** (future-proof; rarely exists today). Same purpose, JSON shape.
-3. **If neither file exists**, ask the user: *"Want roundtable prep to include this week's completed items, active blockers, and delegated follow-ups? If yes, click Download snapshot in your action items artifact and save the file to `inbox/action-items.snapshot.md` (or paste it here)."*
-4. **If they decline**, skip sections that depend on action items state and leave placeholders.
+For action items (completed-this-week, active blockers, delegated items), try in order:
 
-Never read `inbox/action-items.md` (legacy backup, distinct from `action-items.snapshot.md`).
+1. `bash ls inbox/action-items.snapshot.md`. If present, parse once at the start and use for sections 2-4. Primary path.
+2. `inbox/action-items-state.json` if it exists (future-proof, rarely present today). Same shape, JSON.
+3. If neither exists, ask: *"Want roundtable prep to include this week's completed items, active blockers, and delegated follow-ups? If yes, click Download snapshot in your action items artifact and save the file to `inbox/action-items.snapshot.md` (or paste it here)."*
+4. If declined, skip the dependent sections; leave placeholders.
+
+Never read `inbox/action-items.md` (see CLAUDE.md → Key behaviors).
 
 ### 2. Identify This Week's Completed Items
 
-If you have a view of state, scan the `completed` items for entries where `completed` falls in this week (current Mon-Fri). These form the **Milestone Celebrations** segment and the user's personal **Recap**.
+If you have a view of state, scan `completed` items for entries where `completed` falls in this week (Mon-Fri). These feed **Milestone Celebrations** and the user's own **Recap**.
 
-If no view is available, leave the section as a placeholder: *"(Fill in from the action items artifact: items completed this week.)"*
+No view: placeholder, *"(Fill in from the action items artifact: items completed this week.)"*
 
 ### 3. Identify Active Blockers
 
-If you have a view of state, scan the `active` items and surface:
-- Any OVERDUE items (due date is in the past)
-- Any items explicitly waiting on another person or team (notes / actionNeeded)
-- Any items marked ASAP
+If you have a view of state, scan `active` items for:
+- OVERDUE items (due date in the past)
+- Items explicitly waiting on another person or team (notes / actionNeeded)
+- Items marked ASAP
 
-These are candidates for the **Parking Lot**. If no view is available, add a placeholder.
+Candidates for the **Parking Lot**. No view: placeholder.
 
 ### 4. Anticipate Team Round-Robin Updates
 
-For each direct report (named in `context.md`), scan their `team/[name].md` file's recent Observations to infer likely:
-- **Recap**: What they probably finished or progressed this week
-- **Focus**: What they're likely heads-down on next week
-- **Blockers**: Any known dependencies or blockers mentioned in observations
+For each direct report (named in `context.md`), scan `team/[name].md` recent Observations to infer:
+- **Recap**: what they probably finished or progressed this week
+- **Focus**: what they're likely heads-down on next week
+- **Blockers**: known dependencies or blockers in observations
 
-If you have a view of state, also scan the `delegated` items for any assigned to this person. Surface them as **Follow-up** prompts so the user can close the loop during the Round-Robin. If no view is available, add a placeholder line under each team member's Follow-up section.
+If you have a view of state, also scan `delegated` items assigned to this person and surface as **Follow-up** prompts so the user can close the loop live. No view: placeholder line under Follow-up.
 
-Use hedged language (e.g., "likely to mention", "may flag") for the inferred parts, these are prompts to help the user listen and respond, not authoritative summaries.
+Hedge the inferred parts ("likely to mention", "may flag"): prompts for the user to listen for, not authoritative summaries.
 
 ### 5. Generate Prep Output
-
-Output a structured prep brief:
 
 ```markdown
 # Roundtable Prep, [Date]
@@ -133,9 +135,9 @@ Output a structured prep brief:
 
 ## Tips
 
-- The Round-Robin section is for the user's prep, they're listening and facilitating, not reading these notes aloud.
-- Parking Lot items should only go there if they genuinely need >2 min to resolve.
+- Round-Robin section is prep for listening and facilitating, not a script to read aloud.
+- Parking Lot only for items that genuinely need >2 min to resolve.
 - If `strategy/roadmap.md` isn't populated, note that and skip the roadmap framing.
-- For the Project Health table, prefer status from individual `projects/` files over the Active Initiatives table in `context.md` -- project files are the authoritative source of current phase and blockers.
-- Completed items with no resolution note can be listed with just the subject.
+- Project Health table: prefer status from individual `projects/` files over `context.md`'s Active Initiatives table, project files are authoritative on phase and blockers.
+- Completed items with no resolution note: list with just the subject.
 - Flag if any team member has a pattern of blockers that may need a dedicated sync.
