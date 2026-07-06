@@ -33,6 +33,7 @@ lore/
 ├── VOICE.md             style contract for all outward artifacts        [committed]
 ├── README.md           human setup guide                                [committed]
 ├── STATE.md             session memory: facts, failures, resume point   [GI]
+├── commitments.md       promise ledger (filesystem mode; vault has Commitments.md) [GI]
 ├── context.md           user role/team/priorities (READ FIRST)          [GI]
 ├── evals/               voice eval harness; examples/ is personal       [committed + GI]
 ├── archive/             retired workflows, kept for history             [committed]
@@ -84,6 +85,8 @@ Read the matching file and follow it.
 | "grill me" / "stress-test this" / "poke holes in this" | `workflows/grill-me.md` |
 | "write a handoff" / "wrap up this session" | `workflows/handoff.md` |
 | "lint the workflows" / "audit the instructions" / monthly instruction audit | `workflows/repo-lint.md` |
+| "what am I waiting on" / "show my commitments" / "who owes me what" / "track this promise" | `workflows/commitments.md` |
+| "cadence check" / "who am I overdue to see" / "relationship check" | `workflows/cadence.md` |
 
 - **morning-sync** works on calendar/priorities the user provides manually; no live fetch by default.
 - **triage** is the single triage entry point: one draft-and-hold pass over Outlook, Slack, and Teams. It never sends. Slack replies become native drafts; email and Teams replies stage as files in `outbox/drafts/`. Teams group chats are summarized, not drafted. Reads `triage-config.md` (created on first run) and `email-config.md`; tracks state in the `inbox/.*-processed` dotfiles.
@@ -138,5 +141,5 @@ Obsidian-mode targets, frontmatter, and taxonomy: `_conventions.md`.
 | Daily | Review the action items artifact |
 | Before 1:1s | Read the team member's note |
 | After meetings | Process transcript; update notes, observations, action items |
-| Weekly (Fri) | Roundtable prep; weekly review entry; vault lint |
+| Weekly (Fri) | Roundtable prep; weekly review entry; vault lint; cadence check |
 | Monthly | Update `context.md` priorities and active initiatives; repo lint (`workflows/repo-lint.md`) |

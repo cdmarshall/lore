@@ -28,7 +28,7 @@ Prefer the Semantic Notes Vault MCP query tools (`dataview`, `graph`, `vault`) f
 
 **d. Schema drift on person notes.** Check every `People/` note against `_conventions.md` → Person note structure: an `# Name` H1 (should have none); a `## Overview` table (identity data belongs in frontmatter only); thematic Observations subsections instead of one flat `## Observations` heading; a missing `## Active Projects` section, or one whose dataview block doesn't match the canonical query verbatim (hand-edited or stale).
 
-**e. Staleness.** Direct reports (`role: direct-report`) whose `last_1on1` is over 21 days old or missing. Projects with `status: active` and no dated entry in `## Current Phase` in the last 14 days.
+**e. Staleness.** Direct reports (`role: direct-report`) whose `last_1on1` is over 21 days old or missing; the action-oriented view with outreach suggestions is `workflows/cadence.md`, point the user there. Projects with `status: active` and no dated entry in `## Current Phase` in the last 14 days: for each stale-project finding, include the last known state (the newest dated `## Current Phase` line, quoted short) and a one-line suggested nudge naming the project lead.
 
 **f. Contradictions.** Best-effort, flag only, never auto-resolve. Compare recent person-note observations against project frontmatter for the same project (e.g. an observation says a project shipped, but `status:` is still `active`), and the reverse.
 
@@ -77,7 +77,7 @@ Structure:
 - [note]: [violation]
 
 ## Staleness
-- [note]: [what's stale, how long]
+- [note]: [what's stale, how long]. Last known state: "[newest dated Current Phase line, quoted short]". Suggested nudge: check in with [project lead].
 
 ## Contradictions (flagged, not resolved)
 - [note] vs [note]: [the conflict]

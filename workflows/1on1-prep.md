@@ -20,6 +20,7 @@ Storage mode: see `_conventions.md` → Storage-mode branching.
 
 Read in parallel:
 - `team/[name].md`, their profile, active projects, recent observations, commitments
+- Open Waiting on / Promised entries involving this person from the commitments ledger (`workflows/commitments.md`)
 
 For action items involving this person (sourced from them, delegated to them, etc.), try the read paths in order:
 
