@@ -113,7 +113,8 @@ Applied to each new email. Stop at the first matching rule. Anchored on `context
 3. For each new email, parse From, To, Cc, Subject, Date. Pull the body with `read_resource` on the returned URI when a draft is likely.
 4. Categorize using the Email tier framework above.
 5. For Tier 1 items that need a reply and where the user is the bottleneck: draft a reply (see "Drafting"). Stage it as a file.
-6. Append processed Message-IDs to `inbox/.email-processed`.
+6. Capture the deep link for each item surfaced (for the HTML brief): use the message's `webLink`; if absent, build `https://outlook.office.com/mail/deeplink/read/<messageId>`. If neither can be constructed, leave the link empty and the brief shows the item without one.
+7. Append processed Message-IDs to `inbox/.email-processed`.
 
 ### 2. Slack pass
 
@@ -130,7 +131,8 @@ Applied to each new email. Stop at the first matching rule. Anchored on `context
 7. For each item warranting a response, draft it grounded in vault context, then create a **native Slack draft** with `slack_send_message_draft` (set `thread_ts` for thread replies; use the user's ID as `channel_id` for DM drafts).
    - Constraint: only one attached draft per channel. If `slack_send_message_draft` returns `draft_already_exists`, do not overwrite. Stage that reply in the briefing file and flag it.
    - The native draft is for the user to review and send from Slack. The workflow never sends; if the inline send fails, the draft still lives in "Drafts & Sent" to send manually.
-8. Append processed `ts` values to `inbox/.slack-processed`.
+8. Capture the deep link for each item surfaced (for the HTML brief): use the message's permalink. If a permalink cannot be resolved, leave the link empty and the brief shows the item without one.
+9. Append processed `ts` values to `inbox/.slack-processed`.
 
 ### 2b. Link enrichment (Slack + Teams)
 
@@ -185,7 +187,8 @@ Append these to the KB candidates pool alongside the Teams group-chat candidates
 7. **Do not auto-write group-chat candidates** (lower-confidence than direct-thread observations). Instead, prompt the user:
    - **Interactive run:** after presenting summaries, ask "Want me to update the knowledge base with any of these?" and apply only the ones confirmed (additive, via Edit on the entity note).
    - **Scheduled run:** list them in the briefing under "Knowledge base candidates (your call)" with a note that the user can reply "update KB with #1, #3" to apply. Hold until they do.
-8. Append processed IDs to `inbox/.teams-processed` for both direct and summarized messages.
+8. Capture the deep link for each item surfaced (for the HTML brief): build `https://teams.microsoft.com/l/message/<chatId>/<messageId>`. If `chatId` or `messageId` is missing, leave the link empty and the brief shows the item without one.
+9. Append processed IDs to `inbox/.teams-processed` for both direct and summarized messages.
 
 ### 4. Drafting (all sources)
 
@@ -219,17 +222,20 @@ After drafting, capture what the sweep revealed. **Never overwrite. Only append.
 Before presenting anything, spawn an independent verifier sub-agent over the assembled drafts and briefing. It does not know how the drafts were written; it grades fresh.
 
 Checks:
-1. **Voice.** Every draft and the briefing conform to VOICE.md (no em dashes, no banned constructions, length ceilings respected).
+1. **Voice.** Every draft and the briefing conform to VOICE.md (no em dashes, no banned constructions, length ceilings respected). If `evals/examples/` is present, pull 2 to 3 examples as calibration for the tone judgment.
 2. **Traceability.** Every factual claim (name, status, date, number, commitment, decision) traces to a specific source message, linked Jira/Confluence resource, or vault note. Flag any claim with no source.
+3. **HTML brief.** The filled `outbox/briefs/YYYY-MM-DD-HHMM.html` also passes: every claim in it traces to a source item or vault note (same standard as check 2); no `{{TOKEN}}` placeholders remain; every deep link is well-formed for its source type (email `webLink` or `outlook.office.com/mail/deeplink/read/`, Slack permalink, Teams `teams.microsoft.com/l/message/`), with no invented IDs and no link shown where none was captured; and the tone passes VOICE.md (same 2 to 3 `evals/examples/` calibration).
 
 On any fail, revise once addressing the specific gaps the verifier named, then present. Do not loop past one revision; if a gap survives, present with the gap flagged in the briefing for the user's call. Verification signal: `_conventions.md` → Verification loops.
 
 ### 7. Output
 
-1. Write the briefing to `outbox/triage/triage-YYYY-MM-DD.md` (append `-HHMM` if a second run lands the same day).
-2. Save staged email drafts under `outbox/drafts/email/YYYY-MM-DD-<slug>.md` and Teams drafts under `outbox/drafts/teams/YYYY-MM-DD-<slug>.md`. Each staged draft file includes recipient, subject (email), the thread/source link, and the ready-to-paste body.
-3. Update `inbox/.triage-last-run` to `run_start`.
-4. Print a one-paragraph summary to chat and link the briefing file.
+1. Write the markdown briefing to `outbox/triage/triage-YYYY-MM-DD.md` (append `-HHMM` if a second run lands the same day). Keep this exactly as specified in "Briefing format"; it is the grep-able fallback.
+2. Build the HTML brief: read `templates/brief.template.html`, fill every `{{TOKEN}}` from this run (needs-you items in priority order with numbers `01`, `02`, ...; deep links captured during the sweep; drafts inline in the `<details>` block with a one-line grounding note; worth-knowing groups; applied and candidate knowledge-base rows), and write it to `outbox/briefs/YYYY-MM-DD-HHMM.html`. Never leave a token in the output. Never fabricate a deep link: if an item has no captured link, drop its "Open in ..." anchor entirely. NO EM DASHES.
+3. Present the HTML brief as the primary deliverable (link `outbox/briefs/YYYY-MM-DD-HHMM.html`), with the markdown at `outbox/triage/...` named as the plain-text fallback.
+4. Save staged email drafts under `outbox/drafts/email/YYYY-MM-DD-<slug>.md` and Teams drafts under `outbox/drafts/teams/YYYY-MM-DD-<slug>.md`. Each staged draft file includes recipient, subject (email), the thread/source link, and the ready-to-paste body.
+5. Update `inbox/.triage-last-run` to `run_start`.
+6. Print a one-paragraph summary to chat and link the HTML brief (primary) and markdown briefing (fallback).
 
 ## Briefing format
 
@@ -304,7 +310,8 @@ Does NOT auto-push to the action items artifact. The briefing flags candidates; 
 
 ## Outputs
 
-- `outbox/triage/triage-YYYY-MM-DD.md`: per-run briefings.
+- `outbox/triage/triage-YYYY-MM-DD.md`: per-run markdown briefings (plain-text fallback).
+- `outbox/briefs/YYYY-MM-DD-HHMM.html`: per-run designed HTML brief (primary deliverable), filled from `templates/brief.template.html`.
 - `outbox/triage/triage-backlog-YYYY-MM-DD.md`: one-time backlog briefing.
 - `outbox/drafts/email/`, `outbox/drafts/teams/`: staged paste-ready drafts.
 - Native Slack drafts in the user's "Drafts & Sent."
