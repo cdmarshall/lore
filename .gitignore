@@ -7,6 +7,9 @@
 # --- Personal context (the master user profile) ---
 /context.md
 
+# --- Session memory (personal state file; template is committed) ---
+/STATE.md
+
 # --- Email triage config (personal sender lists, etc.) ---
 /email-config.md
 

@@ -10,6 +10,8 @@ status: active
 tags: [person/stakeholder/internal]   # or person/stakeholder/external
 ---
 
+> Obsidian-mode note: the frontmatter above (and any Dataview block) only functions inside a vault. In filesystem mode it is inert; keep it for later migration.
+
 ## Background
 
 > What you know about them: career history, how you came to work together, key context.

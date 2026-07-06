@@ -73,7 +73,7 @@ Loop until done. Don't push for completeness per person.
    - Current Focus Areas if mentioned
 3. Leave Strengths, Growth Areas, Career Goals, Working Style, Observations, and 1:1 Notes empty; these build over time.
 
-If two team members share a first name, use `firstname-lastname.md`. Person-note structure and frontmatter schema: `_conventions.md`.
+If two team members share a first name, use `firstname-lastname.md`. Person-note structure and frontmatter schema: `_conventions.md`. Filesystem-mode installs: the template's frontmatter and Dataview block are vault-only and inert; mention once that they can be ignored or deleted.
 
 ---
 
@@ -253,6 +253,10 @@ If no, skip to Phase 8. If yes, continue with whichever connectors are present.
 **In order:**
 
 1. Confirm `context.md` is fully written. Show a brief summary (3 to 5 lines).
+
+1b. **Seed the state file.** Copy `templates/state.template.md` to `STATE.md` at the repo root and write the first Last session entry ("onboarding completed, workspace created"). CLAUDE.md → Key behaviors → State file explains its lifecycle.
+
+1c. **Mention the evals harness** in one sentence: "When you correct my writing style, I save a before/after example to `evals/examples/` so it sticks; `evals/README.md` explains the format."
 
 2. **Create the live action items artifact.** The user's canonical action items tracker (sidebar widget: add, complete, delegate, search). Rules and full procedure: `workflows/action-items.md` and CLAUDE.md → Key behaviors.
 
