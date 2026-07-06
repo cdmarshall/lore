@@ -36,7 +36,7 @@ After processing each file, append the filename to `meetings/transcripts/.proces
 Match speakers to known people via `context.md`: user's name under **Role**; direct reports under **My Team** (profiles in `team/*.md`); key stakeholders under **Key Stakeholders** (profiles in `stakeholders/*.md`).
 
 Unknown participants:
-- In Obsidian mode, always `read_note("People/<Full Name>")` before concluding a person has no profile. Applies to everyone named, not just speakers (new hires, people referenced in passing, anyone who didn't speak). A `read_note` miss is the only reliable absence signal; never infer absence from `search_notes` or from the person not being a known report/stakeholder.
+- In Obsidian mode, always Read `<vault-path>/People/<Full Name>.md` before concluding a person has no profile. Applies to everyone named, not just speakers (new hires, people referenced in passing, anyone who didn't speak). If the exact path is missing, `bash ls` the `People/` folder for near-matches before concluding the note is new. A direct Read/ls miss is the only reliable absence signal; never infer absence from a vault search or dataview query, or from the person not being a known report/stakeholder.
 - Only after confirming the note doesn't exist: note them in the summary and ask "Should I create a stakeholder file for [Name]?" If yes, create `stakeholders/{firstname-lastname}.md` from `templates/stakeholder.template.md`.
 
 ### 3. Extract information
@@ -57,7 +57,7 @@ For the user: extract their action items and commitments. These push to the arti
 Look for projects, initiatives, or ongoing work named in the transcript. Cross-reference the Active Initiatives table in `context.md`.
 
 For each project mentioned:
-- **Project file exists** (`projects/[slug].md` filesystem; `Projects/[Name].md` Obsidian): append a dated status block under `## Current Phase` with meaningful updates (decisions, blockers, phase progress, next steps). In Obsidian mode, use `edit_note(identifier: "Projects/<Name>", operation: "find_replace")` anchored on the last line of that section.
+- **Project file exists** (`projects/[slug].md` filesystem; `Projects/[Name].md` Obsidian): append a dated status block under `## Current Phase` with meaningful updates (decisions, blockers, phase progress, next steps). In Obsidian mode, Edit the project note, anchored on (inserting after) the last line of that section.
   ```markdown
   **YYYY-MM-DD:**
   - [Update from this meeting]
@@ -75,10 +75,10 @@ Branch on storage mode (`_conventions.md` → Storage-mode branching). Targets b
 |----------|-----------|----------|
 | Meeting note | `meetings/notes/{date}-{meeting-name}.md` | `Lore/Meetings/<YYYY-MM-DD> <kind> <subject>.md` |
 | Raw transcript | `meetings/transcripts/{date}-{meeting-name}.md` | `Lore/Transcripts/<YYYY-MM-DD> <kind> <subject>.md` |
-| Observations | `team/*.md`, `stakeholders/*.md` | person's vault note via `edit_note` |
+| Observations | `team/*.md`, `stakeholders/*.md` | person's vault note via Edit |
 | Decisions | `decisions/log.md` | one note per decision, `Lore/Decisions/` |
 
-Obsidian path resolution and the `Lore/` subfolder override: `_conventions.md` → Path resolution. Templates translate into vault notes; don't fork templates into the vault (`_conventions.md`).
+Obsidian path resolution and the `Lore/` subfolder override: `_conventions.md` → Path resolution. Templates translate into vault notes; don't fork templates into the vault (`_conventions.md`). Any new person, project, or decision note also gets an `Index.md` line (`_conventions.md` → Vault index).
 
 **Observations (both modes):** append a dated entry to `## Observations`, newest first (insert before the first existing `###`). No thematic subsections. Append, never overwrite. Format:
   ```markdown
@@ -99,8 +99,8 @@ Obsidian path resolution and the `Lore/` subfolder override: `_conventions.md` �
 #### Section 5, Obsidian-specific details
 
 **Person notes:**
-- **Existence check** via `read_note` (done in section 2 for everyone named); never assert a note is missing from a `search_notes` miss.
-- **Note exists:** add the observation inside `## Observations` via `edit_note(operation: "find_replace")`. **Never `operation: "append"` for observations on an existing note** (it dumps content at end of file, outside the section). Read the note, find the anchor inside `## Observations`, `find_replace`, insert before the first existing `###`. Only if `## Observations` does not exist, use `edit_note(operation: "append")` to add the full section.
+- **Existence check** via a direct Read of the exact expected path (done in section 2 for everyone named); if missing, `bash ls` the `People/` folder for near-matches before concluding the note is new. Never assert a note is missing from a vault search or dataview query miss.
+- **Note exists:** add the observation inside `## Observations` via Edit. **Never append to the end of the file for observations on an existing note** (it dumps content outside the section). Read the note, find the anchor inside `## Observations` (the first existing `###` entry), and Edit to insert the new entry immediately above it. Only if `## Observations` does not exist, Edit to add the full section (heading plus entry) in the right place in the note.
 - **Note missing for a known report/stakeholder:** create from `templates/team-member.template.md` or `templates/stakeholder.template.md` translated into the vault, saved to `Lore/People/<Full Name>.md`.
 - **Unknown participants:** same ask-first flow as filesystem mode. On confirmation, create `Lore/People/<Full Name>.md` from the stakeholder template, frontmatter `type: person, role: stakeholder/external` (or as specified), tag `#person/stakeholder/external`.
 

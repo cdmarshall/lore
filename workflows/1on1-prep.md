@@ -34,7 +34,7 @@ Never read `inbox/action-items.md` (legacy backup, distinct from `action-items.s
 
 Identify which active projects this person is involved in:
 
-- **Obsidian mode**: active projects are not hand-maintained on the person's note (see `_conventions.md` → Person note structure). Query project notes in `Projects/` directly for `lead = [[Name]]` or `stakeholders` containing `[[Name]]`: use `search_notes(query: "<name>", note_types: ["project"])` or `search_notes(metadata_filters: {lead: "[[Name]]"})` as a starting point, then verify with the raw project notes.
+- **Obsidian mode**: active projects are not hand-maintained on the person's note (see `_conventions.md` → Person note structure). Query project notes in `Projects/` directly for `lead = [[Name]]` or `stakeholders` containing `[[Name]]`: prefer the dataview MCP tool for this frontmatter query first, falling back to Grep `Projects/` for `[[Name]]` and confirming the `lead`/`stakeholders` field in each hit's frontmatter block (list fields are multi-line YAML; key-line-only patterns miss them, `_conventions.md` → Vault access tooling), then verify with the raw project notes.
 - **Filesystem mode**: check `team/[name].md` for any project context noted there, then cross-reference `projects/[slug].md` files as the authoritative source.
 
 For each project surfaced:

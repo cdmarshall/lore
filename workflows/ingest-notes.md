@@ -101,7 +101,7 @@ Offer a recommended default based on note type, marked clearly.
 
 ## Step 2: Process the notes
 
-**Storage mode:** `_conventions.md` → Storage-mode branching. Legacy vault tool names (`write_note`, `edit_note`, etc.) map to native tools per `_conventions.md` → Vault access tooling.
+**Storage mode:** `_conventions.md` → Storage-mode branching. Vault access uses native tools (Read, Write, Edit, `bash ls`) for writes and plain reads, and is MCP-first for queries, per `_conventions.md` → Vault access tooling.
 
 **Filesystem mode:**
 - **Meeting notes** → `meetings/notes/YYYY-MM-DD-[slug].md` using `templates/meeting-note.template.md`
@@ -112,10 +112,10 @@ Offer a recommended default based on note type, marked clearly.
 - **Decisions** → `decisions/log.md` if a clear decision is captured
 
 **Obsidian mode:**
-- **Meeting notes** → vault note `Meetings/YYYY-MM-DD <kind> <subject>.md`, frontmatter per `_conventions.md` → Frontmatter schemas (Meeting). `write_note(title: "YYYY-MM-DD <kind> <subject>", directory: "Meetings/", content: "...", metadata: {type: "meeting", ...})`.
+- **Meeting notes** → Write the vault note `Meetings/YYYY-MM-DD <kind> <subject>.md`, frontmatter per `_conventions.md` → Frontmatter schemas (Meeting).
 - **Action items** → same as filesystem mode (artifact is canonical in both modes).
-- **Profile updates** → `edit_note(identifier: "People/<Full Name>", operation: "find_replace", find_text: "<last observation line>", content: "<last observation line>\n<new observation>")`. No `## Observations` heading yet: `edit_note(operation: "append")` to add it. Never overwrite.
-- **Project updates** → `edit_note(identifier: "Projects/<Name>", operation: "find_replace", find_text: "<last line of Current Phase section>", content: "<last line>\n<new content>")`.
+- **Profile updates** → Edit the person note `People/<Full Name>.md`, inserting the new observation above the first existing `###` entry in `## Observations`. No `## Observations` heading yet: Edit to add the full section (heading plus entry) to the note. Never overwrite.
+- **Project updates** → Edit the project note `Projects/<Name>.md`, inserting the new content after the last line of the `Current Phase` section.
 - **Reference docs / ideas / brainstorms** → `outbox/YYYY-MM-DD-[slug].md` (filesystem outbox, not vault).
 - **Decisions** → vault note `Decisions/YYYY-MM-DD <Title>.md`, frontmatter per `_conventions.md` → Frontmatter schemas (Decision).
 

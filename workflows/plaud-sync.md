@@ -7,7 +7,7 @@ Pull recordings from Plaud for a specified time period, diff against already-pro
 Storage-mode branching: `_conventions.md` → Storage-mode branching. This workflow is migrated (`CLAUDE.md` → Workflow routing). Modes differ only in where the raw transcript saves and where the duplicate-content check runs:
 
 - **Filesystem mode**: transcripts to `meetings/transcripts/`; duplicate check `grep`s the same folder.
-- **Obsidian mode**: transcripts to `Transcripts/` in the vault via `write_note`; duplicate check uses `search_notes`. Subfolder override: `_conventions.md` → Path resolution.
+- **Obsidian mode**: transcripts to `Transcripts/` in the vault via Write; duplicate check runs a vault search (dataview/vault MCP tools first, falling back to Grep per `_conventions.md` → Vault access tooling). Subfolder override: `_conventions.md` → Path resolution.
 
 Tracking dotfiles stay in the workspace repo in both modes (append-only semantics: `CLAUDE.md` → Key behaviors, "Plaud sync tracking"). Step 6d hands off to `workflows/process-transcript.md`, which has its own Obsidian-mode branch.
 
@@ -101,7 +101,7 @@ Take the first 500 characters of the fetched transcript and search existing tran
 
 **Filesystem mode**: `grep -rl "<first 500 chars, escaped for shell>" meetings/transcripts/`
 
-**Obsidian mode**: `search_notes(query: "<first 100 chars>", search_type: "hybrid")`, filter results to `Transcripts/` client-side. Also run the filesystem grep as a fallback for transcripts saved before the Obsidian migration.
+**Obsidian mode**: search for the first 100 characters via the vault search or dataview MCP tools, filter results to `Transcripts/` client-side, falling back to Grep per `_conventions.md` → Vault access tooling. Also run the filesystem grep as a fallback for transcripts saved before the Obsidian migration.
 
 If a match is found, ask:
 > "This transcript appears to already exist as `[filename]`. Skip it and move on, or process it anyway?"
@@ -119,7 +119,7 @@ Date: the recording's date field (YYYY-MM-DD). Name: the recording's `name` fiel
 Before processing, save the raw transcript content (canonical raw archive in both modes).
 
 - **Filesystem mode**: write to the filename from 6c using the file tools.
-- **Obsidian mode**: `write_note(title: "<derived filename>", directory: "Transcripts/", content: "...", metadata: {...})`. Frontmatter: `type: transcript`, `source: plaud`, `plaud_id: <recording id>`, `date: YYYY-MM-DD`. Body is the raw transcript, original timestamps and speaker labels.
+- **Obsidian mode**: Write the note at `Transcripts/<derived filename>.md`. Frontmatter: `type: transcript`, `source: plaud`, `plaud_id: <recording id>`, `date: YYYY-MM-DD`. Body is the raw transcript, original timestamps and speaker labels.
 
 ### 6e. Process the transcript
 
