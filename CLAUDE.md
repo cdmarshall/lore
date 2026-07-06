@@ -74,6 +74,7 @@ Read the matching file and follow it.
 | "morning sync" / "what's on today?" | `workflows/morning-sync.md` |
 | "sync Plaud" / "pull Plaud transcripts from the last N days" | `workflows/plaud-sync.md` |
 | "lint the vault" / "vault health check" / "run vault lint" | `workflows/vault-lint.md` |
+| "run the sweeper" / "sweep the knowledge base" / "update the KB from my channels" | `workflows/kb-sweeper.md` |
 | "triage everything" / "process my inbox" / "catch me up" / "any drafts waiting" / scheduled triage | `workflows/triage.md` |
 | "set up Obsidian" / "configure my vault" / "migrate to Obsidian" | No workflow file. Follow `README.md` → Obsidian integration: verify plugins, get the vault path, write "Vault Configuration" into `context.md`, seed folders per `_conventions.md` → Vault structure. For existing filesystem data, offer a previewed migration into the vault. |
 | "grill me" / "stress-test this" / "poke holes in this" | `workflows/grill-me.md` |

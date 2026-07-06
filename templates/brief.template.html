@@ -1,0 +1,491 @@
+<!--
+  brief.template.html, Lore's daily HTML brief
+
+  A self-contained, designed brief the triage workflow fills and writes to
+  outbox/briefs/YYYY-MM-DD-HHMM.html. No external assets, no dependencies,
+  no JavaScript. Expanding drafts use native <details>/<summary>.
+
+  HOW THE GENERATOR USES THIS FILE:
+    1. Read this file.
+    2. Replace every {{TOKEN}} with real content (escape user text: & < >).
+    3. For repeating regions (items, updates, KB rows), duplicate the marked
+       block once per entry and drop the block entirely when the section is empty.
+    4. If a section has no content, replace its whole <section> with the matching
+       empty-state note, or omit it.
+    5. Never leave a {{TOKEN}} in the output. Never invent a deep link: if an
+       item has no link, omit the whole "Open in ..." anchor for that item.
+    6. NO EM DASHES anywhere in filled content (VOICE.md, hard ban).
+
+  Placeholder inventory is documented inline above each region.
+-->
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #faf9f6;
+    --paper-band: #f3f0e8;
+    --ink: #26221c;
+    --ink-soft: #514a3e;
+    --ink-faint: #8c8577;
+    --rule: #e3ddce;
+    --rule-soft: #ece7db;
+    --gold: #a9862f;
+    --gold-deep: #856a22;
+    --gold-soft: #f4edd8;
+    --card: #ffffff;
+    --card-shadow: 0 1px 2px rgba(38, 34, 28, 0.05), 0 4px 14px rgba(38, 34, 28, 0.04);
+    --chip-email-bg: #e9eff6; --chip-email-fg: #3a5878;
+    --chip-slack-bg: #efe7f4; --chip-slack-fg: #6b4f8e;
+    --chip-teams-bg: #e6ebf7; --chip-teams-fg: #40508a;
+    --chip-jira-bg: #e5f0ea; --chip-jira-fg: #3f6b52;
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #1c1a16;
+      --paper-band: #232019;
+      --ink: #ece7db;
+      --ink-soft: #c3bcac;
+      --ink-faint: #8c8577;
+      --rule: #38332a;
+      --rule-soft: #2c2822;
+      --gold: #d4b158;
+      --gold-deep: #b8933f;
+      --gold-soft: #322c1c;
+      --card: #262219;
+      --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.25);
+      --chip-email-bg: #23303f; --chip-email-fg: #9fbfe0;
+      --chip-slack-bg: #322640; --chip-slack-fg: #c3a6dd;
+      --chip-teams-bg: #242c46; --chip-teams-fg: #9caee6;
+      --chip-jira-bg: #1f3329; --chip-jira-fg: #8cc4a3;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 22px 64px;
+  }
+
+  /* Masthead */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 8px;
+  }
+  .masthead-mark {
+    font-size: 22px;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .masthead-title {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(38px, 9vw, 60px);
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+    color: var(--ink);
+  }
+  .masthead-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .masthead-meta .date { font-variant: small-caps; letter-spacing: 0.18em; }
+
+  /* Weather line */
+  .weather {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 22px 0 40px;
+    padding-left: 16px;
+    border-left: 3px solid var(--gold);
+  }
+
+  /* Section headers */
+  .section { margin-bottom: 44px; }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 8px;
+    margin-bottom: 22px;
+  }
+  .section-head h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 24px;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .section-head .count {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--gold-deep);
+    background: var(--gold-soft);
+    border-radius: 999px;
+    padding: 2px 10px;
+  }
+  .section-note {
+    font-size: 14px;
+    color: var(--ink-faint);
+    font-style: italic;
+    margin: -8px 0 0;
+  }
+
+  /* Needs-you cards */
+  .item {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    box-shadow: var(--card-shadow);
+    padding: 18px 20px 18px 58px;
+    margin-bottom: 16px;
+  }
+  .item-num {
+    position: absolute;
+    left: 18px;
+    top: 18px;
+    font-family: var(--serif);
+    font-size: 15px;
+    color: var(--ink-faint);
+    letter-spacing: 0.05em;
+  }
+  .item-topline {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .chip {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    padding: 3px 7px;
+    white-space: nowrap;
+  }
+  .chip.email { background: var(--chip-email-bg); color: var(--chip-email-fg); }
+  .chip.slack { background: var(--chip-slack-bg); color: var(--chip-slack-fg); }
+  .chip.teams { background: var(--chip-teams-bg); color: var(--chip-teams-fg); }
+  .chip.jira  { background: var(--chip-jira-bg);  color: var(--chip-jira-fg); }
+  .item-from {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--ink);
+  }
+  .item-subject {
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  .item-why {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 6px 0 12px;
+  }
+  .item-why .vault-ref {
+    color: var(--gold-deep);
+    font-weight: 500;
+  }
+  .item-link {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gold-deep);
+    text-decoration: none;
+    letter-spacing: 0.01em;
+  }
+  .item-link:hover { text-decoration: underline; }
+
+  /* Draft disclosure */
+  details.draft {
+    margin-top: 12px;
+    border-top: 1px dashed var(--rule);
+    padding-top: 10px;
+  }
+  details.draft summary {
+    cursor: pointer;
+    list-style: none;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  details.draft summary::-webkit-details-marker { display: none; }
+  details.draft summary::before {
+    content: "\25B8";
+    font-size: 11px;
+    color: var(--gold);
+    transition: transform 0.15s ease;
+  }
+  details.draft[open] summary::before { transform: rotate(90deg); }
+  .draft-body {
+    margin-top: 10px;
+    background: var(--paper-band);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+  .draft-grounding {
+    margin-top: 8px;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--ink-faint);
+    line-height: 1.5;
+  }
+
+  /* Worth knowing */
+  .wk-group { margin-bottom: 20px; }
+  .wk-group h3 {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 8px;
+  }
+  .wk-item {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .wk-item:last-child { border-bottom: none; }
+  .wk-item strong { color: var(--ink); font-weight: 600; }
+
+  /* Knowledge base */
+  .kb-block { margin-bottom: 20px; }
+  .kb-block h3 {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 10px;
+  }
+  .kb-row {
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    padding: 7px 0;
+    padding-left: 20px;
+    position: relative;
+  }
+  .kb-row::before {
+    position: absolute;
+    left: 0;
+    top: 7px;
+    color: var(--gold);
+  }
+  .kb-row.applied::before { content: "\2713"; }
+  .kb-row.candidate::before { content: "\25CB"; font-size: 12px; top: 9px; }
+  .kb-entity {
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  /* Footer */
+  .foot {
+    margin-top: 8px;
+    padding-top: 18px;
+    border-top: 2px solid var(--ink);
+    font-size: 12px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+  .foot .foot-line { margin-bottom: 4px; }
+  .foot .fallback { font-family: var(--sans); }
+  .foot code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    background: var(--paper-band);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .empty {
+    font-style: italic;
+    color: var(--ink-faint);
+    font-size: 15px;
+    padding: 4px 0;
+  }
+</style>
+
+<div class="sheet">
+
+  <!-- MASTHEAD ============================================================ -->
+  <header class="masthead">
+    <div class="masthead-mark">&#128220;</div>
+    <!-- {{DAY_NAME}}: weekday of the run, e.g. "Monday". Title reads "The Monday Brief". -->
+    <h1 class="masthead-title">The {{DAY_NAME}} Brief</h1>
+    <div class="masthead-meta">
+      <!-- {{DATE_LONG}}: long-form date, e.g. "July 6, 2026". Rendered small-caps. -->
+      <span class="date">{{DATE_LONG}}</span>
+      <!-- {{GENERATED_TIME}}: local run time, e.g. "8:04 AM". -->
+      <span class="time">{{GENERATED_TIME}}</span>
+    </div>
+  </header>
+
+  <!-- WEATHER LINE ========================================================
+       {{WEATHER_REPORT}}: one honest italic sentence on the shape of the day.
+       VOICE.md tone, no fake cheer, no em dashes.
+       e.g. "Quiet morning; two things genuinely need you before noon." -->
+  <p class="weather">{{WEATHER_REPORT}}</p>
+
+  <!-- NEEDS YOU ===========================================================
+       {{NEEDS_YOU_COUNT}}: integer count of prioritized items in this section.
+       Repeat the .item block once per prioritized item, numbered 01, 02, ...
+       If the section is empty, replace the item list with the empty-state note. -->
+  <section class="section">
+    <div class="section-head">
+      <h2>Needs you</h2>
+      <span class="count">{{NEEDS_YOU_COUNT}}</span>
+    </div>
+
+    <!-- BEGIN needs-you item (repeat per item) -->
+    <article class="item">
+      <!-- {{ITEM_NUM}}: two-digit editorial number, e.g. "01". -->
+      <span class="item-num">{{ITEM_NUM}}</span>
+      <div class="item-topline">
+        <!-- {{ITEM_SOURCE_CLASS}}: one of email | slack | teams | jira (lowercase, sets chip color).
+             {{ITEM_SOURCE_LABEL}}: uppercase label, EMAIL | SLACK | TEAMS | JIRA. -->
+        <span class="chip {{ITEM_SOURCE_CLASS}}">{{ITEM_SOURCE_LABEL}}</span>
+        <!-- {{ITEM_FROM}}: sender name or channel, e.g. "Jane Doe" or "#carrier-integration". -->
+        <span class="item-from">{{ITEM_FROM}}</span>
+        <!-- {{ITEM_SUBJECT}}: email subject or short topic. Omit span if none. -->
+        <span class="item-subject">{{ITEM_SUBJECT}}</span>
+      </div>
+      <!-- {{ITEM_WHY}}: 1 to 2 sentences on why it matters. Wrap any vault reference
+           in <span class="vault-ref">...</span>, e.g. blocks the [[Metabase Cutover]]. -->
+      <p class="item-why">{{ITEM_WHY}}</p>
+      <!-- DEEP LINK: keep this anchor only when a real link exists. Omit the whole
+           anchor if no link can be constructed (never fabricate an ID).
+           {{ITEM_LINK}}: full URL. {{ITEM_LINK_LABEL}}: e.g. "Open in Outlook", "Open in Slack". -->
+      <a class="item-link" href="{{ITEM_LINK}}">{{ITEM_LINK_LABEL}} &#8594;</a>
+
+      <!-- DRAFT: include this <details> only when a draft reply exists for the item. -->
+      <details class="draft">
+        <summary>Draft reply</summary>
+        <!-- {{ITEM_DRAFT_BODY}}: the ready-to-send draft text, VOICE.md-compliant. -->
+        <div class="draft-body">{{ITEM_DRAFT_BODY}}</div>
+        <!-- {{ITEM_DRAFT_GROUNDING}}: one line naming the vault notes / messages / linked
+             resources it drew from, e.g. "Grounded in [[Jane Doe]], [[Carrier Integration]], LI-1234." -->
+        <p class="draft-grounding">{{ITEM_DRAFT_GROUNDING}}</p>
+      </details>
+    </article>
+    <!-- END needs-you item -->
+
+    <!-- EMPTY STATE (use instead of items when none): -->
+    <!-- <p class="empty">Nothing needs a reply from you right now.</p> -->
+  </section>
+
+  <!-- WORTH KNOWING =======================================================
+       Non-draftable updates grouped by source: Teams group-chat summaries,
+       Tier 2 email scan, informational Slack. 2 sentences max each (VOICE.md).
+       Repeat a .wk-group per source that has content; drop groups with none.
+       If the whole section is empty, omit it. -->
+  <section class="section">
+    <div class="section-head">
+      <h2>Worth knowing</h2>
+    </div>
+
+    <!-- BEGIN worth-knowing group (repeat per source) -->
+    <div class="wk-group">
+      <!-- {{WK_GROUP_LABEL}}: source label, e.g. "Teams discussions", "Email scan", "Slack". -->
+      <h3>{{WK_GROUP_LABEL}}</h3>
+      <!-- BEGIN worth-knowing item (repeat per update) -->
+      <!-- {{WK_ITEM_LEAD}}: bolded subject, e.g. group-chat name or sender.
+           {{WK_ITEM_BODY}}: up to 2 sentences of summary. -->
+      <div class="wk-item"><strong>{{WK_ITEM_LEAD}}</strong> {{WK_ITEM_BODY}}</div>
+      <!-- END worth-knowing item -->
+    </div>
+    <!-- END worth-knowing group -->
+
+    <!-- EMPTY STATE: -->
+    <!-- <p class="empty">No background updates worth flagging.</p> -->
+  </section>
+
+  <!-- KNOWLEDGE BASE ======================================================
+       What triage wrote or proposes. Two blocks:
+         applied  = writes already made (additive), rendered with a check mark.
+         candidates = awaiting the user's call, rendered with an open circle.
+       Drop either block if empty. Omit the section if both are empty. -->
+  <section class="section">
+    <div class="section-head">
+      <h2>Knowledge base</h2>
+    </div>
+
+    <!-- APPLIED block (drop if none) -->
+    <div class="kb-block">
+      <h3>Applied</h3>
+      <!-- BEGIN applied row (repeat). {{KB_APPLIED_ENTITY}}: entity note name as plain
+           text, e.g. "Jane Doe" or "Carrier Integration". {{KB_APPLIED_NOTE}}: what was appended. -->
+      <div class="kb-row applied"><span class="kb-entity">{{KB_APPLIED_ENTITY}}</span> {{KB_APPLIED_NOTE}}</div>
+      <!-- END applied row -->
+    </div>
+
+    <!-- CANDIDATES block (drop if none) -->
+    <div class="kb-block">
+      <h3>Your call</h3>
+      <!-- BEGIN candidate row (repeat). {{KB_CANDIDATE_ENTITY}}: target entity note name
+           as plain text. {{KB_CANDIDATE_NOTE}}: the proposed fact and how to apply it,
+           e.g. "would append to Carrier Integration. Reply 'update KB with #1' to apply." -->
+      <div class="kb-row candidate"><span class="kb-entity">{{KB_CANDIDATE_ENTITY}}</span> {{KB_CANDIDATE_NOTE}}</div>
+      <!-- END candidate row -->
+    </div>
+
+    <!-- EMPTY STATE (whole section): -->
+    <!-- <p class="empty">No knowledge-base changes this run.</p> -->
+  </section>
+
+  <!-- FOOTER ============================================================== -->
+  <footer class="foot">
+    <!-- {{ITEMS_SWEPT}}: total count of items swept across sources.
+         {{WINDOW}}: the sweep window, e.g. "since yesterday 3:00 PM" or an ISO range. -->
+    <div class="foot-line">{{ITEMS_SWEPT}} items swept &middot; {{WINDOW}} &middot; Made by Lore &#128220;</div>
+    <!-- {{MARKDOWN_FALLBACK_PATH}}: repo path to the grep-able markdown briefing,
+         e.g. "outbox/triage/triage-2026-07-06.md". -->
+    <div class="foot-line fallback">Plain-text fallback: <code>{{MARKDOWN_FALLBACK_PATH}}</code></div>
+  </footer>
+
+</div>
