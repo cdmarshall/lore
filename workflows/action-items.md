@@ -1,6 +1,8 @@
 # Action Items
 
-The action items live in a single Cowork artifact (id: `action-items`). The artifact's IndexedDB is the sole source of truth. Agent-driven changes are pushed as delta operations on top of IDB; the agent never replaces IDB wholesale.
+All output follows VOICE.md.
+
+Action items live in a single Cowork artifact (id: `action-items`). The artifact's IndexedDB is the sole source of truth, canonical in both storage modes (`CLAUDE.md` → Session start step 4). Agent-driven changes are pushed as delta operations on top of IDB; the agent never replaces IDB wholesale.
 
 ## Source-of-truth model (read this first)
 
@@ -10,11 +12,11 @@ The action items live in a single Cowork artifact (id: `action-items`). The arti
 
 **The snapshot ritual.** Lore has no direct read access to the artifact's IndexedDB. To give Lore a current view, the user clicks **Download snapshot** in the artifact and saves the resulting file to `inbox/action-items.snapshot.md`. The agent reads that file when it needs state for dedup, "what's on my plate," 1:1 prep, roundtable prep, morning sync, etc. The user can also paste the snapshot content directly in chat instead of saving the file. This is the only manual step; everything else is automatic.
 
-**`inbox/action-items.md` is not used as agent input.** It's a legacy restore-only backup. **The agent must never read it as a source of truth.**
+`inbox/action-items.md` is never agent input: `CLAUDE.md` → Action items hard rule.
 
 ## Reading current state
 
-The agent has three possible read paths, in order of preference:
+Three read paths, in order of preference:
 
 1. **`inbox/action-items.snapshot.md`**, the user's downloaded snapshot, saved by them via the artifact's Download snapshot button. Markdown format with `## Active`, `## Completed`, `## Delegated`, `## Archived` sections. Check first with `bash ls inbox/action-items.snapshot.md`; if present, parse it. Note the file's mtime in your response so the user knows how fresh the read is.
 
@@ -33,8 +35,6 @@ The agent has three possible read paths, in order of preference:
 3. **A snapshot pasted directly in chat**, if no file is present and the user wants to give the agent a view right now without leaving chat. Same markdown format as #1.
 
 4. **None**, the agent has no view of state. Push operations blindly (the artifact handles dedup). Tell the user honestly: "I don't have a view of your current list. If you want me to dedup or list items, click Download snapshot in your artifact and save it to `inbox/action-items.snapshot.md` (or paste it here)."
-
-Never read `inbox/action-items.md` for state. That file is a legacy restore-only markdown backup, distinct from `action-items.snapshot.md`.
 
 ## Operations seed schema
 
@@ -183,18 +183,13 @@ In your response, summarize what was pushed. If anything was skipped or consolid
 
 ## What never happens
 
-- The agent never reads `inbox/action-items.md` as input.
-- The agent never writes to `inbox/action-items.md`.
-- The build script never reads `inbox/action-items.md`.
-- The seed never contains a `active`, `completed`, `archived`, or `delegated` array of full state. Only an `operations` array.
+Full rule: `CLAUDE.md` → Action items hard rule. In this workflow specifically: the seed never contains an `active`, `completed`, `archived`, or `delegated` array of full state, only an `operations` array. If you find yourself wanting to push full state or touch `inbox/action-items.md`, stop.
 
-If you find yourself wanting to do any of the above, stop. The artifact is the source of truth and the only legitimate path is operations.
+## Restore-from-backup (opt-in only)
 
-## The local backup file (`inbox/action-items.md`)
+`inbox/action-items.md` may exist as a historical artifact or a one-time snapshot the user saved over. It is not read under any circumstance except this explicit restore scenario: the user is asking for help recovering from a deleted/wiped artifact. Normally the user does this themselves via the artifact's own "Restore from backup" button.
 
-This file may exist as a historical artifact or a one-time snapshot the user saved over. **It is not read by the agent under any circumstance** except the explicit restore scenario, where the user is asking the agent to help recover from a deleted/wiped artifact. In that case, the user typically uses the artifact's own "Restore from backup" button (which reads any markdown snapshot they uploaded) rather than involving the agent.
-
-If the user explicitly says "restore the artifact from the backup file at path X," the agent can read that file, parse it, convert it to a series of `add` operations, and push via the build script. This is the only path where the file is consumed.
+If the user explicitly says "restore the artifact from the backup file at path X," read that file, parse it, convert it to a series of `add` operations, and push via the build script (steps 3 to 4 above). This is the only path where the file is consumed.
 
 ## Delegation contract: the `Lore` and `Specialist` flags
 
@@ -211,13 +206,11 @@ Flags are not mutually exclusive. Many items are doable by either. When the agen
 
 ## Pre-existing items: there is no "Active table to scan"
 
-You may see references in older notes or commits to "scan the Active table before appending." That guidance applied to the old file-as-source-of-truth model and no longer applies. In the operations model, the artifact handles dedup. The agent only needs best-effort dedup for the consolidation case described above.
+Older notes or commits may say "scan the Active table before appending." That applied to the old file-as-source-of-truth model and no longer applies. In the operations model, the artifact handles dedup. The agent only needs best-effort dedup for the consolidation case above.
 
 If the user asks "what's currently active?", the canonical answer is: **open the artifact**. If they want a chat-rendered list, use the read paths above: prefer `inbox/action-items-state.json` if present; otherwise ask for a Downloaded snapshot.
 
 ## Display in chat (when user asks "what's on my plate?")
-
-When the user asks for their action items in chat, follow this order:
 
 1. **Check for `inbox/action-items.snapshot.md`** (`bash ls inbox/action-items.snapshot.md`). If present, parse the `## Active` table and render sorted by priority. Note the file's mtime in the response so the user knows how fresh it is.
 2. **Check for `inbox/action-items-state.json`** (future-proof; rarely present today). If it exists, parse the `active` array, use the `writtenAt` timestamp.
