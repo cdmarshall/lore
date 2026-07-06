@@ -4,21 +4,18 @@ Process a document and extract relevant information to update the knowledge base
 
 ## Usage
 
-- "Ingest a document" or "Process inbox files", list files in `inbox/documents/` and ask which to process
-- "Ingest [filename]", process a specific file from `inbox/documents/`
-- "Ingest [full path]", process a file from anywhere in the workspace
+- "Ingest a document" or "Process inbox files": list files in `inbox/documents/` and ask which to process
+- "Ingest [filename]": process a specific file from `inbox/documents/`
+- "Ingest [full path]": process a file from anywhere in the workspace
 
 ## Instructions
 
-1. **Locate the file:**
-   - If no file specified, list files in `inbox/documents/` and ask which to process
-   - If a filename is given, look in `inbox/documents/`
-   - If a full path is given, read from that location
+1. **Locate the file.** No file specified: list `inbox/documents/`, ask which to process. Filename given: look in `inbox/documents/`. Full path given: read from that location.
 
-2. **Read and analyze the file** (supports PDF, text, markdown, images, CSV, etc.)
+2. **Read and analyze the file** (PDF, text, markdown, images, CSV, etc.)
 
 3. **Ask the user what to do with it:**
-   - Update a project file (if the document is a SOW, spec, brief, or other project artifact: suggest the matching file in `projects/` or offer to create one using `templates/project.template.md`)
+   - Update a project file (SOW, spec, brief, other project artifact: suggest the matching file in `projects/` or offer to create one from `templates/project.template.md`)
    - Add observations to a team member's file
    - Add observations to a stakeholder's file
    - Extract action items
@@ -26,33 +23,17 @@ Process a document and extract relevant information to update the knowledge base
    - Generate an output file (report, matrix, export, etc.)
    - Other (let user specify)
 
-   **Note on project files**: If the document is clearly scoped to an active project (e.g., a vendor SOW, a product spec, a project brief), default the suggestion to "update project file" and name the likely match. Do not suggest adding project-status content to `strategy/`; that folder holds only vision and roadmap docs.
+   If the document is clearly scoped to an active project (vendor SOW, product spec, project brief), default the suggestion to "update project file" and name the likely match. Don't suggest project-status content for `strategy/`; that folder holds vision and roadmap only.
 
-4. **Process accordingly** and confirm what was updated
-
-   **Storage mode note:** When updating a project or person file, branch on the active storage mode (see `CLAUDE.md` → Obsidian Detection):
-   - **Obsidian mode:** use `edit_note(identifier: "Projects/<Name>", operation: "find_replace", find_text: "<last line of Current Phase section>", content: "<last line>\n<new content>")` (or `"People/<Name>"` with the `Observations` section). If the heading doesn't exist yet, use `edit_note(operation: "append")`. To create a new vault note, use `write_note(title, directory, content, metadata)`.
-   - **Filesystem mode:** edit `projects/[slug].md` or `team/`/`stakeholders/` files directly. Run the two-step existence check before writing.
+4. **Process accordingly and confirm what was updated.** Storage mode: `_conventions.md` → Storage-mode branching.
+   - Obsidian mode: Edit the project note `Projects/<Name>.md`, inserting the new content after the last line of the `Current Phase` section (or the person note `People/<Name>.md`, inserting the new observation above the first existing `###` entry in `## Observations`). No heading yet: Edit to add the full section to the note. New note: Write it at the target vault path. Vault access tooling: `_conventions.md` → Vault access tooling.
+   - Filesystem mode: edit `projects/[slug].md` or the `team/`/`stakeholders/` file directly. Two-step existence check first: `_conventions.md` → Two-step existence check.
 
 ## File Locations
 
-### Input locations (where source documents live):
-- `inbox/documents/` - Drop documents here for processing
-- The action items artifact (Cowork sidebar) is the canonical action items tracker; the agent pushes to it via operations rather than reading any local file. See `workflows/action-items.md`.
-- User can also provide any file path on their system
+**Input:** `inbox/documents/`, or any file path the user gives. Action items: push via operations to the artifact, never read a local file (`workflows/action-items.md`).
 
-### Output locations (where generated files go):
-- `outbox/` - Generated files, exports, reports, matrices, scorecards
-- `meetings/notes/` - Meeting notes and summaries
-- `team/` - Direct report profiles and 1:1 notes
-- `stakeholders/` - Stakeholder profiles and observations
-- `projects/` - Project documentation (create if needed)
-
-### When creating output files:
-- Reports, exports, CSVs, generated documents → `outbox/`
-- Meeting summaries → `meetings/notes/`
-- Team/stakeholder updates → respective folders
-- Reference docs that will be re-read → `inbox/documents/`
+**Output:** `CLAUDE.md` → Creating outputs. Reference docs meant for re-reading go back to `inbox/documents/`.
 
 ## Output Format
 
@@ -76,19 +57,12 @@ Process a document and extract relevant information to update the knowledge base
 [Or if user specified, just do it and confirm]
 ```
 
+All output follows VOICE.md.
+
 ## Examples
 
-**Processing a PRD:**
-- Read the document
-- Ask if it should update a project file or create a new one
-- Extract any action items
-- Note any stakeholders or team members mentioned
+**PRD:** read it, ask if it should update a project file or create one, extract action items, note any stakeholders or team members mentioned.
 
-**Processing org chart or roster:**
-- Update team member files with reporting relationships
-- Note any new people to track
+**Org chart or roster:** update team member files with reporting relationships, note new people to track.
 
-**Processing vendor proposal:**
-- Summarize key points
-- Add to relevant stakeholder file
-- Extract action items or decisions needed
+**Vendor proposal:** summarize key points, add to the relevant stakeholder file, extract action items or decisions needed.

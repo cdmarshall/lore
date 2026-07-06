@@ -7,6 +7,12 @@
 # --- Personal context (the master user profile) ---
 /context.md
 
+# --- Session memory (personal state file; template is committed) ---
+/STATE.md
+
+# --- Commitments ledger (filesystem mode; Obsidian mode keeps it in the vault) ---
+/commitments.md
+
 # --- Email triage config (personal sender lists, etc.) ---
 /email-config.md
 
@@ -20,6 +26,7 @@
 /inbox/.slack-processed
 /inbox/.teams-processed
 /inbox/.triage-last-run
+/inbox/.sweeper-last-run
 
 # --- Personal team & stakeholder profiles ---
 /team/*.md
@@ -55,6 +62,10 @@
 
 # --- Strategy docs (user-specific) ---
 /strategy/*.md
+
+# --- Eval examples (personal artifacts; the harness README stays committed) ---
+/evals/examples/*
+!/evals/examples/.gitkeep
 
 # --- Personal artifacts (binary docs, almost always personal) ---
 *.xlsx
