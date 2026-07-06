@@ -113,7 +113,7 @@ Applied to each new email. Stop at the first matching rule. Anchored on `context
 3. For each new email, parse From, To, Cc, Subject, Date. Pull the body with `read_resource` on the returned URI when a draft is likely.
 4. Categorize using the Email tier framework above.
 5. For Tier 1 items that need a reply and where the user is the bottleneck: draft a reply (see "Drafting"). Stage it as a file.
-6. Capture the deep link for each item surfaced (for the HTML brief): use the message's `webLink`; if absent, build `https://outlook.office.com/mail/deeplink/read/<messageId>`. If neither can be constructed, leave the link empty and the brief shows the item without one.
+6. Capture the deep link for each item surfaced (for the HTML brief): build `https://outlook.office.com/mail/deeplink/read/<messageId>`, URL-encoding the `id` (so a trailing `=` becomes `%3D`). This form opens reliably across tenants; prefer it over the connector's `webLink` (the `owa/?ItemID=` form is tenant-specific and often fails to open). Only fall back to `webLink` if no `id` is available. If neither can be constructed, leave the link empty and the brief shows the item without one.
 7. Append processed Message-IDs to `inbox/.email-processed`.
 
 ### 2. Slack pass
@@ -224,7 +224,7 @@ Before presenting anything, spawn an independent verifier sub-agent over the ass
 Checks:
 1. **Voice.** Every draft and the briefing conform to VOICE.md (no em dashes, no banned constructions, length ceilings respected). If `evals/examples/` is present, pull 2 to 3 examples as calibration for the tone judgment.
 2. **Traceability.** Every factual claim (name, status, date, number, commitment, decision) traces to a specific source message, linked Jira/Confluence resource, or vault note. Flag any claim with no source.
-3. **HTML brief.** The filled `outbox/briefs/YYYY-MM-DD-HHMM.html` also passes: every claim in it traces to a source item or vault note (same standard as check 2); no `{{TOKEN}}` placeholders remain; every deep link is well-formed for its source type (email `webLink` or `outlook.office.com/mail/deeplink/read/`, Slack permalink, Teams `teams.microsoft.com/l/message/`), with no invented IDs and no link shown where none was captured; and the tone passes VOICE.md (same 2 to 3 `evals/examples/` calibration).
+3. **HTML brief.** The filled `outbox/briefs/YYYY-MM-DD-HHMM.html` also passes: every claim in it traces to a source item or vault note (same standard as check 2); no `{{TOKEN}}` placeholders remain; every deep link is well-formed for its source type (email `outlook.office.com/mail/deeplink/read/` with a URL-encoded id, Slack permalink, Teams `teams.microsoft.com/l/message/`), with no invented IDs and no link shown where none was captured; and the tone passes VOICE.md (same 2 to 3 `evals/examples/` calibration).
 
 On any fail, revise once addressing the specific gaps the verifier named, then present. Do not loop past one revision; if a gap survives, present with the gap flagged in the briefing for the user's call. Verification signal: `_conventions.md` → Verification loops.
 

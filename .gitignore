@@ -20,6 +20,7 @@
 /inbox/.slack-processed
 /inbox/.teams-processed
 /inbox/.triage-last-run
+/inbox/.sweeper-last-run
 
 # --- Personal team & stakeholder profiles ---
 /team/*.md
