@@ -27,6 +27,7 @@ Read in parallel:
 - `strategy/roadmap.md` if it exists
 - Each active project file in `projects/` (filesystem mode) or `Projects/` vault notes (Obsidian mode): query for `status: active` via the dataview MCP tool, falling back to Grep per `_conventions.md` → Vault access tooling.
 - One file per direct report under `team/`, recent observations
+- Stale active projects from the most recent `outbox/vault-lint-*.md` report if one exists from the last 14 days (`bash ls outbox/vault-lint-*.md`, check the date in the filename); skip silently if none exists, so silent stalls surface in the Friday agenda.
 
 For action items (completed-this-week, active blockers, delegated items), try in order:
 

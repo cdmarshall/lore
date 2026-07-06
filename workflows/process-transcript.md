@@ -50,7 +50,7 @@ For each identified person (except the user), extract:
 - **Decisions made**: decisions reached, context/rationale, options considered and rejected. Before logging, apply the decision-log test (`_conventions.md` → Decision-log discipline). Failing decisions stay in the meeting note only; no log entry for routine calls ("we'll meet Tuesday," "Jane takes the ticket").
 - **Action items**: commitments they made, requests made of them, follow-ups they own.
 
-For the user: extract their action items and commitments. These push to the artifact as `add` ops (section 5, Both Modes). Never write `inbox/action-items.md`.
+For the user: extract their action items and commitments. These push to the artifact as `add` ops (section 5, Both Modes). Never write `inbox/action-items.md`. Soft promises and check-backs that aren't task-shaped (waiting-on, "I'll get you X by Friday," "revisit in Q3") go to the commitments ledger instead, captured in section 5 alongside the other writes: `workflows/commitments.md`.
 
 ### 4. Identify and update projects
 

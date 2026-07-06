@@ -10,6 +10,9 @@
 # --- Session memory (personal state file; template is committed) ---
 /STATE.md
 
+# --- Commitments ledger (filesystem mode; Obsidian mode keeps it in the vault) ---
+/commitments.md
+
 # --- Email triage config (personal sender lists, etc.) ---
 /email-config.md
 
