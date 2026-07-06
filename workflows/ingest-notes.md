@@ -1,6 +1,6 @@
 # Ingest Notes
 
-Process raw, unstructured notes, typed, pasted from OneNote, or photos of handwritten notes, and route them into the right files with the right structure.
+Process raw, unstructured notes (typed, pasted from OneNote, or photos of handwritten notes) and route them into the right files.
 
 ## When to use this workflow
 
@@ -13,28 +13,28 @@ Process raw, unstructured notes, typed, pasted from OneNote, or photos of handwr
 
 ## Step 0: Receive the input
 
-Accept notes in any of these forms:
-- **Pasted text**, user pastes content directly into the chat
-- **Image/photo**, handwritten notes, whiteboard, sticky notes (read visually)
-- **File reference**, user names a file; read it from `inbox/documents/` or any path they specify
+Accept notes in any form:
+- **Pasted text** directly in the chat
+- **Image/photo**: handwritten notes, whiteboard, sticky notes (read visually)
+- **File reference**: read from `inbox/documents/` or any path the user specifies
 
-If the user hasn't provided the notes yet, ask them to paste or share them before proceeding.
+If the notes aren't provided yet, ask for them before proceeding.
 
-Once you have the notes, do a quick silent read to understand the content. Use what you learn to pre-fill your best guesses for the questions below, you'll present them as the recommended option.
+Silently read the notes first. Use what you learn to pre-fill best guesses for the questions below and present them as the recommended option.
 
 ---
 
 ## Step 1: Clarifying questions (one at a time, using AskUserQuestion)
 
-Ask the following questions in sequence. Use the `AskUserQuestion` tool for each one, this renders clickable answer options with a custom-response fallback. Do **not** ask multiple questions at once.
+Ask each question in sequence with `AskUserQuestion` (clickable options, custom-response fallback). Never ask multiple questions at once.
 
-**Skip a question** if the answer is already clear from the notes themselves (e.g., if the notes say "1:1 with Marcus" you don't need to ask who was involved). In that case, note your interpretation inline ("Looks like this is a 1:1 with Marcus, I'll use that") and move on.
+**Skip a question** if the notes already answer it (e.g., "1:1 with Marcus" answers who was involved). State your interpretation inline ("Looks like this is a 1:1 with Marcus, I'll use that") and move on.
 
 ---
 
 ### Question 1: What kind of notes are these?
 
-Present the most likely type as the first option based on your read of the content.
+List the most likely type first, based on your read.
 
 Options (tailor order to what you observed):
 - Meeting / 1:1 notes
@@ -47,7 +47,7 @@ Options (tailor order to what you observed):
 
 ### Question 2: When are these from?
 
-Compute suggested dates dynamically from today's date. If the notes contain a date reference (e.g., "May 5th" or "yesterday's standup"), skip this question and note the date you're using.
+Compute suggested dates from today's date. Notes already reference a date ("May 5th," "yesterday's standup"): skip this question, note the date used.
 
 Options:
 - Today (YYYY-MM-DD)
@@ -59,7 +59,7 @@ Options:
 
 ### Question 3 (Meeting / 1:1 notes only): Who was involved?
 
-Read `context.md` to get the user's team members and key stakeholders. List known people as clickable options. If the meeting involved multiple people, the user can select the primary person or choose "Multiple people."
+Read `context.md` for team members and key stakeholders; list them as clickable options. For multiple attendees, the user picks the primary person or "Multiple people."
 
 Options (generate dynamically from `team/` and `stakeholders/` files):
 - [Name from team/]
@@ -73,7 +73,7 @@ Options (generate dynamically from `team/` and `stakeholders/` files):
 
 ### Question 4: What should I do with these?
 
-Offer a recommended default based on the note type. Mark it clearly as the recommendation.
+Offer a recommended default based on note type, marked clearly.
 
 **If Meeting / 1:1:**
 - Create a meeting note + extract my action items *(recommended)*
@@ -101,31 +101,29 @@ Offer a recommended default based on the note type. Mark it clearly as the recom
 
 ## Step 2: Process the notes
 
-Once you have the answers, process accordingly. Follow the relevant conventions from the existing workflow files.
-
-**Branch on storage mode** (see `CLAUDE.md` → Obsidian Detection):
+**Storage mode:** `_conventions.md` → Storage-mode branching. Legacy vault tool names (`write_note`, `edit_note`, etc.) map to native tools per `_conventions.md` → Vault access tooling.
 
 **Filesystem mode:**
 - **Meeting notes** → `meetings/notes/YYYY-MM-DD-[slug].md` using `templates/meeting-note.template.md`
-- **Action items** → push as `add` operations to the live artifact (see `workflows/action-items.md`). **Never write to `inbox/action-items.md`**.
+- **Action items** → push as `add` operations to the live artifact (`workflows/action-items.md`). Never write to `inbox/action-items.md`.
 - **Profile updates** → the relevant `team/` or `stakeholders/` file (append, never overwrite)
-- **Project updates** → if the notes reference an active project, append a dated status block to `projects/[slug].md` under `## Current Phase`. If no project file exists yet for a recognized initiative, offer to create one from `templates/project.template.md`.
+- **Project updates** → if the notes reference an active project, append a dated status block to `projects/[slug].md` under `## Current Phase`. No file yet for a recognized initiative: offer to create one from `templates/project.template.md`.
 - **Reference docs / ideas / brainstorms** → `outbox/YYYY-MM-DD-[slug].md`
-- **Decisions** → `decisions/log.md` if any clear decision is captured
+- **Decisions** → `decisions/log.md` if a clear decision is captured
 
 **Obsidian mode:**
-- **Meeting notes** → vault note `Meetings/YYYY-MM-DD <kind> <subject>.md` with proper frontmatter (`type: meeting`, `attendees`, `related_projects`). Use `write_note(title: "YYYY-MM-DD <kind> <subject>", directory: "Meetings/", content: "...", metadata: {type: "meeting", ...})`.
+- **Meeting notes** → vault note `Meetings/YYYY-MM-DD <kind> <subject>.md`, frontmatter per `_conventions.md` → Frontmatter schemas (Meeting). `write_note(title: "YYYY-MM-DD <kind> <subject>", directory: "Meetings/", content: "...", metadata: {type: "meeting", ...})`.
 - **Action items** → same as filesystem mode (artifact is canonical in both modes).
-- **Profile updates** → use `edit_note(identifier: "People/<Full Name>", operation: "find_replace", find_text: "<last observation line>", content: "<last observation line>\n<new observation>")`. If the `## Observations` heading doesn't exist yet, use `edit_note(operation: "append")` to add it. Do not overwrite.
-- **Project updates** → use `edit_note(identifier: "Projects/<Name>", operation: "find_replace", find_text: "<last line of Current Phase section>", content: "<last line>\n<new content>")`.
+- **Profile updates** → `edit_note(identifier: "People/<Full Name>", operation: "find_replace", find_text: "<last observation line>", content: "<last observation line>\n<new observation>")`. No `## Observations` heading yet: `edit_note(operation: "append")` to add it. Never overwrite.
+- **Project updates** → `edit_note(identifier: "Projects/<Name>", operation: "find_replace", find_text: "<last line of Current Phase section>", content: "<last line>\n<new content>")`.
 - **Reference docs / ideas / brainstorms** → `outbox/YYYY-MM-DD-[slug].md` (filesystem outbox, not vault).
-- **Decisions** → vault note `Decisions/YYYY-MM-DD <Title>.md` with `type: decision` frontmatter.
+- **Decisions** → vault note `Decisions/YYYY-MM-DD <Title>.md`, frontmatter per `_conventions.md` → Frontmatter schemas (Decision).
 
-The artifact dedupes `add` ops on `subject + from`; for cases where the new note adds real context to an existing item, emit an `update` op instead of a duplicate `add`.
+The artifact dedupes `add` ops on `subject + from`. If a new note adds real context to an existing item, emit an `update` op instead of a duplicate `add`.
 
 ### Handling unknown people
 
-If the notes mention someone not in `team/` or `stakeholders/`, **pause and ask before creating anything** for them:
+Notes mention someone not in `team/` or `stakeholders/`: pause and ask before creating anything for them.
 
 > "I see a reference to **[Name]**, I don't have a profile for them. What should I do?"
 >
@@ -139,22 +137,22 @@ Do this for each unknown person, one at a time.
 
 ### Lightly opinionated defaults
 
-Apply these without asking, unless the user's answers override them:
+Apply without asking, unless the user's answers override:
 
-- If action items are found in any note type, offer to push them to the live artifact as `add` operations at the end (don't silently push, confirm once in the output summary)
-- If a decision is clearly stated ("we decided to…"), flag it for `decisions/log.md` only if it passes the decision-log test in CLAUDE.md Key Behaviors (hard to reverse, surprising without context, real trade-off); otherwise it stays in the note. Capture options considered when stated
-- If the notes are clearly about a known team member or stakeholder, offer to add relevant observations to their profile
-- Use today as the date if none was provided or inferred
+- Action items found in any note type: offer to push as `add` operations at the end (confirm once in the output summary, don't push silently)
+- A decision is clearly stated ("we decided to…"): flag for `decisions/log.md` only if it passes the decision-log test (`_conventions.md` → Decision-log discipline); otherwise it stays in the note. Capture options considered when stated
+- Notes clearly about a known team member or stakeholder: offer to add observations to their profile
+- No date provided or inferred: use today
 
 ### Terminology corrections
 
-If `context.md` includes a `## Terminology & Corrections` section, silently apply those corrections to all output. Also maintain the glossary per the CLAUDE.md rule: flag any usage that conflicts with a glossary definition, and propose new entries (with suggested definition and observed variants) when the notes use a recurring term the glossary lacks. Surface both in the output summary.
+Apply `context.md` terminology corrections and glossary maintenance per `_conventions.md` → Terminology and glossary. Surface flagged conflicts and proposed new entries in the output summary.
 
 ---
 
 ## Step 3: Output summary
 
-After processing, provide a concise summary of what was done:
+Summarize what was done:
 
 ```
 ## Notes Processed
@@ -180,14 +178,14 @@ After processing, provide a concise summary of what was done:
 [List any items that are ambiguous and need your input before they can be filed]
 ```
 
-Sign off meeting notes and brainstorm docs with `— 📜 Lore` when you authored them. Do not sign action item rows or inline edits to the user's own files.
+All output follows VOICE.md. Sign off meeting notes and brainstorm docs with `— 📜 Lore` when you authored them (per CLAUDE.md signet rule). Do not sign action item rows or inline edits to the user's own files.
 
 ---
 
 ## Tips
 
-- **Raw notes are messy, that's expected.** Don't require polish. If a note says "talk to Derek about the Q3 thing, maybe move it up?", that's enough to create an action item.
-- **Abbreviations and shorthand are common.** Use context from `context.md` (team names, project names, terminology) to interpret them.
-- **Ask about unknowns before writing.** It's better to pause and confirm than to create a file the user didn't want.
-- **One question at a time.** The whole point of the AskUserQuestion flow is to avoid overwhelming the user. Keep it sequential.
-- **If notes are an image**, use vision to read them. If handwriting is unclear, note the uncertain parts in the output summary and ask the user to clarify.
+- **Raw notes are messy.** Don't require polish. "Talk to Derek about the Q3 thing, maybe move it up?" is enough to create an action item.
+- **Interpret shorthand** using `context.md` (team names, project names, terminology).
+- **Ask about unknowns before writing.** Pausing to confirm beats creating a file the user didn't want.
+- **One question at a time,** sequential, no exceptions.
+- **Notes as an image:** use vision to read them. Flag unclear handwriting in the output summary and ask the user to clarify.

@@ -8,13 +8,13 @@ The canonical logic lives upstream in `external/skills/skills/productivity/hando
 
 ## Lore adaptations
 
-1. **Save location.** Upstream says to save to the OS temp directory. In Lore, save to `outbox/handoffs/YYYY-MM-DD-<short-slug>.md` instead, so handoffs survive and are findable. Create the `handoffs/` folder if it does not exist. Run the standard two-step existence check before writing (it is inside a gitignored folder).
+1. **Save location.** Upstream says to save to the OS temp directory. In Lore, save to `outbox/handoffs/YYYY-MM-DD-<short-slug>.md` instead, so handoffs survive and are findable. Create `handoffs/` if it does not exist. Two-step existence check first: `_conventions.md` → Two-step existence check.
 
-2. **Don't duplicate, reference.** Carries over verbatim from upstream and matches Lore's each-fact-written-once rule. If something is already captured in the vault, the decision log, a project file, an outbox deliverable, or the action-items artifact, link to it by path or note title rather than restating it. The handoff is a map, not a copy.
+2. **Don't duplicate, reference.** Carries over verbatim from upstream; matches the one-fact-once rule (`_conventions.md` → Linking and deduplication). If something is already in the vault, decision log, a project file, an outbox deliverable, or the action-items artifact, link to it by path or note title instead of restating it. The handoff is a map, not a copy.
 
-3. **Suggested workflows section.** Upstream asks for a "suggested skills" section. In Lore, list the workflow files the next session should read (e.g., `workflows/triage.md`, `workflows/process-transcript.md`) and the storage mode that was active (Obsidian or filesystem).
+3. **Suggested workflows section.** Upstream asks for a "suggested skills" section. In Lore, list the workflow files the next session should read (e.g., `workflows/triage.md`, `workflows/process-transcript.md`) and the active storage mode: `_conventions.md` → Storage-mode branching.
 
-4. **Redaction.** Carries over verbatim: no credentials, tokens, or sensitive personal data in the handoff. People's names and roles are fine (that is what the vault is for); compensation details, health information, and anything the user marked confidential are not.
+4. **Redaction.** Carries over verbatim: no credentials, tokens, or sensitive personal data in the handoff. Names and roles are fine; compensation, health information, and anything the user marked confidential are not.
 
 5. **Arguments.** If the user says what the next session will focus on ("hand off for the roundtable prep tomorrow"), tailor the document to that focus: lead with the state relevant to it, trim the rest to one-line pointers.
 
@@ -29,4 +29,6 @@ Use this skeleton, trimming sections that are empty:
 - **Suggested workflows**: files to read, storage mode, relevant entity notes
 - **Watch out for**: gotchas discovered this session (failed approaches, naming traps, tool quirks)
 
-Sign the document with the signet.
+Sign with the signet (`CLAUDE.md` → Key behaviors).
+
+All output follows VOICE.md.
