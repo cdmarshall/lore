@@ -67,6 +67,12 @@ For each project mentioned:
 
 Do not touch `context.md` Active Initiatives rows automatically; prompt the user.
 
+### 4.5. Triage queue for the user's own action items
+
+Extracted action items belonging to the user do **not** push straight to the live `action-items` tracker anymore. They enqueue into the **Action Item Triage** artifact (id: `action-item-triage`) so the user reviews each one (Add to my list / Not mine) before it becomes a real tracked commitment. Full procedure and rationale: section 5, "Both Modes: user's action items" below, and `workflows/action-items.md` → "Action item triage queue."
+
+Other attendees' action items are unaffected: they stay in the meeting note only, per section 6's "Others' Action Items" output, same as always.
+
 ### 5. Update files
 
 Branch on storage mode (`_conventions.md` → Storage-mode branching). Targets by mode:
@@ -112,9 +118,9 @@ Obsidian path resolution and the `Lore/` subfolder override: `_conventions.md` �
 
 #### Section 5, Both Modes: user's action items
 
-Push as `add` operations to the live artifact per the procedure in CLAUDE.md → Action items and `workflows/action-items.md`. Never write `inbox/action-items.md`.
+Push as `enqueue` operations to the **Action Item Triage** artifact (id: `action-item-triage`), not directly to the live `action-items` tracker. Full mechanics: `workflows/action-items.md` → "Action item triage queue." Never write `inbox/action-items.md`.
 
-Per `add` op:
+Per `enqueue` op, `item` carries the same fields the real tracker eventually wants:
 - `item.date` = meeting/source date (when the item originated)
 - `item.created` = today (`YYYY-MM-DD`)
 - `item.from` = meeting name or context
@@ -125,11 +131,9 @@ Per `add` op:
 - `item.specialist` = `"Y"` if a sibling specialist agent (e.g., Sigil) could pick it up autonomously, else `""`
 - `item.notes` = blank unless the transcript gives notes-worthy context
 
-Dedup is authoritative on `subject + from` (normalized): the artifact no-ops a duplicate `add`. When new context adds real value to an existing item, emit an `update` op instead of a duplicate `add` and report it:
-  ```
-  Consolidated: "[Proposed item]" → updated existing item "[Existing Subject]" with [new context].
-  ```
-After pushing, verify per `_conventions.md` → Verification loops (confirm the build succeeded, report the op count) and surface every operation in the Output Summary.
+Dedup is authoritative on `subject + from` (normalized) inside the triage artifact too: an `enqueue` no-ops if that key already exists there (pending or already decided), so reprocessing never re-queues something already triaged.
+
+Procedure: assemble `enqueue` ops → `node scripts/build-action-item-triage.js <ops>` → `mcp__cowork__update_artifact(id="action-item-triage", html_path="outbox/action-item-triage-built.html", ...)`. Verify per `_conventions.md` → Verification loops (confirm the build succeeded, report the op count) and surface the enqueue count in the Output Summary. Don't claim items were "added to the tracker"; they're waiting on the user's review until synced (`workflows/action-items.md` → "Action item triage queue").
 
 ### 6. Output summary
 
@@ -150,17 +154,16 @@ After pushing, verify per `_conventions.md` → Verification loops (confirm the 
 - meetings/transcripts/{date}-{meeting-name}.md - Raw transcript saved
 - team/{person}.md - Added observations
 - stakeholders/{person}.md - Added observations
-- Action items artifact - Pushed [N] operations ([X] add, [Y] update, [Z] complete)
+- Action item triage queue - Enqueued [N] item(s) for your review
 - decisions/log.md - Added decision on [topic]
 
-### Your Action Items (pushed to the artifact)
-- [ ] [Action 1] - Due: [date/TBD]
-- [ ] [Action 2] - Due: [date/TBD]
+### Your Action Items (waiting in your triage queue)
+- [ ] [Action 1]
+- [ ] [Action 2]
 
-**Consolidated into existing items** (only if any):
-- Consolidated: "[Proposed item]" → updated existing item "[Existing Subject]" with [new context]
+Review them whenever in the **Action Item Triage** artifact, one at a time (Add to my list / Not mine). When you're done, say "sync my triage queue" (or similar) and I'll push the ones you approved to your real tracker.
 
-(The artifact dedupes `add` ops on subject + from, so exact duplicates are silently no-oped.)
+(The triage artifact dedupes `enqueue` ops on subject + from, so exact duplicates are silently no-oped and won't reappear if this transcript ever gets reprocessed.)
 
 ### Others' Action Items (Tracked in meeting notes)
 - [ ] [Person]: [Action] - Due: [date]

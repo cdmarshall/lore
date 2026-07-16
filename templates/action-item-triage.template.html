@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Action Item Triage",
+  "schemaVersion": 1,
+  "description": "One-at-a-time review queue for action items extracted from transcripts, before they're promoted to the canonical Action Items tracker. IndexedDB is the sole source of truth here too. Lore pushes new items via an 'enqueue' operation; the user decides Add/Not mine per item; Lore reads decisions back via the console log (verify_artifact) and later pushes an 'ack' operation once those items land in the real tracker."
+}
+</script>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  color-scheme: light;
+  --bg-page: #F4F3EE;
+  --bg-card: #FFFFFF;
+  --bg-soft: #FBFAF6;
+  --bg-muted: #EFEDE5;
+  --border: #E5E0D3;
+  --border-strong: #D6D2C7;
+  --text-primary: #2C2825;
+  --text-secondary: #605B4F;
+  --text-muted: #8C8779;
+  --text-faint: #B1ADA1;
+  --brand: #C15F3C;
+  --brand-deep: #A14E30;
+  --brand-soft: #F5E5DD;
+  --spec-deep: #5D6F48;
+  --spec-soft: #EEF1E7;
+  --font-ui: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Lora', Charter, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-body); background: var(--bg-page); color: var(--text-primary); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+.header { background: linear-gradient(135deg, #C15F3C 0%, #D97757 100%); color: white; padding: 18px 24px 16px; }
+.header h1 { font-family: var(--font-ui); font-size: 21px; font-weight: 600; letter-spacing: -0.4px; }
+.header-subtitle { font-family: var(--font-body); font-size: 12.5px; opacity: 0.92; margin-top: 2px; }
+.wrap { max-width: 620px; margin: 0 auto; padding: 28px 20px 40px; }
+.progress-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-family: var(--font-ui); font-size: 12px; color: var(--text-muted); }
+.progress-bar { flex: 1; height: 5px; background: var(--bg-muted); border-radius: 3px; margin: 0 12px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--brand); transition: width 0.2s; }
+.card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 26px 26px 22px;
+  box-shadow: 0 2px 14px rgba(60,40,30,0.06);
+}
+.card-meta { font-family: var(--font-ui); font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px; }
+.card-text { font-family: var(--font-body); font-size: 17px; line-height: 1.5; color: var(--text-primary); margin-bottom: 22px; }
+.card-actions { display: flex; gap: 10px; }
+.btn { font-family: var(--font-ui); flex: 1; padding: 13px; border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border-strong); background: var(--bg-card); color: var(--text-secondary); transition: all 0.12s; }
+.btn:hover { border-color: var(--text-muted); }
+.btn.add { background: var(--brand); color: white; border-color: var(--brand); }
+.btn.add:hover { background: var(--brand-deep); }
+.kbd-hint { text-align: center; font-family: var(--font-ui); font-size: 11px; color: var(--text-faint); margin-top: 14px; }
+kbd { background: var(--bg-muted); border: 1px solid var(--border-strong); border-radius: 4px; padding: 1px 6px; font-size: 10.5px; }
+
+.empty-state { text-align: center; padding: 30px 10px; }
+.empty-big { font-family: var(--font-ui); font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+.empty-sub { font-family: var(--font-body); font-size: 13.5px; color: var(--text-secondary); margin-bottom: 20px; }
+.sync-btn { font-family: var(--font-ui); padding: 12px 22px; border-radius: 9px; border: none; background: var(--brand); color: white; font-size: 14px; font-weight: 600; cursor: pointer; }
+.sync-btn:hover { background: var(--brand-deep); }
+.sync-btn:disabled { background: var(--border-strong); cursor: default; }
+.synced-note { font-family: var(--font-ui); font-size: 12px; color: var(--spec-deep); background: var(--spec-soft); border-radius: 7px; padding: 8px 14px; margin-top: 14px; display: none; }
+.synced-note.show { display: inline-block; }
+
+.history-toggle { text-align: center; margin-top: 26px; }
+.history-toggle button { font-family: var(--font-ui); font-size: 11.5px; color: var(--text-muted); background: none; border: none; cursor: pointer; text-decoration: underline; }
+.history-list { margin-top: 12px; font-family: var(--font-ui); font-size: 12px; }
+.history-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--bg-muted); }
+.history-row .h-text { color: var(--text-secondary); flex: 1; }
+.history-row .h-tag { flex-shrink: 0; font-weight: 600; }
+.history-row .h-tag.add { color: var(--brand-deep); }
+.history-row .h-tag.skip { color: var(--text-faint); }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Embedded seed data (substituted by scripts/build-action-item-triage.js).
+     Contains: { seedVersion, schemaVersion, operations[] }. Operations are
+     'enqueue' (add a new pending item, deduped on subject+from) and 'ack'
+     (mark a decided item as already pushed to the real tracker, so it drops
+     out of "ready to sync"). Full state is never embedded here; IDB owns it. -->
+<script type="application/json" id="seed-data">/*__LORE_ACTION_ITEM_TRIAGE_SEED_PLACEHOLDER__*/</script>
+
+<div class="header">
+  <h1>Action Item Triage</h1>
+  <div class="header-subtitle">by Lore &#128220; &mdash; quick pass before items join your real tracker</div>
+</div>
+
+<div class="wrap">
+  <div class="progress-row" id="progress-row"></div>
+  <div id="main-area"></div>
+  <div class="history-toggle"><button id="history-toggle-btn">Show reviewed history</button></div>
+  <div class="history-list hidden" id="history-list"></div>
+</div>
+
+<script>
+const norm = s => (s == null ? '' : String(s)).trim().toLowerCase();
+const keyOf = it => `${norm(it && it.subject)}|${norm(it && it.from)}`;
+const TODAY_STR = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })();
+
+// ── Storage layer: IDB first, localStorage fallback, memory last resort ─────
+const STORAGE_NAMESPACE = 'lore-action-item-triage';
+let storage = null;
+function memStorage() { const m = {}; return { kind:'mem', async getItem(k){return m[k];}, async setItem(k,v){m[k]=v;} }; }
+function lsStorage() { return { kind:'ls',
+  async getItem(k){ try { const v = localStorage.getItem(STORAGE_NAMESPACE+':'+k); return v ? JSON.parse(v) : undefined; } catch(_) { return undefined; } },
+  async setItem(k,v){ localStorage.setItem(STORAGE_NAMESPACE+':'+k, JSON.stringify(v)); } }; }
+function idbStorage() {
+  const DB = STORAGE_NAMESPACE, STORE = 'data';
+  function open() { return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('idb open failed'));
+    req.onblocked = () => reject(new Error('idb open blocked'));
+  }); }
+  return { kind:'idb',
+    async getItem(k){ const db = await open(); return new Promise((resolve,reject)=>{ const tx=db.transaction(STORE,'readonly'); const r=tx.objectStore(STORE).get(k); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error); }); },
+    async setItem(k,v){ const db = await open(); return new Promise((resolve,reject)=>{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(v,k); tx.oncomplete=()=>resolve(); tx.onerror=()=>reject(tx.error); }); }
+  };
+}
+async function pickStorage() {
+  if (typeof indexedDB !== 'undefined') {
+    try {
+      const c = idbStorage();
+      await Promise.race([
+        (async () => { await c.setItem('_probe',1); if ((await c.getItem('_probe')) !== 1) throw new Error('mismatch'); })(),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),2000))
+      ]);
+      return c;
+    } catch(_) {}
+  }
+  if (typeof localStorage !== 'undefined') {
+    try { const c = lsStorage(); await c.setItem('_probe',1); if ((await c.getItem('_probe'))===1) return c; } catch(_) {}
+  }
+  return memStorage();
+}
+
+// ── State ────────────────────────────────────────────────────────────────
+// Each item: { date, created, from, subject, actionNeeded, due, lore, specialist, notes,
+//              decision: null | 'add' | 'skip', decidedAt, ackedByLore }
+let allItems = [];
+let lastSeenSeedVersion = null;
+
+async function loadStored() {
+  if (!storage) return false;
+  try {
+    const stored = await storage.getItem('items');
+    if (!stored || !Array.isArray(stored.allItems)) return false;
+    allItems = stored.allItems;
+    lastSeenSeedVersion = stored.lastSeenSeedVersion || null;
+    return true;
+  } catch(_) { return false; }
+}
+async function saveStored() {
+  if (!storage) return;
+  try { await storage.setItem('items', { allItems, lastSeenSeedVersion, savedAt: new Date().toISOString() }); } catch(_) {}
+}
+
+function readEmbeddedSeed() {
+  const tag = document.getElementById('seed-data');
+  const txt = tag ? tag.textContent.trim() : '';
+  if (!txt) return null;
+  try { return JSON.parse(txt); } catch(_) { return null; }
+}
+
+function applyOperations(seed) {
+  if (!seed || !Array.isArray(seed.operations)) { lastSeenSeedVersion = seed && seed.seedVersion || lastSeenSeedVersion; return; }
+  const existingKeys = new Set(allItems.map(keyOf));
+  for (const op of seed.operations) {
+    if (!op || typeof op !== 'object') continue;
+    if (op.op === 'enqueue') {
+      const src = op.item || {};
+      if (!src.subject) continue;
+      const k = `${norm(src.subject)}|${norm(src.from)}`;
+      if (existingKeys.has(k)) continue; // already pending/decided from a prior push
+      allItems.push({
+        date: src.date || TODAY_STR,
+        created: src.created || TODAY_STR,
+        from: src.from || '',
+        subject: src.subject,
+        actionNeeded: src.actionNeeded || src.subject,
+        due: src.due || 'TBD',
+        lore: src.lore || '',
+        specialist: src.specialist || '',
+        notes: src.notes || '',
+        decision: null,
+        decidedAt: null,
+        ackedByLore: false
+      });
+      existingKeys.add(k);
+    } else if (op.op === 'ack') {
+      const k = `${norm(op.subject)}|${norm(op.from)}`;
+      const it = allItems.find(x => keyOf(x) === k);
+      if (it) it.ackedByLore = true;
+    }
+  }
+  lastSeenSeedVersion = seed.seedVersion || null;
+}
+
+// ── Rendering ────────────────────────────────────────────────────────────
+function pending() { return allItems.filter(it => it.decision === null); }
+function readyToSync() { return allItems.filter(it => it.decision === 'add' && !it.ackedByLore); }
+function decidedThisSession() { return allItems.filter(it => it.decision !== null); }
+
+function renderProgress() {
+  const p = pending();
+  const total = allItems.length;
+  const done = total - p.length;
+  const row = document.getElementById('progress-row');
+  if (total === 0) { row.innerHTML = ''; return; }
+  const pct = total ? Math.round((done/total)*100) : 100;
+  row.innerHTML = `
+    <span>${done} of ${total} reviewed</span>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <span>${p.length} left</span>
+  `;
+}
+
+function decide(item, decision) {
+  item.decision = decision;
+  item.decidedAt = new Date().toISOString();
+  saveStored();
+  renderAll();
+}
+
+function syncNow() {
+  const items = readyToSync();
+  if (!items.length) return;
+  const payload = {
+    event: 'triage-sync',
+    at: new Date().toISOString(),
+    items: items.map(it => ({
+      date: it.date, created: it.created, from: it.from, subject: it.subject,
+      actionNeeded: it.actionNeeded, due: it.due, lore: it.lore, specialist: it.specialist, notes: it.notes
+    }))
+  };
+  // Tagged prefix makes this easy to find in the debug log via verify_artifact.
+  console.log('LORE_TRIAGE_SYNC:' + JSON.stringify(payload));
+  const note = document.getElementById('synced-note');
+  if (note) { note.classList.add('show'); note.textContent = `Synced ${items.length} item${items.length===1?'':'s'} — tell Lore you're ready (e.g. "push my triage queue") whenever you like.`; }
+}
+
+function renderMain() {
+  const main = document.getElementById('main-area');
+  const p = pending();
+  if (p.length > 0) {
+    const it = p[0];
+    main.innerHTML = `
+      <div class="card">
+        <div class="card-meta">${it.date}${it.from ? ' &middot; ' + it.from : ''}</div>
+        <div class="card-text">${it.subject}</div>
+        <div class="card-actions">
+          <button class="btn skip" id="skip-btn">Not mine</button>
+          <button class="btn add" id="add-btn">Add to my list</button>
+        </div>
+      </div>
+      <div class="kbd-hint"><kbd>A</kbd> add &nbsp; <kbd>N</kbd> not mine</div>
+    `;
+    document.getElementById('add-btn').addEventListener('click', () => decide(it, 'add'));
+    document.getElementById('skip-btn').addEventListener('click', () => decide(it, 'skip'));
+    return;
+  }
+  const ready = readyToSync();
+  if (!allItems.length) {
+    main.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-big">Nothing to review</div>
+        <div class="empty-sub">New items show up here after Lore processes a transcript.</div>
+      </div>
+    `;
+    return;
+  }
+  main.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-big">All caught up</div>
+      <div class="empty-sub">${ready.length ? `${ready.length} item${ready.length===1?'':'s'} ready to send to your tracker.` : 'Nothing new waiting on you right now.'}</div>
+      ${ready.length ? '<button class="sync-btn" id="sync-btn">Sync now</button>' : ''}
+      <div class="synced-note" id="synced-note"></div>
+    </div>
+  `;
+  const btn = document.getElementById('sync-btn');
+  if (btn) btn.addEventListener('click', syncNow);
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const items = decidedThisSession().slice().reverse();
+  if (!items.length) { list.innerHTML = '<div style="color:var(--text-faint);text-align:center;padding:10px 0;">No decisions yet.</div>'; return; }
+  list.innerHTML = items.map(it => `
+    <div class="history-row">
+      <span class="h-text">${it.subject}</span>
+      <span class="h-tag ${it.decision}">${it.decision === 'add' ? (it.ackedByLore ? 'Added ✓' : 'Added (pending sync)') : 'Skipped'}</span>
+    </div>
+  `).join('');
+}
+
+let historyOpen = false;
+document.getElementById('history-toggle-btn').addEventListener('click', () => {
+  historyOpen = !historyOpen;
+  document.getElementById('history-list').classList.toggle('hidden', !historyOpen);
+  document.getElementById('history-toggle-btn').textContent = historyOpen ? 'Hide reviewed history' : 'Show reviewed history';
+  if (historyOpen) renderHistory();
+});
+
+function renderAll() { renderProgress(); renderMain(); if (historyOpen) renderHistory(); }
+
+document.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  if (k === 'a') document.getElementById('add-btn')?.click();
+  if (k === 'n') document.getElementById('skip-btn')?.click();
+});
+
+// ── Bootstrap ────────────────────────────────────────────────────────────
+(async function bootstrap() {
+  storage = await pickStorage();
+  await loadStored();
+  const seed = readEmbeddedSeed();
+  if (seed && seed.seedVersion && seed.seedVersion !== lastSeenSeedVersion) {
+    applyOperations(seed);
+    await saveStored();
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>
