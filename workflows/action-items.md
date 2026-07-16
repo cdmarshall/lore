@@ -185,6 +185,30 @@ In your response, summarize what was pushed. If anything was skipped or consolid
 
 Full rule: `CLAUDE.md` → Action items hard rule. In this workflow specifically: the seed never contains an `active`, `completed`, `archived`, or `delegated` array of full state, only an `operations` array. If you find yourself wanting to push full state or touch `inbox/action-items.md`, stop.
 
+## Action item triage queue
+
+Transcript processing (`workflows/process-transcript.md` → section 5, "user's action items") does **not** push the user's extracted action items straight into this artifact anymore. They land first in a separate artifact, **Action Item Triage** (id: `action-item-triage`), so the user can approve each one individually before it becomes a real tracked commitment. This exists because a bulk backlog-processing run once surfaced hundreds of extracted items at once, most belonging to other people or already stale, and a flat checklist made it unclear that checking a box would promote that item into the canonical tracker. The triage artifact fixes this with a one-at-a-time card UI (Add to my list / Not mine) instead.
+
+### How it works
+
+1. **Enqueue.** After extracting a transcript's action items for the user, Lore builds `enqueue` operations (one per item, same field shape as an `add` op below) and pushes them via `scripts/build-action-item-triage.js` + `mcp__cowork__update_artifact(id="action-item-triage")`. Dedup on `subject + from` happens inside that artifact too, so reprocessing never re-queues something already triaged.
+2. **User reviews at their own pace.** Each item is shown as a single card; the user clicks "Add to my list" or "Not mine" (keyboard: `A` / `N`). Decided items that were added but not yet synced show a "Sync now" button once the queue is empty.
+3. **Sync.** Clicking "Sync now" in the artifact writes a tagged JSON payload to the browser console (`LORE_TRIAGE_SYNC:{...}`) listing every added-but-unsynced item. This is the handoff back to Lore, since the artifact has no way to call the real tracker directly.
+4. **User tells Lore to push.** Trigger phrases: "sync my triage queue", "push my reviewed items", "what's ready in my triage queue". Lore then:
+   - Calls `mcp__cowork__verify_artifact(id="action-item-triage")` and finds the most recent `LORE_TRIAGE_SYNC:` entry in the debug log.
+   - If none is found, tell the user honestly: "I don't see anything synced yet — click 'Sync now' in the triage artifact first," and stop.
+   - Otherwise, parse the JSON payload's `items` array. For each item, build an `add` op (same shape as the Operations seed schema above) and push via the normal procedure (`scripts/build-action-items-artifact.js` + `update_artifact(id="action-items")`).
+   - Then build `ack` ops (`{"op": "ack", "subject": "...", "from": "..."}`, one per synced item) and push via `scripts/build-action-item-triage.js` + `update_artifact(id="action-item-triage")`, so those items stop showing as "ready to sync" in the triage view.
+   - Report the count pushed, same reporting discipline as any other `add` batch (section 5 above).
+
+### Reading the triage queue without syncing
+
+If the user asks "what's in my triage queue" (as a status check, not a push request), call `verify_artifact(id="action-item-triage")` and describe what's in the debug log (last sync payload, if any) rather than pushing anything. If the log is empty or stale, say so and suggest opening the artifact directly for the live view (Lore has no direct IDB read access here either, same constraint as the main tracker).
+
+### What never happens here
+
+Same discipline as the main tracker: never push full state into the triage artifact, only `enqueue`/`ack` operations. Never treat an `enqueue` as equivalent to the item being on the user's real list, they aren't the same thing until synced and acked.
+
 ## Restore-from-backup (opt-in only)
 
 `inbox/action-items.md` may exist as a historical artifact or a one-time snapshot the user saved over. It is not read under any circumstance except this explicit restore scenario: the user is asking for help recovering from a deleted/wiped artifact. Normally the user does this themselves via the artifact's own "Restore from backup" button.

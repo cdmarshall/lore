@@ -86,6 +86,7 @@ Read the matching file and follow it.
 | "write a handoff" / "wrap up this session" | `workflows/handoff.md` |
 | "lint the workflows" / "audit the instructions" / monthly instruction audit | `workflows/repo-lint.md` |
 | "what am I waiting on" / "show my commitments" / "who owes me what" / "track this promise" | `workflows/commitments.md` |
+| "sync my triage queue" / "push my reviewed items" / "what's in my triage queue" | `workflows/action-items.md` → Action item triage queue |
 | "cadence check" / "who am I overdue to see" / "relationship check" | `workflows/cadence.md` |
 
 - **morning-sync** works on calendar/priorities the user provides manually; no live fetch by default.
@@ -117,6 +118,7 @@ Read the matching file and follow it.
   - Never push full state; push a JSON `operations` array only (`add`, `complete`, `delegate`, `delegateComplete`, `reopen`, `archive`, `update`; match key `subject + from`, normalized).
   - Procedure: assemble ops → `node scripts/build-action-items-artifact.js <ops>` → `mcp__cowork__update_artifact(id="action-items", html_path="outbox/action-items-artifact-built.html", ...)`.
   - Read current state only from the snapshot paths in Session start step 4. Restore-from-backup (parsing `inbox/action-items.md` into `add` ops) is opt-in, only when the user explicitly asks. Full procedure: `workflows/action-items.md`.
+  - **Transcript-derived items gate through triage first.** Action items extracted from a transcript for the user do not push straight into this artifact; they `enqueue` into the separate Action Item Triage artifact (id: `action-item-triage`) for a one-at-a-time Add/Not-mine review, then sync into this one once approved. Full mechanics: `workflows/action-items.md` → "Action item triage queue."
 - **Plaud sync tracking:** `meetings/transcripts/.plaud-processed` is an append-only flat file of Plaud file IDs, the canonical record of processed recordings. Never delete or rewrite it; also add the saved local filename to `.processed`. To re-process, the user removes the specific ID. Details: `workflows/plaud-sync.md`.
 - **Triage tracking:** `inbox/.email-processed`, `.slack-processed`, `.teams-processed` are append-only ID lists; `.triage-last-run` holds the last-run ISO timestamp. Never delete or rewrite; only append. Backlog mode ignores them. Details: `workflows/triage.md`.
 - **Commit messages:** when asked to write one, always write it to `COMMIT_MSG.txt` at the repo root (overwrite whatever is there), then print the single combo command: `git add -A && git commit -F COMMIT_MSG.txt`. No other file, no other format.
@@ -138,7 +140,7 @@ Obsidian-mode targets, frontmatter, and taxonomy: `_conventions.md`.
 
 | Cadence | Task |
 |---------|------|
-| Daily | Review the action items artifact |
+| Daily | Review the action items artifact and clear the action-item triage queue |
 | Before 1:1s | Read the team member's note |
 | After meetings | Process transcript; update notes, observations, action items |
 | Weekly (Fri) | Roundtable prep; weekly review entry; vault lint; cadence check |
