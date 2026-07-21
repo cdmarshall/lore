@@ -1,6 +1,6 @@
 # Repo Lint
 
-Monthly health check for the instruction files themselves: `CLAUDE.md`, `workflows/`, `templates/`, `VOICE.md`. The committed layer, not the vault (vault-lint.md covers vault structure and content). Read-mostly. The only write it makes without asking is its own report; every fix is propose-first.
+Monthly health check for the instruction files themselves: `CLAUDE.md`, `workflows/`, `templates/`, `VOICE.md`, `.claude/output-styles/lore.md`, `.claude/hooks/voice-lint.js`. The committed layer, not the vault (vault-lint.md covers vault structure and content). Read-mostly. The only write it makes without asking is its own report; every fix is propose-first.
 
 > **Trigger phrases**: "lint the workflows", "audit the instructions". Also a monthly run (`CLAUDE.md` → Ongoing rituals).
 
@@ -8,13 +8,13 @@ Monthly health check for the instruction files themselves: `CLAUDE.md`, `workflo
 
 ## Step 1, Run the Checks
 
-**a. Redundancy.** Single-source rule: a behavioral rule lives in one committed file; every other mention is a one-line pointer. Grep known duplication magnets across all committed files: the action-items hard rule, the em-dash ban, the two-step existence check, storage-mode branching. A pointer is fine; a restated rule beyond one line is a finding. Report file, line, and which copy stays canonical.
+**a. Redundancy.** Single-source rule: a behavioral rule lives in one committed file; every other mention is a one-line pointer. Grep known duplication magnets across all committed files: the action-items hard rule, the em-dash ban, the two-step existence check, storage-mode branching. A pointer is fine; a restated rule beyond one line is a finding. Report file, line, and which copy stays canonical. **Named exception:** `VOICE.md`'s "Banned constructions" / "Grounding claims" / "Owning mistakes" sections and `.claude/output-styles/lore.md` are a deliberate full mirror, not drift, because subagents read `VOICE.md` directly but never inherit the output style. Flag them only if the two texts have actually diverged, not for being duplicated.
 
 **b. Dangling pointers.** Confirm every `` `_conventions.md` → <section> `` / `` `CLAUDE.md` → <section> `` reference resolves to a real heading (Grep the heading). Confirm every routing-table row in `CLAUDE.md` → Workflow routing points to a file that exists (`bash ls`). Confirm every workflow's own trigger phrases appear (verbatim or close paraphrase) as a routing-table row; a workflow with no routing row is a finding.
 
-**c. Token creep.** `wc -w` every committed instruction file: `CLAUDE.md`, `VOICE.md`, each `workflows/*.md`. Compare against the Baseline Table below. Flag growth over 20% since the last baseline; name the likely cause (scope creep, duplicated rule, unpruned example) and propose a trim. Update the Baseline Table after review regardless of findings, that becomes the next comparison point.
+**c. Token creep.** `wc -w` every committed instruction file: `CLAUDE.md`, `VOICE.md`, `.claude/output-styles/lore.md`, each `workflows/*.md`. Compare against the Baseline Table below. Flag growth over 20% since the last baseline; name the likely cause (scope creep, duplicated rule, unpruned example) and propose a trim. Update the Baseline Table after review regardless of findings, that becomes the next comparison point.
 
-**d. Behavior drift.** `bash ls outbox/`, read 2 to 3 recent files (briefs, sweeper changelogs, drafts). Check each against its generating workflow: right output path, verifier evidence where the workflow claims one, actual VOICE.md compliance. A mismatch means the workflow or the behavior is wrong; propose which.
+**d. Behavior drift.** `bash ls outbox/`, read 2 to 3 recent files (briefs, sweeper changelogs, drafts). Check each against its generating workflow: right output path, verifier evidence where the workflow claims one, actual VOICE.md compliance. A mismatch means the workflow or the behavior is wrong; propose which. Also confirm `.claude/hooks/voice-lint.js`'s `BANNED` list still matches VOICE.md's literal-phrase items (em dash, listicle hooks); if VOICE.md gained a new mechanically-checkable phrase that the hook doesn't scan for, that is a finding here.
 
 **e. Committed-first violations.** Grep committed files for instance data (personal names, org email domains, channel IDs, ticket-project keys); committed files carry behavior only. Grep gitignored config files (`context.md`, `triage-config.md`, `email-config.md`) for policy-shaped rules, procedures or universal thresholds that read like instructions rather than instance data, and propose promoting them into the matching committed file. Read-only in both directions; never edit a user file without approval that session.
 
@@ -89,12 +89,13 @@ All output follows VOICE.md.
 
 ---
 
-## Baseline Table (initial, set 2026-07-06)
+## Baseline Table (initial, set 2026-07-06; VOICE.md and .claude/output-styles/lore.md refreshed 2026-07-21 after adding the corrective-juxtaposition, listicle-hook, grounding, and owning-mistakes rules)
 
 | File | Words |
 |---|---|
 | CLAUDE.md | 2109 |
-| VOICE.md | 635 |
+| VOICE.md | 958 |
+| .claude/output-styles/lore.md | 577 |
 | workflows/1on1-prep.md | 826 |
 | workflows/_conventions.md | 1877 |
 | workflows/action-items.md | 2096 |
