@@ -35,7 +35,7 @@ lore/
 ├── README.md           human setup guide (full reference)               [committed]
 ├── docs/                designed setup guide: lore-setup-guide.pdf + HTML source [committed]
 ├── VERSION              installed release version                        [committed]
-├── update-channel.json  release channel config (SharePoint folder)       [committed]
+├── update-channel.json  release channel config (committed placeholder; real values in gitignored update-channel.local.json, injected into release zips) [committed]
 ├── release-manifest.json inventory of the current release's files        [committed]
 ├── design-system/       visual identity: tokens, components, dithers, sprite signet; all designed surfaces use it [committed]
 ├── STATE.md             session memory: facts, failures, resume point   [GI]

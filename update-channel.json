@@ -1,6 +1,7 @@
 {
-  "_comment": "Where Lore installs look for new releases. Committed: this is org infrastructure, not personal data. Full mechanics: workflows/update.md.",
+  "_comment": "Where package installs look for new releases. This committed copy is a placeholder so the public repo stays org-agnostic: put your real values in update-channel.local.json (gitignored, same shape) and make-release.sh injects them into the release zip, so package installs receive the real channel while the git repo never carries it. Git installs ignore this file entirely; they track their own origin remote. Full mechanics: workflows/update.md.",
   "type": "sharepoint",
+  "releaseFolderUrl": "SET-IN-update-channel.local.json",
   "feedFileName": "lore-release.json",
-  "developerGitRemote": "https://github.com/cdmarshall/lore.git"
+  "developerGitRemote": "your install's own git origin"
 }

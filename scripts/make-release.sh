@@ -43,10 +43,25 @@ files = [f for f in files if f and f != "release-manifest.json" and os.path.isfi
 if "VERSION" not in files:
     files.append("VERSION")
 
+# The committed update-channel.json is an org-agnostic placeholder. If the
+# gitignored update-channel.local.json exists, its contents ship in the
+# package as update-channel.json (and are hashed in the manifest), so package
+# installs get the real channel while the git repo never carries it.
+overrides = {}
+if os.path.exists("update-channel.local.json"):
+    with open("update-channel.local.json", "rb") as fh:
+        overrides["update-channel.json"] = fh.read()
+    print("Injecting update-channel.local.json as the package's update-channel.json")
+
+def content_of(f):
+    if f in overrides:
+        return overrides[f]
+    with open(f, "rb") as fh:
+        return fh.read()
+
 manifest = {"version": version, "files": {}}
 for f in sorted(files):
-    with open(f, "rb") as fh:
-        manifest["files"][f] = hashlib.sha256(fh.read()).hexdigest()
+    manifest["files"][f] = hashlib.sha256(content_of(f)).hexdigest()
 
 with open("release-manifest.json", "w") as fh:
     json.dump(manifest, fh, indent=1, sort_keys=True)
@@ -56,7 +71,10 @@ os.makedirs("dist", exist_ok=True)
 zip_name = f"lore-{version}.zip"
 with zipfile.ZipFile(os.path.join("dist", zip_name), "w", zipfile.ZIP_DEFLATED) as z:
     for f in sorted(files):
-        z.write(f)
+        if f in overrides:
+            z.writestr(f, overrides[f])
+        else:
+            z.write(f)
     z.write("release-manifest.json")
 
 feed = {
@@ -79,19 +97,31 @@ git commit -m "Release v${VERSION_NEW}: ${NOTES}"
 git tag "v${VERSION_NEW}"
 
 echo
-echo "Pushing commit and tag..."
-git push
-git push origin "v${VERSION_NEW}"
+echo "Pushing commit and tag to every remote..."
+for r in $(git remote); do
+  echo "  -> ${r}"
+  git push "$r" HEAD || echo "  push to ${r} failed (non-fatal); push manually: git push ${r} HEAD"
+  git push "$r" "v${VERSION_NEW}" || echo "  tag push to ${r} failed (non-fatal); push manually: git push ${r} v${VERSION_NEW}"
+done
+
+# Derive OWNER/REPO from a remote URL (handles SSH host aliases like
+# git@github-work:Org/repo.git and https URLs alike).
+repo_slug() {
+  git remote get-url "$1" | sed -E 's#^(git@[^:]+:|ssh://git@[^/]+/|https://[^/]+/)##; s#\.git$##'
+}
 
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-  echo "Creating GitHub Release v${VERSION_NEW}..."
-  gh release create "v${VERSION_NEW}" "dist/lore-${VERSION_NEW}.zip" \
-    --title "v${VERSION_NEW}" --notes "${NOTES}" \
-    || echo "GitHub Release creation failed (non-fatal); create it manually if you want one."
+  for r in $(git remote); do
+    slug=$(repo_slug "$r")
+    echo "Creating GitHub Release v${VERSION_NEW} on ${slug} (remote: ${r})..."
+    gh release create "v${VERSION_NEW}" "dist/lore-${VERSION_NEW}.zip" \
+      --repo "$slug" --title "v${VERSION_NEW}" --notes "${NOTES}" \
+      || echo "  Release on ${slug} failed (non-fatal). If it's a different GitHub account, run: gh auth switch, then: gh release create v${VERSION_NEW} dist/lore-${VERSION_NEW}.zip --repo ${slug} --title v${VERSION_NEW} --notes \"${NOTES}\""
+  done
 else
-  echo "GitHub CLI (gh) not available or not authenticated; skipped the GitHub Release."
-  echo "The tag is pushed either way. Create a Release later with:"
-  echo "  gh release create v${VERSION_NEW} dist/lore-${VERSION_NEW}.zip --title v${VERSION_NEW} --notes \"${NOTES}\""
+  echo "GitHub CLI (gh) not available or not authenticated; skipped GitHub Releases."
+  echo "Tags are pushed either way. Create a Release later per remote with:"
+  echo "  gh release create v${VERSION_NEW} dist/lore-${VERSION_NEW}.zip --repo <owner/repo> --title v${VERSION_NEW} --notes \"${NOTES}\""
 fi
 
 echo

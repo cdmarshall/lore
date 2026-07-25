@@ -37,7 +37,9 @@ Note: package installs don't have the `external/skills/` submodule contents unle
 
 ## Cutting a release (maintainer only)
 
-`./scripts/make-release.sh <version> "<one-line notes>"` from a clean checkout: stamps `VERSION`, regenerates `release-manifest.json`, builds `dist/lore-<version>.zip` + `dist/lore-release.json`, commits, tags, pushes the commit and tag, and creates a GitHub Release with the zip attached when the `gh` CLI is available (skipped non-fatally otherwise). Then upload both dist files to the SharePoint release folder (overwrite the feed file, keep old zips for rollback); that upload is what actually launches the release to users.
+`./scripts/make-release.sh <version> "<one-line notes>"` from a clean checkout: stamps `VERSION`, regenerates `release-manifest.json`, builds `dist/lore-<version>.zip` + `dist/lore-release.json`, commits, tags, pushes the commit and tag to **every configured remote**, and creates a GitHub Release with the zip attached on each remote's repo when the `gh` CLI is available (each step non-fatal; cross-account releases may need `gh auth switch`).
+
+**Channel privacy:** the committed `update-channel.json` is an org-agnostic placeholder. The maintainer keeps the real values in the gitignored `update-channel.local.json`; make-release injects that into the zip as `update-channel.json` (and hashes it in the manifest), so package installs receive the real channel while no git remote ever carries the org's URLs. A maintainer on a fresh clone recreates the local file from the placeholder's shape before cutting a release. Then upload both dist files to the SharePoint release folder (overwrite the feed file, keep old zips for rollback); that upload is what actually launches the release to users.
 
 ## What never happens
 

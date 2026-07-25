@@ -85,6 +85,10 @@
 # --- Exception: docs/ ships the committed setup guide PDF ---
 !/docs/*.pdf
 
+# --- Real release-channel config (the committed update-channel.json is a
+#     placeholder; make-release.sh injects this into the release zip) ---
+/update-channel.local.json
+
 # --- Secrets ---
 .secrets/
 *.token

@@ -26,12 +26,12 @@ Lore lives at `~/src/lore` (Mac/Linux) or `$HOME\src\lore` (Windows). Companion 
 
 **Option A, the package (no git or GitHub needed).** Download the latest `lore-<version>.zip` from your org's shared release folder (the link lives in `update-channel.json`; ask in the rollout channel if you don't have it), unzip, and place the folder at the path above. Updates arrive the same way, applied for you by Lore itself; see **Staying up to date** below.
 
-**Option B, git (developers and contributors).**
+**Option B, git (developers and contributors).** Use this repository's clone URL (the **Code** button above); a fork works the same way.
 
 **Mac / Linux:**
 ```bash
 mkdir -p ~/src
-git clone https://github.com/cdmarshall/lore.git ~/src/lore
+git clone <repo-url> ~/src/lore
 cd ~/src/lore
 git submodule update --init
 ```
@@ -39,7 +39,7 @@ git submodule update --init
 **Windows (PowerShell):**
 ```powershell
 New-Item -ItemType Directory -Force "$HOME\src"
-git clone https://github.com/cdmarshall/lore.git "$HOME\src\lore"
+git clone <repo-url> "$HOME\src\lore"
 cd "$HOME\src\lore"
 git submodule update --init
 ```
@@ -411,13 +411,13 @@ The action items artifact doubles as a delegation bus. Each Active row carries t
 
 Both flags can be `Y` on the same row. Both can be blank (the user does it themselves). The specialist learns about `Specialist: Y` items by asking the user to share a Downloaded snapshot, then pushes its own `complete` operations to the artifact when work is done (using the same `scripts/build-action-items-artifact.js` + `mcp__cowork__update_artifact` path Lore uses). See `workflows/action-items.md` for the full delegation contract.
 
-A reference example: the RINS Product team uses a specialist agent called **Sigil** for product-engineering tasks. Sigil reads Lore's `context.md`, `team/`, `stakeholders/` for context, asks the user for a Downloaded snapshot to identify `Specialist: Y` items, and pushes operations back to the artifact when work completes. Lore knows about Sigil as a delegation target; Sigil knows about Lore as a context source. Neither requires the other to function.
+A reference example: the team that built Lore runs a specialist agent called **Sigil** for product-engineering tasks. Sigil reads Lore's `context.md`, `team/`, `stakeholders/` for context, asks the user for a Downloaded snapshot to identify `Specialist: Y` items, and pushes operations back to the artifact when work completes. Lore knows about Sigil as a delegation target; Sigil knows about Lore as a context source. Neither requires the other to function.
 
 If you have a specialist agent of your own (call it whatever you want), the integration is just shared filesystem reads. Point it at your Lore folder (`~/src/lore` on Mac/Linux, `$HOME\src\lore` on Windows) and tell it the convention. The specialist needs no special integration plumbing, just instructions, which can include a graceful "if Lore isn't installed for this user, ignore" check so the specialist works for teammates who don't run Lore.
 
 ### Wiring up a specialist: the integration prompt
 
-Below is the prompt the RINS Product team uses to brief Sigil on Lore. Copy the relevant block into your specialist's `CLAUDE.md` (or paste the one-shot prompt at the start of a session). It's designed to **degrade gracefully**: if Lore isn't installed on a teammate's machine, the specialist silently skips the integration and operates normally.
+Below is the prompt Lore's home team uses to brief Sigil on Lore. Copy the relevant block into your specialist's `CLAUDE.md` (or paste the one-shot prompt at the start of a session). It's designed to **degrade gracefully**: if Lore isn't installed on a teammate's machine, the specialist silently skips the integration and operates normally.
 
 The example uses the name **Sigil**; substitute your specialist's name if it differs.
 
