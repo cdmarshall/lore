@@ -8,6 +8,7 @@
 - **Email**: uses the Email tier framework defined in `workflows/triage.md` and sender lists in `email-config.md`.
 - **Slack and Teams** "needs attention" = DMs + @mentions + configured project channels + active threads I have posted in that have new replies. Threads with no new messages are skipped.
 - Default look-back window when `inbox/.triage-last-run` is missing: 24 hours.
+- **Brief windows scheduled**: <none | morning | afternoon | morning + afternoon>  (set by `workflows/triage.md` → Scheduling; with both windows the brief masthead reads "The <Weekday> Morning/Afternoon Herald", otherwise "The <Weekday> Herald")
 
 ## Slack
 

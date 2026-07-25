@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Action Items" description="Lore's live tracker: stat tiles, filter pills, priority rows with Lore/Specialist delegation chips and quick-add" -->
+<helmet><script src="./ds-base.js"></script><style>body{margin:0;background:var(--paper)}</style></helmet>
+<div style="font-family:var(--font-serif);color:var(--ink);min-height:100vh">
+<header style="background:var(--parchment);border-bottom:2px solid var(--ink);padding:20px 28px 18px;background-image:var(--dither-gold-12);background-size:16px 16px;image-rendering:pixelated">
+<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+<img src="../../assets/scroll.svg" width="40" height="48" alt="Lore" style="image-rendering:pixelated"></img>
+<div><h1 style="font-family:var(--font-display);font-weight:400;font-size:40px;line-height:1;margin:0">Action Items</h1>
+<div style="font-family:var(--font-pixel);font-size:14px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-soft);margin-top:4px">by Lore · the quest log</div></div>
+<sc-if value="{{ showStats }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;gap:10px;margin-left:auto;flex-wrap:wrap">
+<div style="background:var(--ink);color:#fff;box-shadow:var(--shadow-sprite-sm);padding:6px 14px 5px;display:flex;flex-direction:column;align-items:center;gap:1px"><span style="font-family:var(--font-display);font-size:26px;line-height:1">10</span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase">Total</span></div>
+<div style="background:var(--danger);color:#fff;box-shadow:var(--shadow-sprite-sm);padding:6px 14px 5px;display:flex;flex-direction:column;align-items:center;gap:1px"><span style="font-family:var(--font-display);font-size:26px;line-height:1">2</span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase">Overdue</span></div>
+<div style="background:var(--warn);color:#fff;box-shadow:var(--shadow-sprite-sm);padding:6px 14px 5px;display:flex;flex-direction:column;align-items:center;gap:1px"><span style="font-family:var(--font-display);font-size:26px;line-height:1">1</span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase">Due soon</span></div>
+<div style="background:var(--arcane);color:#fff;box-shadow:var(--shadow-sprite-sm);padding:6px 14px 5px;display:flex;flex-direction:column;align-items:center;gap:1px"><span style="font-family:var(--font-display);font-size:26px;line-height:1">5</span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase">Lore</span></div>
+<div style="background:var(--success);color:#fff;box-shadow:var(--shadow-sprite-sm);padding:6px 14px 5px;display:flex;flex-direction:column;align-items:center;gap:1px"><span style="font-family:var(--font-display);font-size:26px;line-height:1">4</span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase">Spec</span></div>
+</div></sc-if>
+<button style="font-family:var(--font-pixel);font-size:15px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;background:var(--gold);color:#fff;border:2px solid var(--gold-deep);padding:8px 14px;cursor:pointer;box-shadow:var(--shadow-sprite-sm)" style-active="transform:translate(2px,2px);box-shadow:var(--shadow-press)">Download snapshot</button>
+</div>
+</header>
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:14px 28px;border-bottom:1px solid var(--rule);font-family:var(--font-pixel)">
+<button style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 11px;cursor:pointer;border:2px solid var(--ink);background:var(--ink);color:var(--paper)">All</button>
+<button style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 11px;cursor:pointer;border:2px solid var(--rule);background:var(--surface-card);color:var(--ink-soft)">Overdue</button>
+<button style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 11px;cursor:pointer;border:2px solid var(--rule);background:var(--surface-card);color:var(--ink-soft)">Due Soon</button>
+<button style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 11px;cursor:pointer;border:2px solid var(--rule);background:var(--surface-card);color:var(--ink-soft)">ASAP</button>
+<button style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 11px;cursor:pointer;border:2px solid var(--rule);background:var(--surface-card);color:var(--ink-soft)">Soon</button>
+<button style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 11px;cursor:pointer;border:2px solid var(--rule);background:var(--surface-card);color:var(--ink-soft)">This Week</button>
+<button style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 11px;cursor:pointer;border:2px solid var(--rule);background:var(--surface-card);color:var(--ink-soft)">TBD</button>
+<button style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 11px;cursor:pointer;border:2px solid var(--arcane);background:var(--arcane-soft);color:var(--arcane)">Lore-Ready</button>
+<button style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 11px;cursor:pointer;border:2px solid var(--success);background:var(--success-soft);color:var(--success)">Specialist-Ready</button>
+<button style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 11px;cursor:pointer;border:2px solid var(--rule);background:var(--surface-card);color:var(--ink-soft)">Stale (&gt;30d)</button>
+<input placeholder="Search items…" style="margin-left:auto;font-family:var(--font-serif);font-size:14px;border:2px solid var(--rule);background:var(--surface-card);padding:6px 10px;outline:none;width:200px"></input>
+</div>
+<div style="padding:18px 28px 40px">
+<div style="background:var(--surface-card);border:1px solid var(--rule);box-shadow:var(--shadow-sprite)">
+<div style="display:grid;grid-template-columns:34px 110px 1fr 130px 110px 120px;gap:12px;padding:10px 16px;border-bottom:2px solid var(--ink);font-family:var(--font-pixel);font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-faint)"><span></span><span>Priority</span><span>Action item</span><span>From</span><span>Due</span><span>Agents</span></div>
+<div style="display:grid;grid-template-columns:34px 110px 1fr 130px 110px 120px;gap:12px;padding:14px 16px;border-bottom:1px solid var(--rule-soft);align-items:start">
+<span style="width:15px;height:15px;border:2px solid var(--ink);background:var(--surface-card);display:inline-block;cursor:pointer;margin-top:2px"></span>
+<span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:var(--danger-soft);color:var(--danger);border:1px solid var(--danger);padding:2px 7px">Overdue</span></span>
+<span><span style="font-size:15px;font-weight:600">Q3 release notes draft</span><br></br><span style="font-size:13.5px;color:var(--ink-soft);line-height:1.45">Write release notes for the Atlas v3.2 launch; pull from the merged PR descriptions.</span><br></br><span style="font-family:var(--font-pixel);font-size:13px;color:var(--ink-faint);letter-spacing:0.04em"><span style="background:var(--paper-band);padding:1px 5px">46d ago</span> added Mar 15</span></span>
+<span style="font-size:14px;color:var(--ink-soft)">Atlas v3.2 sync</span>
+<span><span style="font-family:var(--font-pixel);font-size:15px;font-weight:700;color:var(--danger)">5d overdue</span><br></br><span style="font-size:12px;color:var(--ink-faint)">Apr 25, 2026</span></span>
+<span style="display:flex;flex-direction:column;gap:5px;align-items:flex-start"><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.06em;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--arcane);background:var(--arcane);color:#fff;padding:2px 8px"><span style="width:5px;height:5px;background:#fff;display:inline-block"></span>Lore</span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.06em;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--success);background:var(--success);color:#fff;padding:2px 8px"><span style="width:5px;height:5px;background:#fff;display:inline-block"></span>Spec</span></span>
+</div>
+<div style="display:grid;grid-template-columns:34px 110px 1fr 130px 110px 120px;gap:12px;padding:14px 16px;border-bottom:1px solid var(--rule-soft);align-items:start">
+<span style="width:15px;height:15px;border:2px solid var(--ink);background:var(--surface-card);display:inline-block;cursor:pointer;margin-top:2px"></span>
+<span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:var(--gold-soft);color:var(--gold-deep);border:1px solid var(--gold);padding:2px 7px">Upcoming</span></span>
+<span><span style="font-size:15px;font-weight:600">Prep for Friday board review</span><br></br><span style="font-size:13.5px;color:var(--ink-soft);line-height:1.45">Pull the metrics deck, review last quarter's commitments, prep talking points.</span><br></br><span style="font-family:var(--font-pixel);font-size:13px;color:var(--ink-faint);letter-spacing:0.04em"><span style="background:var(--paper-band);padding:1px 5px">1d ago</span> added Apr 29</span></span>
+<span style="font-size:14px;color:var(--ink-soft)">Self</span>
+<span><span style="font-family:var(--font-pixel);font-size:15px;font-weight:700;color:var(--warn)">tomorrow</span><br></br><span style="font-size:12px;color:var(--ink-faint)">May 1, 2026</span></span>
+<span style="display:flex;flex-direction:column;gap:5px;align-items:flex-start"><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.06em;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--arcane);background:var(--arcane);color:#fff;padding:2px 8px"><span style="width:5px;height:5px;background:#fff;display:inline-block"></span>Lore</span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.06em;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--success);background:var(--success-soft);color:var(--success);padding:2px 8px"><span style="width:5px;height:5px;background:var(--success);display:inline-block"></span>Spec</span></span>
+</div>
+<div style="display:grid;grid-template-columns:34px 110px 1fr 130px 110px 120px;gap:12px;padding:14px 16px;border-bottom:1px solid var(--rule-soft);align-items:start">
+<span style="width:15px;height:15px;border:2px solid var(--ink);background:var(--surface-card);display:inline-block;cursor:pointer;margin-top:2px"></span>
+<span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:var(--danger-soft);color:var(--danger);border:1px solid var(--danger);padding:2px 7px">ASAP</span></span>
+<span><span style="font-size:15px;font-weight:600">Loop in legal on the analytics vendor contract</span><br></br><span style="font-size:13.5px;color:var(--ink-soft);line-height:1.45">Send the new analytics vendor contract to Legal with a summary of risk areas.</span><br></br><span style="font-family:var(--font-pixel);font-size:13px;color:var(--ink-faint);letter-spacing:0.04em"><span style="background:var(--paper-band);padding:1px 5px">15d ago</span> added Apr 15</span><br></br><span style="font-size:12.5px;font-style:italic;color:var(--ink-faint)">Forwarded the redlines on the 22nd, still waiting.</span></span>
+<span style="font-size:14px;color:var(--ink-soft)">Vendor sync</span>
+<span><span style="font-family:var(--font-pixel);font-size:15px;font-weight:700;color:var(--danger)">ASAP</span></span>
+<span style="display:flex;flex-direction:column;gap:5px;align-items:flex-start"><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.06em;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--arcane);background:var(--arcane-soft);color:var(--arcane);padding:2px 8px"><span style="width:5px;height:5px;background:var(--arcane);display:inline-block"></span>Lore</span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.06em;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--success);background:var(--success-soft);color:var(--success);padding:2px 8px"><span style="width:5px;height:5px;background:var(--success);display:inline-block"></span>Spec</span></span>
+</div>
+<div style="display:grid;grid-template-columns:34px 110px 1fr 130px 110px 120px;gap:12px;padding:14px 16px;align-items:start">
+<span style="width:15px;height:15px;border:2px solid var(--ink);background:var(--surface-card);display:inline-block;cursor:pointer;margin-top:2px"></span>
+<span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:var(--arcane-soft);color:var(--arcane);border:1px solid var(--arcane);padding:2px 7px">Soon</span></span>
+<span><span style="font-size:15px;font-weight:600">Tickets for the dashboard redesign</span><br></br><span style="font-size:13.5px;color:var(--ink-soft);line-height:1.45">Write engineering tickets broken down by component: filter bar, chart grid, export row, empty states.</span><br></br><span style="font-family:var(--font-pixel);font-size:13px;color:var(--ink-faint);letter-spacing:0.04em"><span style="background:var(--paper-band);padding:1px 5px">2d ago</span> added Apr 28</span></span>
+<span style="font-size:14px;color:var(--ink-soft)">Design review</span>
+<span><span style="font-family:var(--font-pixel);font-size:15px;font-weight:700;color:var(--ink-soft)">Soon</span></span>
+<span style="display:flex;flex-direction:column;gap:5px;align-items:flex-start"><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.06em;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--arcane);background:var(--arcane-soft);color:var(--arcane);padding:2px 8px"><span style="width:5px;height:5px;background:var(--arcane);display:inline-block"></span>Lore</span><span style="font-family:var(--font-pixel);font-size:13px;font-weight:600;letter-spacing:0.06em;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--success);background:var(--success);color:#fff;padding:2px 8px"><span style="width:5px;height:5px;background:#fff;display:inline-block"></span>Spec</span></span>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:12px;margin-top:16px;background:var(--parchment);border:2px solid var(--parchment-shade);padding:12px 16px;box-shadow:var(--shadow-sprite-sm)">
+<img src="../../assets/scroll.svg" width="20" height="24" alt="" style="image-rendering:pixelated"></img>
+<input placeholder="Quick-add a new quest…" style="flex:1;font-family:var(--font-serif);font-size:14px;border:2px solid var(--rule);background:var(--surface-card);padding:7px 10px;outline:none"></input>
+<button style="font-family:var(--font-pixel);font-size:14px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;background:var(--ink);color:var(--paper);border:2px solid var(--ink);padding:7px 13px;cursor:pointer;box-shadow:var(--shadow-sprite-sm)" style-active="transform:translate(2px,2px);box-shadow:var(--shadow-press)">Add</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showStats&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Header&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return { showStats: this.props.showStats ?? true };
+  }
+}
+</script>
+</body>
+</html>

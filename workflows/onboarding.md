@@ -248,6 +248,35 @@ If no, skip to Phase 8. If yes, continue with whichever connectors are present.
 
 ---
 
+## Phase 7.7, Daily brief schedule
+
+Goal: every install leaves onboarding with at least 1 scheduled triage per weekday, so a designed brief shows up without being asked. Runs only if a messaging connector (Microsoft 365 or Slack) is available; if none, skip with one line ("Once you connect Outlook/Teams or Slack, say 'schedule my triage' and I'll set up your daily brief.").
+
+1. **Scope the triage first.** Run the Fresh setup procedure from `workflows/triage.md` (channel discovery, key people, email tiers, `triage-config.md`). Keep it brisk; defaults from `context.md` are fine and the user can tune the config file later.
+2. **Ask the cadence** (multiple choice):
+   > "When do you want your daily brief? 1. **Morning (recommended)**, 9:00 on weekdays. 2. **Afternoon**, 3:00 PM on weekdays. 3. **Both**."
+   Offer to adjust the times.
+3. **Create the scheduled task(s)** exactly per `workflows/triage.md` → Scheduling: one Cowork scheduled task per chosen slot, using the canonical prompt from that section verbatim (it deliberately points at the workflow file rather than summarizing it).
+4. Confirm what was scheduled and when the first brief lands.
+
+If task creation fails (scheduling tool unavailable), don't block onboarding; note it and tell the user to say "schedule my triage" later.
+
+---
+
+## Phase 7.8, The first Herald
+
+The taste of the real thing before onboarding ends. Runs only if Phase 7.7 ran (a messaging connector is present and `triage-config.md` exists); otherwise skip silently.
+
+1. **Offer it, default yes:**
+   > "One last thing: want me to run your first sweep right now? I'll go through your last day of email, Slack, and Teams and deliver your first Herald, your daily brief, so you can see exactly what lands tomorrow morning. Takes a few minutes."
+2. If yes, execute `workflows/triage.md` end to end, with one override: **sweep the last 24 hours** regardless of what `inbox/.triage-last-run` says (Fresh setup just initialized it to now, which would make this run sweep nothing). Update the tracker to this run's start time afterward, as usual. Everything else is the full workflow, including drafts (draft-and-hold as always), the HTML Herald, and the verifier pass.
+3. The masthead follows the normal on-demand title rule ("The <Weekday> Herald"); let the weather line acknowledge the occasion, e.g. "Your first Herald: two things need you, and the scroll is just getting warmed up."
+4. Deliver it the standard way (link the HTML as the primary), then say in one line: this exact thing now arrives on the schedule they picked in Phase 7.7.
+
+If the run fails partway (rate limits, connector hiccups), deliver whatever sources completed with a note, per the triage workflow's own degradation rules; don't restart onboarding.
+
+---
+
 ## Phase 8, Wrap up
 
 **In order:**
@@ -266,7 +295,7 @@ If no, skip to Phase 8. If yes, continue with whichever connectors are present.
      node scripts/build-action-items-artifact.js '[]'
      ```
      This writes `outbox/action-items-artifact-built.html` with no seeded items.
-   - Call `mcp__cowork__create_artifact` with `id`: `action-items`, `html_path`: absolute path to `outbox/action-items-artifact-built.html`, `mcp_tools`: `[]`.
+   - Call `mcp__cowork__create_artifact` with `id`: `the-quest-log`, `html_path`: absolute path to `outbox/action-items-artifact-built.html`, `mcp_tools`: `[]`.
    - If the create call fails (e.g., the artifact tool isn't available), don't block onboarding. Note it wasn't created; the user can ask later by saying "create my action items artifact."
 
 3. **Teach the snapshot ritual.** How Lore reads current state (the agent can't read the artifact's IDB directly):
@@ -282,7 +311,7 @@ If no, skip to Phase 8. If yes, continue with whichever connectors are present.
    - "When you have a meeting transcript, drop it in `meetings/transcripts/` or paste it here, and I'll process it (new items get pushed to the artifact)."
    - "Say 'morning sync' to start your day with a briefing (works best with a fresh `inbox/action-items.snapshot.md`)."
    - If they have direct reports: "Before your next 1:1, say 'help me prep for my 1:1 with [name]' and I'll pull their profile."
-   - **Triage (email + Slack + Teams sweep):** Lore can run a unified triage across your messaging channels, draft replies, and surface what needs your attention, on a schedule or on demand. Out of the box it monitors **Outlook/Teams** (via the Microsoft 365 connector) and **Slack** (via the Slack connector). If you use Gmail or Google Chat instead of Outlook/Teams, you'll need a G Suite connector; other channels (e.g., Discord, Linear notifications) can be added the same way. To set up: first make sure the relevant connectors are installed in Cowork, then say "run my triage" or "triage everything" and I'll walk you through scoping which Slack channels, Teams chats, and email folders to watch. You can also ask me to run it on a schedule (default: weekday mornings and mid-afternoon). Any channels beyond the three defaults need to be explicitly added, either during that setup conversation or by telling me "add #channel-name to my triage watch list" anytime.
+   - **Triage (email + Slack + Teams sweep):** if Phase 7.8 delivered their first Herald, point at it ("that's what arrives on your schedule; say 'triage everything' anytime for another"). If only Phase 7.7 ran, remind them when their first scheduled brief lands. If Phase 7.7 was skipped (no connectors yet): Lore can run a unified triage across your messaging channels, draft replies, and surface what needs your attention. Out of the box it monitors **Outlook/Teams** (via the Microsoft 365 connector) and **Slack** (via the Slack connector); Gmail/Google Chat need a G Suite connector. Once connectors are installed, say "schedule my triage" and Lore scopes the watch list and sets up the daily brief. Channels beyond the defaults are added by saying "add #channel-name to my triage watch list" anytime.
 
 5. Remind them they can edit `context.md` anytime, and that workflows live in `workflows/`.
 
@@ -313,7 +342,7 @@ Transcripts/_README.md                  ← naming convention placeholder
 Projects/_README.md                     ← naming convention placeholder
 ```
 
-Plus a live `action-items` artifact in the Cowork sidebar (Phase 8 step 2). That artifact, not any local file, is the source of truth for action items. All other folders (decisions/, meetings/notes/, meetings/transcripts/, weekly-reviews/, outbox/, inbox/documents/) stay empty until normal workflows populate them.
+Plus a live `the-quest-log` artifact ("The Quest Log") in the Cowork sidebar (Phase 8 step 2). That artifact, not any local file, is the source of truth for action items. All other folders (decisions/, meetings/notes/, meetings/transcripts/, weekly-reviews/, outbox/, inbox/documents/) stay empty until normal workflows populate them.
 
 ---
 

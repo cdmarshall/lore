@@ -1,3 +1,15 @@
+<!--
+  RETIRED 2026-07-22. Triage was merged directly into the Action Items
+  artifact (templates/action-items-artifact.template.html): a 'propose' op
+  now lands candidates in a triageItems pile inside that same artifact, and
+  the user resolves each one in the UI (Do now / Schedule / Delegate /
+  Delete) with a single click that writes straight into the real
+  active/delegated lists. No separate artifact, no cross-artifact
+  enqueue/sync/ack handoff, and no console-log payload to read back (which is
+  what caused the truncation bug this design replaces, see STATE.md 2026-07-22).
+  Kept here for history only. Do not build or push this template again; use
+  scripts/build-action-items-artifact.js with 'propose' ops instead.
+-->
 <!DOCTYPE html>
 <script type="application/json" id="cowork-artifact-meta">
 {
@@ -229,16 +241,22 @@ function decide(item, decision) {
 function syncNow() {
   const items = readyToSync();
   if (!items.length) return;
-  const payload = {
-    event: 'triage-sync',
-    at: new Date().toISOString(),
-    items: items.map(it => ({
+  const at = new Date().toISOString();
+  // Logged as one short line PER ITEM (not one giant array) so verify_artifact's
+  // per-message truncation (observed ceiling well under 1kb per console message)
+  // can never cut off item data, no matter how large the batch is. Lore reads
+  // every LORE_TRIAGE_SYNC_ITEM line between the START and END markers and
+  // reassembles the array; each line only has to fit one item's worth of JSON.
+  console.log(`LORE_TRIAGE_SYNC_START:${JSON.stringify({ at, count: items.length })}`);
+  items.forEach((it, i) => {
+    const line = {
+      i: i + 1, n: items.length,
       date: it.date, created: it.created, from: it.from, subject: it.subject,
       actionNeeded: it.actionNeeded, due: it.due, lore: it.lore, specialist: it.specialist, notes: it.notes
-    }))
-  };
-  // Tagged prefix makes this easy to find in the debug log via verify_artifact.
-  console.log('LORE_TRIAGE_SYNC:' + JSON.stringify(payload));
+    };
+    console.log('LORE_TRIAGE_SYNC_ITEM:' + JSON.stringify(line));
+  });
+  console.log(`LORE_TRIAGE_SYNC_END:${JSON.stringify({ count: items.length })}`);
   const note = document.getElementById('synced-note');
   if (note) { note.classList.add('show'); note.textContent = `Synced ${items.length} item${items.length===1?'':'s'} — tell Lore you're ready (e.g. "push my triage queue") whenever you like.`; }
 }

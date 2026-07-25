@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+// RETIRED 2026-07-22. Triage was merged directly into the Action Items
+// artifact; use scripts/build-action-items-artifact.js with 'propose' ops
+// instead. Kept here for history only, do not run this against a live
+// artifact id, that artifact is no longer maintained. See STATE.md 2026-07-22
+// and templates/action-items-artifact.template.html's header comment for why.
+//
 // Build the Action Item Triage artifact HTML by embedding a *delta operations*
 // JSON seed in the template. The artifact's IndexedDB is the source of truth
 // for triage state; this seed never carries full state, only the operations

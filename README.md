@@ -1,18 +1,32 @@
-# Lore 📜
+<p align="center">
+  <img src="design-system/assets/scroll.svg" width="96" alt="The Lore signet, a sprite scroll">
+</p>
 
-Your personal AI second brain and executive assistant. A markdown-based system that turns Claude (or any agent that reads a CLAUDE.md and a folder of workflow files) into a long-running, context-aware partner for managing your role, your team, your stakeholders, and your work.
+<h1 align="center">Lore</h1>
 
-Lore stays out of your way until you need it, remembers what matters across sessions, and adapts to how you like to work.
+<p align="center"><em>May your scroll stay short.</em></p>
+
+---
+
+**Your second brain, your magic scroll.** Lore is a personal AI executive assistant that lives in a folder of markdown files: a mage-scribe that turns Claude (or any agent that reads a CLAUDE.md and a folder of workflow files) into a long-running, context-aware partner for managing your role, your team, your stakeholders, and your work.
+
+Lore stays out of your way until you need it, remembers what matters across sessions, and adapts to how you like to work. Like any good scroll, it grows more valuable with every entry.
 
 Lore's signet is the scroll: 📜. You'll see it on the agent's signed outputs (briefs, talk tracks, weekly reviews, signed-off meeting notes). It marks work that came from Lore.
+
+New here and not technical? Start with the designed setup guide at **`docs/lore-setup-guide.pdf`**: 7 pages, non-technical, covers everything from install to daily rituals. This README is the full reference. Lore's visual identity (colors, pixel fonts, dither textures, the sprite signet, and UI components) lives in **`design-system/`** at the repo root; every designed surface Lore ships is built from it.
 
 ---
 
 ## Getting started
 
-### 1. Clone the repo
+### 1. Get the Lore folder
 
-Clone to `~/src/lore` (Mac/Linux) or `$HOME\src\lore` (Windows). Companion specialist agents reference this path; using a different location means you'll have to edit their instructions to match.
+Lore lives at `~/src/lore` (Mac/Linux) or `$HOME\src\lore` (Windows). Companion specialist agents reference this path; using a different location means you'll have to edit their instructions to match. Two ways to get it there:
+
+**Option A, the package (no git or GitHub needed).** Download the latest `lore-<version>.zip` from your org's shared release folder (the link lives in `update-channel.json`; ask in the rollout channel if you don't have it), unzip, and place the folder at the path above. Updates arrive the same way, applied for you by Lore itself; see **Staying up to date** below.
+
+**Option B, git (developers and contributors).**
 
 **Mac / Linux:**
 ```bash
@@ -30,7 +44,7 @@ cd "$HOME\src\lore"
 git submodule update --init
 ```
 
-The submodule step pulls `external/skills/` ([mattpocock/skills](https://github.com/mattpocock/skills)), an upstream skills library that some workflows wrap. To pull upstream updates later, run `./scripts/update-external-skills.sh`.
+The submodule step pulls `external/skills/` ([mattpocock/skills](https://github.com/mattpocock/skills)), an upstream skills library that some workflows wrap. To pull upstream updates later, run `./scripts/update-external-skills.sh`. (Package installs skip the submodule; the workflows that wrap it degrade gracefully.)
 
 ### 2. Open the folder in your AI agent
 
@@ -49,6 +63,7 @@ The first time you talk to your agent in this folder, it will detect that `conte
 5. Your active initiatives and current challenges.
 6. The tools you use (Jira, Confluence, Slack, etc.).
 7. Your working style preferences and how you'd like Lore to communicate with you (concise, warm, analytical, coach-style, executive briefing, or your own custom style).
+8. Your daily brief schedule (morning, afternoon, or both), if a messaging connector is available; onboarding then runs your first sweep on the spot and delivers your first Herald so you see it working before you're done.
 
 You can pause anytime, skip phases that don't apply, and come back later by saying "run onboarding."
 
@@ -56,7 +71,7 @@ By the end, Lore will have generated:
 - `context.md`, your master profile.
 - `team/[firstname].md`, one file per direct report.
 - `stakeholders/[firstname-lastname].md`, one file per stakeholder.
-- A live `action-items` artifact in your Cowork sidebar (empty, ready to use). This is the canonical action items tracker; no local file is created for it.
+- A live `the-quest-log` artifact ("The Quest Log") in your Cowork sidebar (empty, ready to use). This is the canonical action items tracker; no local file is created for it.
 
 ### 4. Start using it
 
@@ -71,6 +86,7 @@ Once onboarding is done, try any of these:
 | Start the day | "Morning sync" |
 | Triage your channels | "Triage everything" or "What needs me across email, Slack, and Teams" |
 | End the week | "Run my weekly review" |
+| See your quarter in charts | "Unroll my scroll" |
 | Make a decision | "Help me think through a decision about [topic]" |
 | Get unblocked | "I need help with [stakeholder situation]" |
 
@@ -80,7 +96,9 @@ You don't need to memorize prompts. Just describe what you want, and Lore will r
 
 If you use a [Plaud](https://www.plaud.ai/) recorder, you can connect Lore to Plaud's MCP to pull transcripts directly instead of dropping files manually. Once connected, say "Sync Plaud from the last week" (or any time range) and Lore will fetch unprocessed recordings and walk you through them. Setup: [docs.plaud.ai/documentation/plaud_app/mcp](https://docs.plaud.ai/documentation/plaud_app/mcp).
 
-If you connect **Slack** and **Microsoft 365** (Outlook and Teams), Lore can run a unified triage across all three channels. Say "triage everything" and Lore sweeps your inbox, your Slack DMs / mentions / project channels, and your Teams chats, then drafts responses grounded in your knowledge base and writing voice. It is draft-and-hold: nothing sends without you. Slack replies become native drafts in your "Drafts & Sent"; email and Teams replies are staged as paste-ready files in `outbox/drafts/` because those connectors are read-only. Multi-person Teams group chats are summarized rather than answered, and Lore asks before adding anything it learns to your knowledge base. Each run delivers a designed HTML daily brief to `outbox/briefs/` (prioritized "needs you" items with deep links back to the source message and expandable draft replies), with a plain-markdown fallback in `outbox/triage/`. You can also run it on a schedule (for example, twice a day). See `workflows/triage.md`.
+If you connect **Slack** and **Microsoft 365** (Outlook and Teams), Lore can run a unified triage across all three channels. Say "triage everything" and Lore sweeps your inbox, your Slack DMs / mentions / project channels, and your Teams chats, then drafts responses grounded in your knowledge base and writing voice. It is draft-and-hold: nothing sends without you. Slack replies become native drafts in your "Drafts & Sent"; email and Teams replies are staged as paste-ready files in `outbox/drafts/` because those connectors are read-only. Multi-person Teams group chats are summarized rather than answered, and Lore asks before adding anything it learns to your knowledge base. Each run delivers a designed HTML daily brief to `outbox/briefs/` (prioritized "needs you" items with deep links back to the source message and expandable draft replies), with a plain-markdown fallback in `outbox/triage/`. Onboarding sets this up on a schedule (morning, afternoon, or both, weekdays); say "change my brief schedule" to adjust anytime. See `workflows/triage.md`.
+
+And when a quarter (or a year) closes, say **"unroll my scroll"** for **Lore, Unrolled**: a Wrapped-style recap page with dithered charts of everything Lore counted for you, quests completed, your heaviest meeting day, who sends you the most work, how the knowledge base grew, and a conservative, math-shown estimate of the hours Lore gave back. Every number is a real count from your own records; stats without data simply don't appear. See `workflows/unrolled.md`.
 
 Two companion routines keep the knowledge base healthy: the **KB sweeper** (`workflows/kb-sweeper.md`, "run the sweeper") reads your named Slack channels, Teams messages, and email a couple of times a day and proposes or appends vault updates, review-gated and changelogged, never silent; **vault lint** (`workflows/vault-lint.md`, "lint the vault") is the weekly health check: broken wikilinks, schema drift, stale notes, archive proposals.
 
@@ -88,9 +106,21 @@ If you use [Obsidian](https://obsidian.md/), Lore can store entity data (people,
 
 ---
 
-## The daily brief
+## Staying up to date
 
-Every triage run delivers a designed HTML brief, a single self-contained file in `outbox/briefs/` that opens in any browser:
+Lore updates as a **self-applying package**; users never need git or GitHub. Releases live in a SharePoint folder (configured once in `update-channel.json`): a tiny `lore-release.json` feed plus a versioned zip. Once a day, Lore quietly checks the feed at session start; when a new release exists it says so, and the user replies **"update"** to apply it.
+
+Your personal context can't be touched by an update, by construction: every release zip carries a manifest listing exactly the files it may write (the committed agent logic: `CLAUDE.md`, `workflows/`, `templates/`, `playbooks/`, `scripts/`, `docs/`, the design system). Personal files are gitignored at the source, so they can never appear in a manifest, and the applier (`scripts/apply-update.py`) hash-verifies the whole package and refuses to write anything outside the manifest. A corrupt or tampered package aborts with zero changes. Same behavior on macOS and Windows.
+
+Developers with git access can track the repo directly instead: `./scripts/update-lore.sh` (Mac/Linux), `./scripts/update-lore.ps1` (Windows), or plain `git pull --ff-only`. The two paths never conflict.
+
+**Cutting a release (maintainers):** `./scripts/make-release.sh <version> "<notes>"` from a clean checkout, then upload the two files it produces in `dist/` to the SharePoint release folder. That's the whole pipeline. Full mechanics: `workflows/update.md`.
+
+---
+
+## The Herald, your daily brief
+
+Every triage run delivers **The Herald**: a designed HTML brief, a single self-contained file in `outbox/briefs/` that opens in any browser:
 
 ![The Lore daily brief](assets/daily-brief.png)
 
@@ -212,6 +242,8 @@ lore/
 ├── CLAUDE.md           ← Agent orientation and session-start checks. Read first, every session.
 ├── VOICE.md            ← Style contract. Every outward-facing artifact is checked against it.
 ├── README.md           ← You are here.
+├── docs/               ← The designed setup guide (lore-setup-guide.pdf + its HTML source).
+├── design-system/ ← Lore's visual identity: tokens, components, dither assets, the sprite signet.
 │
 ├── context.md          ← Your master profile (generated by onboarding; gitignored).
 ├── STATE.md            ← Session memory: verified facts, open failures, resume pointer (gitignored).
@@ -247,12 +279,11 @@ Personal files (everything in `inbox/`, `outbox/`, `team/`, `stakeholders/`, `me
 
 ## Action items
 
-Lore's most-used surface is its action items tracker. It's the front door for *"what should I work on,"* the backbone of meeting follow-through, and the routing layer for delegating work to Lore itself or to a sibling specialist agent.
+Lore's most-used surface is its action items tracker, titled **"The Quest Log"** in the app. Every piece of work is a quest: new ones wait at the top for you to take them up, schedule them, hand them to a companion, or strike them from the record. It's the front door for *"what should I work on,"* the backbone of meeting follow-through, and the routing layer for delegating work to Lore itself or to a sibling specialist agent. (The artifact id is `the-quest-log`.)
 
-![Action items artifact](assets/action-items.png)
-*This is a mock screenshot showing Lore's action items app.*
+![The Quest Log](assets/quest-log.png)
 
-The artifact is styled to Anthropic's design system, warm terra-cotta on Pampas with Poppins for chrome and Lora for body text, so it feels at home when opened inside the Claude Cowork desktop app rather than reading as a foreign widget pinned to the sidebar.
+The artifact is styled with the **Lore design system** (`design-system/` at the repo root): a pixel-fantasy look on a parchment-and-ink base, ordered-dither textures, hard pixel shadows, square corners, a pixel blackletter display face, and the sprite scroll signet. Think "a scribe's desk rendered by a SNES." The same system styles the daily brief and the setup guide, so everything Lore ships is recognizably Lore.
 
 The tracker is **the live artifact**, a rich, interactive view in Cowork's sidebar (pictured above). IndexedDB-backed, instant edits, no server. The artifact's IndexedDB is the sole source of truth.
 
@@ -264,14 +295,15 @@ If you run Lore in **Claude Code** or another environment without the Cowork art
 
 ### What the artifact gives you
 
-- **Priority-sorted rows** with badges for Overdue, Due Soon, ASAP, Soon, This Week, and TBD.
+- **A triage pile at the top.** Items Lore extracts from transcripts arrive as proposals, one card at a time, each resolved with a single click: **Do now** (active, due ASAP), **Schedule** (pick a due date), **Delegate** (straight to a teammate), or **Delete** (never becomes an item). Nothing joins your list without you.
+- **Add form at the top** for fast capture: subject, from, due, notes, and both delegation toggles, so new items get classified the moment they're created.
+- **Priority-sorted rows** with badges for Overdue, Due Soon, ASAP, and TBD. Due dates are ASAP, TBD, a real date, or your own custom text.
 - **Two delegation flags per row**, each independently toggleable:
-  - **Lore** (blue chip) for items Lore can do from inside the workspace.
+  - **Lore** (arcane purple chip) for items Lore can do from inside the workspace.
   - **Specialist** (green chip) for items a sibling specialist agent (e.g., Sigil) can pick up autonomously off-session.
 - **Age tracking.** Each row shows when it was added (e.g. *"92d ago · added Jan 29"*). A **Stale (>30d)** filter pill surfaces items aging in your backlog as candidates for archiving or follow-up.
-- **Inline editing.** Click any cell to rename, change due dates via a date popover, edit notes, toggle flags, mark complete with a checkbox confirmation, or archive a row.
-- **Quick-add at the bottom** for fast capture, with both delegation toggles built in so new items get classified the moment they're created.
-- **Search and stats** across the top: live counts for Total, Overdue, Due Soon, Stale, Lore-Ready, and Specialist-Ready.
+- **Inline editing.** Click any cell to rename, change due dates via a popover (which flips above the trigger instead of clipping at the bottom of the list), edit notes, toggle flags, mark complete with a checkbox confirmation, or archive a row.
+- **Search and stats** across the top: live counts for Total, To Triage, Overdue, Due Soon, Stale, Delegated, Lore, and Specialist.
 - **Download snapshot** exports a markdown copy of the current state. Use it for restore (if the artifact ever gets wiped) or to give Lore a current view (see "Sharing state with Lore" below).
 - **Restore from backup** lets you re-seed the artifact from a previously downloaded snapshot, useful if the artifact was deleted or IDB was wiped.
 
@@ -404,7 +436,7 @@ The example uses the name **Sigil**; substitute your specialist's name if it dif
 > - `decisions/log.md`, past decisions with context and rationale.
 > - `meetings/notes/*.md`, structured meeting summaries.
 >
-> **Action items live in a live Cowork artifact (id: `action-items`), not in any local file.** The artifact's IndexedDB is the sole source of truth. Do NOT read `inbox/action-items.md`; if it exists at all it's a restore-only backup that may be stale. To see what's in the artifact, ask the user to click Download snapshot in the artifact and share the resulting markdown file with you.
+> **Action items live in a live Cowork artifact (id: `the-quest-log`, titled "The Quest Log"), not in any local file.** The artifact's IndexedDB is the sole source of truth. Do NOT read `inbox/action-items.md`; if it exists at all it's a restore-only backup that may be stale. To see what's in the artifact, ask the user to click Download snapshot in the artifact and share the resulting markdown file with you.
 >
 > **The two delegation flags.** Each Active row in the artifact has two independent booleans:
 > - **Lore** is `Y` if Lore could plausibly do the item from inside its workspace (drafting docs, summarizing threads, building small artifacts, querying connectors).
@@ -417,7 +449,7 @@ The example uses the name **Sigil**; substitute your specialist's name if it dif
 > 2. Push a `complete` operation to the action items artifact:
 >    - Build a JSON file with `[{"op":"complete","subject":"<exact subject>","from":"<exact from>","resolution":"<one-line description>"}]`
 >    - Run `node LORE_PATH/scripts/build-action-items-artifact.js <ops.json>`
->    - Call `mcp__cowork__update_artifact(id="action-items", html_path="LORE_PATH/outbox/action-items-artifact-built.html", mcp_tools=[], update_summary="Completed: <subject>")`
+>    - Call `mcp__cowork__update_artifact(id="the-quest-log", html_path="LORE_PATH/outbox/action-items-artifact-built.html", mcp_tools=[], update_summary="Completed: <subject>")`
 > 3. Subject and From must match the values in the artifact exactly (normalized: trimmed + lowercased) or the op will silently no-op.
 > 4. Tell the user that you marked the item complete.
 >
@@ -430,11 +462,10 @@ The example uses the name **Sigil**; substitute your specialist's name if it dif
 >     "created": "YYYY-MM-DD (today)",
 >     "from": "Sigil" or the originating context,
 >     "subject": "short title",
->     "actionNeeded": "full description",
 >     "due": "TBD" or specific value,
 >     "lore": "Y" or "",
 >     "specialist": "Y" (since you're doing it),
->     "notes": ""
+>     "notes": "full description / context"
 >   }
 > }
 > ```
@@ -466,7 +497,7 @@ Some users run a generalist personal-assistant agent named **Lore** alongside th
 - `decisions/log.md`, decision history.
 - `meetings/notes/*.md`, meeting summaries.
 
-**Action items live in a Cowork artifact, NOT a local file.** Lore's action items are tracked in a live Cowork artifact with id `action-items`. The artifact's IndexedDB is the sole source of truth. Do NOT read `inbox/action-items.md` (it may exist as a stale backup but is never authoritative). To see what's currently in the artifact, ask the user to click Download snapshot in the artifact and share the resulting markdown file.
+**Action items live in a Cowork artifact, NOT a local file.** Lore's action items are tracked in a live Cowork artifact with id `the-quest-log`. The artifact's IndexedDB is the sole source of truth. Do NOT read `inbox/action-items.md` (it may exist as a stale backup but is never authoritative). To see what's currently in the artifact, ask the user to click Download snapshot in the artifact and share the resulting markdown file.
 
 Each Active row has two independent delegation booleans:
 - **Lore = `Y`**: Lore can plausibly do it from inside its workspace (docs, summaries, prep briefs, connector queries, small artifacts).
@@ -479,13 +510,13 @@ You only act on `Specialist: Y` items. When the user asks "what should I work on
 2. Push a `complete` operation to the artifact:
    - Build `ops.json` with `[{"op":"complete","subject":"<exact subject>","from":"<exact from>","resolution":"<one-line description>"}]`
    - `node LORE_PATH/scripts/build-action-items-artifact.js ops.json`
-   - `mcp__cowork__update_artifact(id="action-items", html_path="LORE_PATH/outbox/action-items-artifact-built.html", mcp_tools=[], update_summary="Completed: <subject>")`
+   - `mcp__cowork__update_artifact(id="the-quest-log", html_path="LORE_PATH/outbox/action-items-artifact-built.html", mcp_tools=[], update_summary="Completed: <subject>")`
 3. Subject and From must match the artifact's values exactly (matching normalizes by trim + lowercase). Tell the user that you marked the item complete.
 4. Do NOT write to `inbox/action-items.md`.
 
 **Adding a new trackable item.** If you start work the user wants tracked, ask them whether to log it in Lore. If yes, push an `add` operation using the same procedure:
 ```json
-[{"op":"add","item":{"date":"YYYY-MM-DD","created":"YYYY-MM-DD","from":"Sigil","subject":"...","actionNeeded":"...","due":"TBD","lore":"","specialist":"Y","notes":""}}]
+[{"op":"add","item":{"date":"YYYY-MM-DD","created":"YYYY-MM-DD","from":"Sigil","subject":"...","due":"TBD","lore":"","specialist":"Y","notes":"full description / context"}}]
 ```
 The artifact dedupes adds on `subject + from`, so re-pushing the same add is harmless.
 
@@ -518,5 +549,7 @@ Reach out to Colton Marshall
 ## A note on the name
 
 Lore is a body of knowledge passed down, accumulated context that makes the people who hold it more effective at what they do. That's what this system is: a place for the lore of your role to accumulate and stay accessible, instead of living in your head and your notebooks and your Slack history.
+
+The persona follows from the name. Lore is a mage-scribe: it keeps a quest log instead of a task list, seals its work with a scroll, and dresses everything it ships in parchment, ink, gold, and a reserved pinch of arcane purple (`design-system/` holds the whole identity, think "a scribe's desk rendered by a SNES"). The magic is played quiet: flavor lives in the structure of things, never in the way of the work.
 
 The scroll signet (📜) is on signed outputs because Lore writes documents the way a scribe might, and a scribe seals their work.

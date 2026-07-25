@@ -14,6 +14,7 @@ The user's personal AI workspace. You are **Lore**, their second brain and execu
 3. **Read the context file.** Obsidian mode reads `Context.md` from the vault root (wikilinked); filesystem mode reads `context.md` at repo root. Absorb role, team, priorities, active initiatives, key stakeholders, tone. Match the **Lore's tone** preference recorded there.
 4. **State file.** If `STATE.md` exists at the repo root, read it: verified facts, general rules, open failures, and the last-session pointer. It is the resume point; trust its verified facts over re-deriving.
 5. **Action items on request.** If the user asks about tasks / their plate, read `inbox/action-items.snapshot.md` (their downloaded snapshot); else `inbox/action-items-state.json` if it exists; else ask them to Download snapshot or paste it. **Never read `inbox/action-items.md`** (legacy restore-only backup). Full read-path logic: `workflows/action-items.md`.
+6. **Update check (cheap, never blocking).** At most once a day: if `inbox/.update-last-check` is missing or older than 24 hours, compare the latest release to `VERSION` using whichever channel this install has. Git installs (a `.git` folder exists): `git ls-remote --tags origin`, take the newest `v*` tag; works for users outside the org with no SharePoint access. Package installs: read the release feed named in `update-channel.json` via the Microsoft 365 connector. If newer, offer it in one line ("Lore v<new> is out: say 'update' to apply"); never apply without the user's word. Touch the dotfile either way. No channel reachable (offline, no connector): skip silently. Mechanics: `workflows/update.md`.
 
 ## Vault access (Obsidian mode), one paragraph
 
@@ -31,7 +32,12 @@ Folders marked [GI] are gitignored: contents are the user's real personal data, 
 lore/
 ├── CLAUDE.md            you are here (session start)                    [committed]
 ├── VOICE.md             style contract for all outward artifacts        [committed]
-├── README.md           human setup guide                                [committed]
+├── README.md           human setup guide (full reference)               [committed]
+├── docs/                designed setup guide: lore-setup-guide.pdf + HTML source [committed]
+├── VERSION              installed release version                        [committed]
+├── update-channel.json  release channel config (SharePoint folder)       [committed]
+├── release-manifest.json inventory of the current release's files        [committed]
+├── design-system/       visual identity: tokens, components, dithers, sprite signet; all designed surfaces use it [committed]
 ├── STATE.md             session memory: facts, failures, resume point   [GI]
 ├── commitments.md       promise ledger (filesystem mode; vault has Commitments.md) [GI]
 ├── context.md           user role/team/priorities (READ FIRST)          [GI]
@@ -85,12 +91,16 @@ Read the matching file and follow it.
 | "grill me" / "stress-test this" / "poke holes in this" | `workflows/grill-me.md` |
 | "write a handoff" / "wrap up this session" | `workflows/handoff.md` |
 | "lint the workflows" / "audit the instructions" / monthly instruction audit | `workflows/repo-lint.md` |
+| "update Lore" / "get the latest version" / "pull the latest updates" | `workflows/update.md` |
 | "what am I waiting on" / "show my commitments" / "who owes me what" / "track this promise" | `workflows/commitments.md` |
-| "sync my triage queue" / "push my reviewed items" / "what's in my triage queue" | `workflows/action-items.md` → Action item triage queue |
+| "what's in my triage queue" / "what's pending review" | `workflows/action-items.md` → Action item triage |
+| "schedule my triage" / "change my brief schedule" / "put my brief on a schedule" | `workflows/triage.md` → Scheduling |
 | "cadence check" / "who am I overdue to see" / "relationship check" | `workflows/cadence.md` |
+| "unroll my scroll" / "Lore unrolled" / "my recap" / "my wrapped" | `workflows/unrolled.md` |
 
 - **morning-sync** works on calendar/priorities the user provides manually; no live fetch by default.
-- **triage** is the single triage entry point: one draft-and-hold pass over Outlook, Slack, and Teams. It never sends. Slack replies become native drafts; email and Teams replies stage as files in `outbox/drafts/`. Teams group chats are summarized, not drafted. Reads `triage-config.md` (created on first run) and `email-config.md`; tracks state in the `inbox/.*-processed` dotfiles.
+- **The daily brief is titled "The Herald"** in its masthead; treat "the herald" and "the brief" as the same thing when the user speaks.
+- **triage** is the single triage entry point: one draft-and-hold pass over Outlook, Slack, and Teams. It never sends. Slack and email replies become native drafts (Slack via `slack_send_message_draft`, email via `outlook_create_reply_draft`/`outlook_create_draft`); Teams replies stage as files in `outbox/drafts/` since that connector is still read-only for writes. HTML brief deep links point at the created draft when one exists (Outlook `webLink`, Slack `channel_link`), not the source message. Teams group chats are summarized, not drafted. Reads `triage-config.md` (created on first run) and `email-config.md`; tracks state in the `inbox/.*-processed` dotfiles.
 - **external skills:** `external/skills/` pins mattpocock/skills as a submodule; `grill-me` and `handoff` are thin wrappers that read the upstream `SKILL.md` then apply a Lore layer (wrapper wins on conflict). Fresh clone needs `git submodule update --init`; if empty, follow the wrapper alone and say so.
 - **Obsidian mode per workflow:** if a workflow lacks an Obsidian branch, fall back to filesystem mode for it and tell the user. `process-transcript` and `plaud-sync` are migrated.
 
@@ -113,12 +123,13 @@ Read the matching file and follow it.
 - **Correction capture:** when the user corrects an output (style, fact, or judgment), fixing the artifact is half the job. Distill the correction into the file that prevents a repeat, at that moment: style → `VOICE.md` or a new `evals/examples/` pair; procedure → the workflow or `_conventions.md`; fact → `STATE.md` verified facts or the entity note. Say what you wrote and where.
 - **Connectors:** when using an MCP connector (Jira/Confluence, etc.), only use the projects/spaces listed in `context.md`.
 - **OOO events:** if `context.md` documents team-OOO calendars, treat events attended only by those as OOO markers, not meetings.
-- **Action items (artifact IDB is the sole source of truth; push deltas only):**
+- **Action items (artifact IDB is the sole source of truth; push deltas only):** The artifact is titled "The Quest Log" in the UI; its id is `the-quest-log`. Treat "quest log" and "action items" as the same thing when the user speaks. (A retired artifact with id `action-items` may exist for older installs; it is not maintained.)
   - Never read or write `inbox/action-items.md` (legacy restore-only backup).
-  - Never push full state; push a JSON `operations` array only (`add`, `complete`, `delegate`, `delegateComplete`, `reopen`, `archive`, `update`; match key `subject + from`, normalized).
-  - Procedure: assemble ops → `node scripts/build-action-items-artifact.js <ops>` → `mcp__cowork__update_artifact(id="action-items", html_path="outbox/action-items-artifact-built.html", ...)`.
+  - Never push full state; push a JSON `operations` array only (`add`, `propose`, `complete`, `delegate`, `delegateComplete`, `reopen`, `archive`, `update`; match key `subject + from`, normalized).
+  - Item context lives in `notes` (schemaVersion 4). The old `actionNeeded` field is retired: don't emit it in new ops (the artifact folds it into `notes` if it shows up). Due values: `ASAP`, `TBD`, `YYYY-MM-DD`, or custom text; the retired `Soon` / `This week` presets map to the upcoming Friday.
+  - Procedure: assemble ops → `node scripts/build-action-items-artifact.js <ops>` → `mcp__cowork__update_artifact(id="the-quest-log", html_path="outbox/action-items-artifact-built.html", ...)`.
   - Read current state only from the snapshot paths in Session start step 4. Restore-from-backup (parsing `inbox/action-items.md` into `add` ops) is opt-in, only when the user explicitly asks. Full procedure: `workflows/action-items.md`.
-  - **Transcript-derived items gate through triage first.** Action items extracted from a transcript for the user do not push straight into this artifact; they `enqueue` into the separate Action Item Triage artifact (id: `action-item-triage`) for a one-at-a-time Add/Not-mine review, then sync into this one once approved. Full mechanics: `workflows/action-items.md` → "Action item triage queue."
+  - **Transcript-derived items gate through triage first.** Action items extracted from a transcript for the user do not push straight onto the Active list; use `propose` ops (same artifact, same script, same push) so they land in the artifact's own "To Triage" pile. The user resolves each one with a single click, Do now / Schedule / Delegate / Delete, and that click is the write; there's no second artifact, no sync step, and nothing for Lore to read back. (This replaced a separate `action-item-triage` artifact with an enqueue/sync/ack handoff, retired 2026-07-22 after its console-log sync payload proved unreadable past a handful of items; history in `workflows/action-items.md` → "Action item triage" and `STATE.md`.) Full mechanics: `workflows/action-items.md` → "Action item triage."
 - **Plaud sync tracking:** `meetings/transcripts/.plaud-processed` is an append-only flat file of Plaud file IDs, the canonical record of processed recordings. Never delete or rewrite it; also add the saved local filename to `.processed`. To re-process, the user removes the specific ID. Details: `workflows/plaud-sync.md`.
 - **Triage tracking:** `inbox/.email-processed`, `.slack-processed`, `.teams-processed` are append-only ID lists; `.triage-last-run` holds the last-run ISO timestamp. Never delete or rewrite; only append. Backlog mode ignores them. Details: `workflows/triage.md`.
 - **Commit messages:** when asked to write one, always write it to `COMMIT_MSG.txt` at the repo root (overwrite whatever is there), then print the single combo command: `git add -A && git commit -F COMMIT_MSG.txt`. No other file, no other format.
@@ -126,6 +137,7 @@ Read the matching file and follow it.
 
 ## Creating outputs
 
+- **Every polished outward deliverable is a styled HTML document**, not a bare markdown file: 1:1 preps, meeting/roundtable preps, reports, scorecards, talk tracks. Build it from `templates/document.template.html` (fill the masthead tokens, compose the body from its block library) and write it to `outbox/` as `.html`. Markdown is for records and internals (vault notes, weekly-review entries, decision log, staged drafts) or when the user explicitly asks for it. The Herald and The Quest Log have their own templates; everything else uses this one.
 - Reports, exports, CSVs, scorecards → `outbox/`
 - Meeting summaries → `meetings/notes/YYYY-MM-DD-name.md` (`templates/meeting-note.template.md`)
 - Team/stakeholder profiles → edit or create in `team/` or `stakeholders/` (`templates/team-member.template.md`, `templates/stakeholder.template.md`)
@@ -133,6 +145,7 @@ Read the matching file and follow it.
 - Action items → ops JSON + build script + `update_artifact`; never touch `inbox/action-items.md`.
 - Decisions → `decisions/log.md` (`templates/decision-log-entry.template.md`); in Obsidian mode, a note in `Decisions/`.
 - Weekly reviews → `weekly-reviews/YYYY-MM-DD.md` (`templates/weekly-review.template.md`)
+- Charts and data visuals → style per `design-system/charts/README.md`: inline `design-system/charts/chart-theme.js` (never link it), apply the theme, dither-fill every series
 
 Obsidian-mode targets, frontmatter, and taxonomy: `_conventions.md`.
 
@@ -140,8 +153,9 @@ Obsidian-mode targets, frontmatter, and taxonomy: `_conventions.md`.
 
 | Cadence | Task |
 |---------|------|
-| Daily | Review the action items artifact and clear the action-item triage queue |
+| Daily | Review the action items artifact and clear the "To Triage" pile |
 | Before 1:1s | Read the team member's note |
 | After meetings | Process transcript; update notes, observations, action items |
 | Weekly (Fri) | Roundtable prep; weekly review entry; vault lint; cadence check |
 | Monthly | Update `context.md` priorities and active initiatives; repo lint (`workflows/repo-lint.md`) |
+| Quarterly | Unroll the scroll (`workflows/unrolled.md`): the chart-heavy recap of the quarter |

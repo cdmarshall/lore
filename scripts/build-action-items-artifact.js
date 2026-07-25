@@ -2,9 +2,17 @@
 // Build the action-items artifact HTML by embedding a *delta operations*
 // JSON seed in the template. The artifact's IndexedDB is the source of truth;
 // this seed never carries full state, only the operations the agent wants to
-// apply (add / complete / delegate / delegateComplete / reopen / archive /
-// update). On bootstrap the artifact applies the operations on top of IDB
-// without ever wholesale-replacing it.
+// apply (add / propose / complete / delegate / delegateComplete / reopen /
+// archive / update). On bootstrap the artifact applies the operations on top
+// of IDB without ever wholesale-replacing it.
+//
+// Triage lives inside this same artifact (merged in from the old separate
+// action-item-triage artifact and its enqueue/sync/ack handoff). Use 'add'
+// for items you're confident belong on the list outright; use 'propose' for
+// candidates you want the user to actually triage (they resolve each one
+// with a single click: Do now / Schedule / Delegate / Delete). There is
+// nothing to read back after a push, the user's click on that button IS the
+// write, so this agent never needs to sync or ack triage decisions.
 //
 // Usage:
 //   node scripts/build-action-items-artifact.js <ops.json> [output-path]
@@ -14,6 +22,7 @@
 //   1. An array of operations:
 //      [
 //        {"op": "add", "item": { ... }},
+//        {"op": "propose", "item": { ... }},
 //        {"op": "complete", "subject": "...", "from": "..."}
 //      ]
 //
@@ -30,6 +39,12 @@
 // IMPORTANT: this script intentionally does NOT read inbox/action-items.md.
 // The local file is a restore-only backup. The artifact's IDB is the source
 // of truth for action-item state.
+//
+// schemaVersion 4 notes: item context lives in `notes` (the old
+// `actionNeeded` field is retired; if an op still carries it, the artifact
+// folds it into notes on ingest). Due presets are ASAP / TBD / a date /
+// custom text; the retired 'Soon' and 'This week' values are mapped to the
+// upcoming Friday by the artifact.
 
 const fs = require('fs');
 const path = require('path');
@@ -79,7 +94,7 @@ if (Array.isArray(rawOps)) {
 // Validate each operation has a recognized op type. Don't be strict on the
 // shape of arguments, the artifact's applyOperations handles malformed ops
 // gracefully, but flag unknown ops loudly so the agent catches typos.
-const VALID_OPS = new Set(['add', 'complete', 'delegate', 'delegateComplete', 'reopen', 'archive', 'update']);
+const VALID_OPS = new Set(['add', 'propose', 'complete', 'delegate', 'delegateComplete', 'reopen', 'archive', 'update']);
 const unknownOps = operations
   .map((op, i) => ({ op, i }))
   .filter(({ op }) => !op || typeof op !== 'object' || !VALID_OPS.has(op.op));
@@ -127,7 +142,7 @@ if (!fs.existsSync(TEMPLATE_PATH)) {
 // these operations. Always fresh so the next artifact load picks them up.
 const seed = {
   seedVersion: new Date().toISOString(),
-  schemaVersion: 2,
+  schemaVersion: 4,
   teamMembers,
   operations
 };

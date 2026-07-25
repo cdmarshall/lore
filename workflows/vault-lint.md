@@ -57,9 +57,12 @@ Never archive anything the user hasn't approved in that session, even if it was 
 
 ## Step 4, Write the Report
 
-Write to `outbox/vault-lint-YYYY-MM-DD.md` (today's date). Two-step existence check first (`_conventions.md`), though same-day re-runs should overwrite rather than duplicate, confirm with the user if the file already exists today.
+The report is written twice:
 
-Structure:
+1. **The markdown record** at `outbox/vault-lint-YYYY-MM-DD.md` (today's date; structure below). This is the greppable record other workflows read (`roundtable-prep` checks it for stale projects); keep its structure exactly. Two-step existence check first (`_conventions.md`); same-day re-runs overwrite rather than duplicate, confirm with the user if the file already exists today.
+2. **The user-facing styled report** at `outbox/vault-lint-YYYY-MM-DD.html`, built from `templates/document.template.html` (CLAUDE.md → Creating outputs). Fill: kicker "Vault lint", title "Vault health", meta left = the long date, meta right = "<N> notes scanned", dek = a one-line verdict in plain language (e.g. "Mostly healthy: 2 things break Dataview silently, fix those first."). Body from the block library: one `section` per findings group in the same order as the markdown, each with a `count` badge; broken links, frontmatter, drift, staleness, and index mismatches as `table.doc` (note | finding, plus the nudge column for staleness); contradictions as a `callout`; orphans and review-queue as `checklist`s; each archive candidate as a `card` with its draft synthesis. Empty groups are dropped, not shown as zero. Link this HTML as the primary deliverable; mention the markdown as the fallback record.
+
+Markdown record structure:
 
 ```markdown
 # Vault Lint, YYYY-MM-DD

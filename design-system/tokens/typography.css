@@ -1,0 +1,14 @@
+:root{
+/* Display — pixel blackletter, for mastheads and big numerals only */
+--font-display:'Jacquard 24', 'Georgia', serif;
+/* Pixel — UI chrome: labels, chips, buttons, nav, counts */
+--font-pixel:'Jersey 15', 'Courier New', monospace;
+/* Body — long-form reading stays humane (matches the shipped brief template) */
+--font-serif:Georgia, 'Times New Roman', serif;
+--font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+/* Scale */
+--text-xs:12px; --text-sm:13px; --text-base:15px; --text-md:17px; --text-lg:21px;
+--text-xl:28px; --text-2xl:40px; --text-display:56px;
+--leading-tight:1.15; --leading-body:1.55;
+--track-label:0.08em; --track-caps:0.14em;
+}

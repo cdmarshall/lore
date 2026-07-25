@@ -1,0 +1,6 @@
+{
+  "_comment": "Where Lore installs look for new releases. Committed: this is org infrastructure, not personal data. Full mechanics: workflows/update.md.",
+  "type": "sharepoint",
+  "feedFileName": "lore-release.json",
+  "developerGitRemote": "https://github.com/cdmarshall/lore.git"
+}

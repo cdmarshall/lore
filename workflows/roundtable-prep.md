@@ -48,14 +48,16 @@ No view: placeholder, *"(Fill in from the action items artifact: items completed
 
 If you have a view of state, scan `active` items for:
 - OVERDUE items (due date in the past)
-- Items explicitly waiting on another person or team (notes / actionNeeded)
+- Items explicitly waiting on another person or team (per notes)
 - Items marked ASAP
 
 Candidates for the **Parking Lot**. No view: placeholder.
 
 ### 4. Anticipate Team Round-Robin Updates
 
-For each direct report (named in `context.md`), scan `team/[name].md` recent Observations to infer:
+**April Barclay does not attend the product roundtable.** Exclude her from the Team Round-Robin section entirely (no card, no placeholder). Check each direct report's profile note for a similar non-attendance flag before including them; this is instance data and may change.
+
+For each direct report (named in `context.md`) **who attends the roundtable**, scan `team/[name].md` recent Observations to infer:
 - **Recap**: what they probably finished or progressed this week
 - **Focus**: what they're likely heads-down on next week
 - **Blockers**: known dependencies or blockers in observations
@@ -65,6 +67,10 @@ If you have a view of state, also scan `delegated` items assigned to this person
 Hedge the inferred parts ("likely to mention", "may flag"): prompts for the user to listen for, not authoritative summaries.
 
 ### 5. Generate Prep Output
+
+**Deliverable: a styled HTML document** built from `templates/document.template.html` (kicker "Roundtable prep", title = the date or meeting name), written to `outbox/YYYY-MM-DD-roundtable-prep.html` and linked as the primary output. Compose the body from the template's block library; the markdown structure below defines content and order, not format. Map: talking points and agenda sections → sections with `checklist`s; project status → `table.doc`; parking-lot blockers → `callout`; framing lines to say out loud → `talk`. Only produce bare markdown if the user explicitly asks for it.
+
+Content spec:
 
 ```markdown
 # Roundtable Prep, [Date]

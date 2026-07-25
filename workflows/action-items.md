@@ -2,13 +2,15 @@
 
 All output follows VOICE.md.
 
-Action items live in a single Cowork artifact (id: `action-items`). The artifact's IndexedDB is the sole source of truth, canonical in both storage modes (`CLAUDE.md` → Session start step 4). Agent-driven changes are pushed as delta operations on top of IDB; the agent never replaces IDB wholesale.
+Action items live in a single Cowork artifact (id: `the-quest-log`; titled **"The Quest Log"** in the UI, so that's what the user may call it). The artifact's IndexedDB is the sole source of truth, canonical in both storage modes (`CLAUDE.md` → Session start step 4). Agent-driven changes are pushed as delta operations on top of IDB; the agent never replaces IDB wholesale.
 
 ## Source-of-truth model (read this first)
 
 **The artifact's IndexedDB is canonical.** All edits made in the artifact UI (mark complete, edit due date, delegate, quick-add, etc.) are instant and persist across Cowork restarts. The agent has no direct read access to IDB.
 
-**The agent's only role is to push delta operations.** Each push is a JSON seed embedded in the artifact HTML containing an `operations` array. Each operation is one of: `add`, `complete`, `delegate`, `delegateComplete`, `reopen`, `archive`, `update`. The artifact's bootstrap applies the operations on top of whatever's already in IDB. User edits made in the artifact between pushes are preserved.
+**The agent's only role is to push delta operations.** Each push is a JSON seed embedded in the artifact HTML containing an `operations` array. Each operation is one of: `add`, `propose`, `complete`, `delegate`, `delegateComplete`, `reopen`, `archive`, `update`. The artifact's bootstrap applies the operations on top of whatever's already in IDB. User edits made in the artifact between pushes are preserved.
+
+**Triage lives in this same artifact.** `propose` lands a candidate item in a "To Triage" pile inside the artifact instead of the Active list. The user resolves each one with a single click (Do now / Schedule / Delegate / Delete), and that click is what actually creates the real active/delegated item (or discards it, for Delete). There is no separate triage artifact, no sync step, and nothing for the agent to read back, the old two-artifact `enqueue` → "Sync now" console-log payload → `ack` handoff is retired (see "Action item triage" below for the one-time history and why).
 
 **The snapshot ritual.** Lore has no direct read access to the artifact's IndexedDB. To give Lore a current view, the user clicks **Download snapshot** in the artifact and saves the resulting file to `inbox/action-items.snapshot.md`. The agent reads that file when it needs state for dedup, "what's on my plate," 1:1 prep, roundtable prep, morning sync, etc. The user can also paste the snapshot content directly in chat instead of saving the file. This is the only manual step; everything else is automatic.
 
@@ -18,17 +20,18 @@ Action items live in a single Cowork artifact (id: `action-items`). The artifact
 
 Three read paths, in order of preference:
 
-1. **`inbox/action-items.snapshot.md`**, the user's downloaded snapshot, saved by them via the artifact's Download snapshot button. Markdown format with `## Active`, `## Completed`, `## Delegated`, `## Archived` sections. Check first with `bash ls inbox/action-items.snapshot.md`; if present, parse it. Note the file's mtime in your response so the user knows how fresh the read is.
+1. **`inbox/action-items.snapshot.md`**, the user's downloaded snapshot, saved by them via the artifact's Download snapshot button. Markdown format with `## Active`, `## Completed`, `## Delegated`, `## Archived`, `## Triage` sections. Check first with `bash ls inbox/action-items.snapshot.md`; if present, parse it. Note the file's mtime in your response so the user knows how fresh the read is. Items in `## Triage` are NOT yet real, don't count them toward "what's on my plate," they're still awaiting the user's Do now/Schedule/Delegate/Delete decision.
 
 2. **`inbox/action-items-state.json`**, written automatically by the artifact's auto-backup feature, IF the user enabled it. **Currently this won't exist** because Cowork's webview blocks the artifact from writing files programmatically. The plumbing remains in place in case a future Cowork build enables it. If the file ever exists, prefer it over the markdown snapshot (it's fresher and machine-readable). JSON shape:
    ```json
    {
      "writtenAt": "ISO timestamp (use to detect freshness)",
-     "schemaVersion": 2,
-     "active": [ {date, created, from, subject, actionNeeded, due, lore, specialist, notes}, ... ],
+     "schemaVersion": 4,
+     "active": [ {date, created, from, subject, due, lore, specialist, notes}, ... ],
      "completed": [ {date, created, from, subject, resolution, completed}, ... ],
-     "delegated": [ {date, created, from, subject, delegatedTo, actionNeeded, delegated, notes}, ... ],
-     "archived": [ {date, created, from, subject, actionNeeded, archived}, ... ]
+     "delegated": [ {date, created, from, subject, delegatedTo, delegated, notes}, ... ],
+     "archived": [ {date, created, from, subject, notes, archived}, ... ],
+     "triage": [ {date, created, from, subject, due, lore, specialist, notes}, ... ]
    }
    ```
 
@@ -43,7 +46,7 @@ When pushing changes, the agent builds a JSON of operations and runs the build s
 ```json
 {
   "seedVersion": "2026-05-12T18:30:00.000Z",
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "teamMembers": ["Danelle", "Hannah", "April"],
   "operations": [ ... ]
 }
@@ -63,16 +66,35 @@ The build script (`scripts/build-action-items-artifact.js`) stamps `seedVersion`
     "created": "2026-05-12",
     "from": "Ryan Mulvaney Sync",
     "subject": "Confirm White Coat API key config",
-    "actionNeeded": "Verify reuse of existing key and reply to Ryan",
     "due": "TBD",
     "lore": "Y",
     "specialist": "",
-    "notes": ""
+    "notes": "Verify reuse of existing key and reply to Ryan"
   }
 }
 ```
 
-Field meanings: `date` is the source date (meeting / email / origin). `created` is today's date (when the row was added to the list); always populate. `due` is one of `ASAP`, `Soon`, `This week`, `TBD`, or `YYYY-MM-DD`. `lore: "Y"` if Lore could plausibly do or substantially advance the item from inside the workspace; `specialist: "Y"` if a sibling specialist agent (e.g., Sigil) could pick it up autonomously. Both can be `Y` on the same row.
+Field meanings: `date` is the source date (meeting / email / origin). `created` is today's date (when the row was added to the list); always populate. `due` is one of `ASAP`, `TBD`, `YYYY-MM-DD`, or free custom text (e.g. "Ongoing"). `notes` carries the item's full description/context beyond the subject line. `lore: "Y"` if Lore could plausibly do or substantially advance the item from inside the workspace; `specialist: "Y"` if a sibling specialist agent (e.g., Sigil) could pick it up autonomously. Both can be `Y` on the same row.
+
+**Retired fields and values (schemaVersion 4, 2026-07-23):** the `actionNeeded` field is gone; its content lives in `notes`. The artifact still accepts `actionNeeded` on incoming ops and folds it into `notes`, and it migrates existing stored items on first load, but new ops should not emit it. The `Soon` and `This week` due presets are also retired; the artifact maps both (stored or incoming) to the date of the upcoming Friday.
+
+**`propose`**, same item shape as `add`, but lands in the "To Triage" pile instead of Active. Use this instead of `add` whenever the user should actually decide whether/when/who, rather than the item just appearing as a done deal. The `due` field here is only a hint shown on the triage card (e.g. "Lore's read on timing: Soon"), the user's actual due date is whatever they pick when they resolve it. Same dedup rule as `add`: `subject + from`, checked against every list including the triage pile itself.
+
+```json
+{
+  "op": "propose",
+  "item": {
+    "date": "2026-07-21",
+    "created": "2026-07-22",
+    "from": "Product Roundtable",
+    "subject": "Close old Claude team seat and process prorated refund",
+    "due": "TBD",
+    "lore": "Y",
+    "specialist": "",
+    "notes": "Close out the old Claude team seat now that a new seat exists, confirm the prorated refund with Christian"
+  }
+}
+```
 
 **`complete`**, moves an active or delegated item to Completed.
 
@@ -80,7 +102,7 @@ Field meanings: `date` is the source date (meeting / email / origin). `created` 
 { "op": "complete", "subject": "...", "from": "...", "resolution": "optional resolution text" }
 ```
 
-`from` is part of the match key. `resolution` is optional; defaults to the item's existing `actionNeeded`. No-ops if the item is already completed or doesn't exist.
+`from` is part of the match key. `resolution` is optional; defaults to the item's existing `notes`. No-ops if the item is already completed or doesn't exist.
 
 **`delegate`**, moves an active item to the Delegated list and assigns it.
 
@@ -100,7 +122,7 @@ Field meanings: `date` is the source date (meeting / email / origin). `created` 
 { "op": "archive", "subject": "...", "from": "..." }
 ```
 
-**`update`**, edits fields of an existing active item in place. Allowed fields: `date`, `created`, `from`, `subject`, `actionNeeded`, `due`, `lore`, `specialist`, `notes`.
+**`update`**, edits fields of an existing active item in place. Allowed fields: `date`, `created`, `from`, `subject`, `due`, `lore`, `specialist`, `notes`. (A legacy `actionNeeded` field is accepted and folded into `notes`.)
 
 ```json
 { "op": "update", "subject": "...", "from": "...", "fields": { "due": "2026-06-01", "notes": "..." } }
@@ -156,7 +178,7 @@ Pass the operations JSON to `scripts/build-action-items-artifact.js`. Either inl
 
 ```bash
 # Inline (small ops lists)
-node scripts/build-action-items-artifact.js '[{"op":"add","item":{"subject":"...","from":"...","actionNeeded":"...","due":"TBD","created":"2026-05-12","date":"2026-05-12"}}]'
+node scripts/build-action-items-artifact.js '[{"op":"add","item":{"subject":"...","from":"...","notes":"...","due":"TBD","created":"2026-05-12","date":"2026-05-12"}}]'
 
 # Or write the ops to a temp JSON file first (cleaner for many ops)
 node scripts/build-action-items-artifact.js /tmp/action-items-ops.json
@@ -168,7 +190,7 @@ The script writes the substituted HTML to `outbox/action-items-artifact-built.ht
 
 ```
 mcp__cowork__update_artifact(
-  id: "action-items",
+  id: "the-quest-log",
   html_path: "<absolute path to outbox/action-items-artifact-built.html>",
   mcp_tools: [],
   update_summary: "<short description of what changed>"
@@ -183,31 +205,31 @@ In your response, summarize what was pushed. If anything was skipped or consolid
 
 ## What never happens
 
-Full rule: `CLAUDE.md` → Action items hard rule. In this workflow specifically: the seed never contains an `active`, `completed`, `archived`, or `delegated` array of full state, only an `operations` array. If you find yourself wanting to push full state or touch `inbox/action-items.md`, stop.
+Full rule: `CLAUDE.md` → Action items hard rule. In this workflow specifically: the seed never contains an `active`, `completed`, `archived`, `delegated`, or `triage` array of full state, only an `operations` array. If you find yourself wanting to push full state or touch `inbox/action-items.md`, stop.
 
-## Action item triage queue
+## Action item triage
 
-Transcript processing (`workflows/process-transcript.md` → section 5, "user's action items") does **not** push the user's extracted action items straight into this artifact anymore. They land first in a separate artifact, **Action Item Triage** (id: `action-item-triage`), so the user can approve each one individually before it becomes a real tracked commitment. This exists because a bulk backlog-processing run once surfaced hundreds of extracted items at once, most belonging to other people or already stale, and a flat checklist made it unclear that checking a box would promote that item into the canonical tracker. The triage artifact fixes this with a one-at-a-time card UI (Add to my list / Not mine) instead.
+Transcript processing (`workflows/process-transcript.md` → section 5, "user's action items") does **not** push the user's extracted action items straight onto the Active list. They land first in the same artifact's "To Triage" pile via `propose` ops, so the user can decide what actually happens to each one before it becomes a real tracked commitment. This exists because a bulk backlog-processing run once surfaced hundreds of extracted items at once, most belonging to other people or already stale, and a flat checklist made it unclear that checking a box would promote that item into the canonical tracker.
 
-### How it works
+**Retired design (history only, do not rebuild):** this used to be a *separate* artifact (`action-item-triage`) with its own `enqueue`/`ack` operations and a "Sync now" button that wrote a JSON payload to the browser console for Lore to read back via `verify_artifact`. That console-log payload got truncated by `verify_artifact`'s per-message size cap once a batch got past a handful of items (confirmed on the 2026-07-21 23-item Plaud sync batch), breaking the handoff. Rather than work around that (e.g. chunking batches, which the user explicitly rejected as not addressing the real problem), triage was merged directly into the Action Items artifact on 2026-07-22. There is nothing left to read back: the user's resolution click on the triage card is itself the write into Active/Delegated. `templates/action-item-triage.template.html` and `scripts/build-action-item-triage.js` are archived under `archive/action-item-triage-standalone/` for history; don't use them.
 
-1. **Enqueue.** After extracting a transcript's action items for the user, Lore builds `enqueue` operations (one per item, same field shape as an `add` op below) and pushes them via `scripts/build-action-item-triage.js` + `mcp__cowork__update_artifact(id="action-item-triage")`. Dedup on `subject + from` happens inside that artifact too, so reprocessing never re-queues something already triaged.
-2. **User reviews at their own pace.** Each item is shown as a single card; the user clicks "Add to my list" or "Not mine" (keyboard: `A` / `N`). Decided items that were added but not yet synced show a "Sync now" button once the queue is empty.
-3. **Sync.** Clicking "Sync now" in the artifact writes a tagged JSON payload to the browser console (`LORE_TRIAGE_SYNC:{...}`) listing every added-but-unsynced item. This is the handoff back to Lore, since the artifact has no way to call the real tracker directly.
-4. **User tells Lore to push.** Trigger phrases: "sync my triage queue", "push my reviewed items", "what's ready in my triage queue". Lore then:
-   - Calls `mcp__cowork__verify_artifact(id="action-item-triage")` and finds the most recent `LORE_TRIAGE_SYNC:` entry in the debug log.
-   - If none is found, tell the user honestly: "I don't see anything synced yet — click 'Sync now' in the triage artifact first," and stop.
-   - Otherwise, parse the JSON payload's `items` array. For each item, build an `add` op (same shape as the Operations seed schema above) and push via the normal procedure (`scripts/build-action-items-artifact.js` + `update_artifact(id="action-items")`).
-   - Then build `ack` ops (`{"op": "ack", "subject": "...", "from": "..."}`, one per synced item) and push via `scripts/build-action-item-triage.js` + `update_artifact(id="action-item-triage")`, so those items stop showing as "ready to sync" in the triage view.
-   - Report the count pushed, same reporting discipline as any other `add` batch (section 5 above).
+### How it works now
 
-### Reading the triage queue without syncing
+1. **Propose.** After extracting a transcript's action items for the user, Lore builds `propose` operations (one per item, same field shape as `add`, see above) and pushes them via the normal procedure, `scripts/build-action-items-artifact.js` + `mcp__cowork__update_artifact(id="the-quest-log")`. Dedup on `subject + from` happens against every list including the triage pile, so reprocessing never re-proposes something already triaged or already active.
+2. **User resolves at their own pace.** The artifact shows one "To Triage" card at a time (oldest-proposed first) with four buttons:
+   - **Do now**, for anything under about two minutes: one click, item becomes Active with `due: "ASAP"`.
+   - **Schedule…**, opens the same due-date popover used elsewhere in the artifact (presets + date picker + custom text); picking a value moves it to Active with that due date.
+   - **Delegate…**, opens the team-member picker; picking a name moves it straight to Delegated, it never touches Active.
+   - **Delete**, discards it, it never becomes a real item. A brief "Undo" toast covers mis-clicks.
+3. **That's the whole loop.** There is no sync step and no `ack` op. Once the user clicks a resolution, the item already exists (or doesn't) in the exact same IDB the main tracker reads from.
 
-If the user asks "what's in my triage queue" (as a status check, not a push request), call `verify_artifact(id="action-item-triage")` and describe what's in the debug log (last sync payload, if any) rather than pushing anything. If the log is empty or stale, say so and suggest opening the artifact directly for the live view (Lore has no direct IDB read access here either, same constraint as the main tracker).
+### Reading the triage queue
+
+If the user asks "what's in triage" or "what's pending review," this is just another slice of the same artifact's state. Use the normal read paths (Download snapshot's `## Triage` section, or `inbox/action-items-state.json`'s `triage` array, once/if that ever exists). There's no separate artifact to check and no console-log payload to parse.
 
 ### What never happens here
 
-Same discipline as the main tracker: never push full state into the triage artifact, only `enqueue`/`ack` operations. Never treat an `enqueue` as equivalent to the item being on the user's real list, they aren't the same thing until synced and acked.
+Same discipline as the main tracker: never push full state, only `propose` ops (or `add`, if the agent is confident enough that the item shouldn't need a human triage decision at all). Never treat a `propose` as equivalent to the item being on the user's real list, it isn't real until they resolve the card.
 
 ## Restore-from-backup (opt-in only)
 

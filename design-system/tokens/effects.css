@@ -1,0 +1,23 @@
+:root{
+/* No blur anywhere. Shadows are hard pixel offsets; corners are square. */
+--radius:0px;
+--border-px:2px solid var(--ink);
+--border-thin:1px solid var(--rule);
+--shadow-sprite:3px 3px 0 0 rgba(38,34,28,0.22);
+--shadow-sprite-sm:2px 2px 0 0 rgba(38,34,28,0.22);
+--shadow-press:1px 1px 0 0 rgba(38,34,28,0.22);
+--shadow-arcane:3px 3px 0 0 rgba(107,79,142,0.35);
+/* Dither tiles (8×8 Bayer, tiled; scale with background-size in 8px multiples) */
+--dither-ink-06:url('../assets/dither/ink-06.png'); /* @kind other */
+--dither-ink-12:url('../assets/dither/ink-12.png'); /* @kind other */
+--dither-ink-25:url('../assets/dither/ink-25.png'); /* @kind other */
+--dither-ink-50:url('../assets/dither/ink-50.png'); /* @kind other */
+--dither-gold-12:url('../assets/dither/gold-12.png'); /* @kind other */
+--dither-gold-25:url('../assets/dither/gold-25.png'); /* @kind other */
+--dither-gold-50:url('../assets/dither/gold-50.png'); /* @kind other */
+--dither-arcane-25:url('../assets/dither/arcane-25.png'); /* @kind other */
+--dither-paper-25:url('../assets/dither/paper-25.png'); /* @kind other */
+--dither-wash-ink:url('../assets/dither/wash-ink.png'); /* @kind other */
+--dither-wash-gold:url('../assets/dither/wash-gold.png'); /* @kind other */
+--dither-wash-arcane:url('../assets/dither/wash-arcane.png'); /* @kind other */
+}

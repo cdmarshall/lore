@@ -69,7 +69,9 @@ Scan `team/[name].md` Observations section for any recent patterns worth address
 
 ### 7. Generate Prep Brief
 
-Output a structured prep note:
+**Deliverable: a styled HTML document** built from `templates/document.template.html` (kicker "1:1 prep", title = the person's name, meta = date + meeting time/channel if known), written to `outbox/YYYY-MM-DD-<name>-1on1-prep.html` and linked as the primary output. Compose the body from the template's block library; the markdown structure below defines the content and section order, not the final format. Map: Active Projects and open items → `table.doc`; observations and growth notes → cards (use an `arcane` card for things Lore noticed rather than was told); the single most important thing → `callout`; suggested wording → `talk`; agenda → `checklist`. Only produce a bare markdown file instead if the user explicitly asks for markdown.
+
+Content spec:
 
 ```markdown
 # 1:1 Prep, [Name], [Date]
@@ -83,7 +85,7 @@ Output a structured prep note:
 *(Items you handed off, close the loop)*
 | Item | Delegated | Expected Action |
 |------|-----------|----------------|
-| [Subject] | [Date] | [Action Needed] |
+| [Subject] | [Date] | [Expected action, from notes] |
 
 *(Omit this section if nothing is delegated to this person)*
 

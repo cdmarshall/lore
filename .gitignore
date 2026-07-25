@@ -34,6 +34,8 @@
 
 # --- Inbox: action items, working documents ---
 /inbox/*.md
+/inbox/action-items-state.json
+/inbox/.update-last-check
 /inbox/documents/*
 !/inbox/documents/.gitkeep
 
@@ -80,6 +82,9 @@
 *.tsv
 .~lock*
 
+# --- Exception: docs/ ships the committed setup guide PDF ---
+!/docs/*.pdf
+
 # --- Secrets ---
 .secrets/
 *.token
@@ -103,3 +108,6 @@ Thumbs.db
 __pycache__/
 *.pyc
 node_modules/
+
+# --- Release build output (upload to SharePoint, never commit) ---
+/dist/
