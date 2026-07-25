@@ -27,7 +27,7 @@ The local `VERSION` file is the installed version. The feed's `version` is the l
 
 ## Fresh installs use the same package
 
-A new user's install is: download the latest `lore-<version>.zip` from the release folder, unzip to `~/src/lore` (Mac) or `$HOME\src\lore` (Windows), open the folder in Cowork, say hello. Onboarding runs; no git anywhere.
+A new user's install is: download the latest `lore-<version>.zip` from the release folder plus the double-clickable installer for their platform (`Install-Lore-Mac.zip` → run the `.command` inside; `Install-Lore-Windows.bat`), run it, open `~/src/lore` in Cowork, say hello. The installer finds the downloaded zip, unpacks it to the right place, and refuses to touch an existing install (it points at "update Lore" instead). Manual unzip to the same path works identically. Onboarding runs; no git anywhere.
 
 ## Developer path (git, optional)
 

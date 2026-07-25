@@ -24,7 +24,7 @@ New here and not technical? Start with the designed setup guide at **`docs/lore-
 
 Lore lives at `~/src/lore` (Mac/Linux) or `$HOME\src\lore` (Windows). Companion specialist agents reference this path; using a different location means you'll have to edit their instructions to match. Two ways to get it there:
 
-**Option A, the package (no git or GitHub needed).** Download the latest `lore-<version>.zip` from your org's shared release folder (the link lives in `update-channel.json`; ask in the rollout channel if you don't have it), unzip, and place the folder at the path above. Updates arrive the same way, applied for you by Lore itself; see **Staying up to date** below.
+**Option A, the package (no git or GitHub needed).** From your org's shared release folder (ask in the rollout channel for the link), download the latest `lore-<version>.zip` plus the installer for your platform (`Install-Lore-Mac.zip` or `Install-Lore-Windows.bat`) and double-click the installer; it finds the downloaded package and sets up the folder at the path above. (Mac: right-click → Open the first time.) Or skip the installer and unzip the package there yourself. Updates arrive the same way, applied for you by Lore itself; see **Staying up to date** below.
 
 **Option B, git (developers and contributors).** Use this repository's clone URL (the **Code** button above); a fork works the same way.
 

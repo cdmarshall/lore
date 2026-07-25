@@ -96,6 +96,20 @@ git add VERSION release-manifest.json
 git commit -m "Release v${VERSION_NEW}: ${NOTES}"
 git tag "v${VERSION_NEW}"
 
+# Double-clickable installers ship alongside the package. The Mac .command
+# travels inside a small zip so its executable bit survives the browser
+# download (Archive Utility restores it on extraction); the .bat needs no
+# such care.
+cp scripts/install-lore.bat "dist/Install-Lore-Windows.bat"
+python3 - <<'PY'
+import zipfile
+zi = zipfile.ZipInfo("Install Lore (Mac).command")
+zi.external_attr = 0o755 << 16
+with zipfile.ZipFile("dist/Install-Lore-Mac.zip", "w", zipfile.ZIP_DEFLATED) as z:
+    z.writestr(zi, open("scripts/install-lore.command", "rb").read())
+print("Installers: dist/Install-Lore-Mac.zip, dist/Install-Lore-Windows.bat")
+PY
+
 echo
 echo "Pushing commit and tag to every remote..."
 for r in $(git remote); do
@@ -126,5 +140,6 @@ fi
 
 echo
 echo "Done. Last step (this is the launch):"
-echo "  Upload dist/lore-${VERSION_NEW}.zip AND dist/lore-release.json to the"
-echo "  SharePoint folder in update-channel.json (overwrite lore-release.json)."
+echo "  Upload everything in dist/ to the SharePoint release folder"
+echo "  (lore-${VERSION_NEW}.zip, lore-release.json overwriting the old one,"
+echo "  and the two Install-Lore-* installers)."
