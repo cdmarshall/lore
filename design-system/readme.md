@@ -6,7 +6,7 @@ This system gives Lore a distinct visual identity: **an 8/16-bit sprite aestheti
 
 ## Sources
 
-- **Product repo:** https://github.com/cdmarshall/lore — agent logic (`CLAUDE.md`, `VOICE.md`, `workflows/`), the shipped artifact templates (`templates/brief.template.html`, `templates/action-items-artifact.template.html`), and product screenshots (`assets/daily-brief.png`, `assets/action-items.png`, copied into `assets/` here). Explore it to ground new designs in real product behavior.
+- **Product repo:** — agent logic (`CLAUDE.md`, `VOICE.md`, `workflows/`), the shipped artifact templates (`templates/brief.template.html`, `templates/action-items-artifact.template.html`), and product screenshots (`assets/daily-brief.png`, `assets/action-items.png`, copied into `assets/` here). Explore it to ground new designs in real product behavior.
 - **Aesthetic reference:** https://www.tripwire.sh/dither-kit — ordered-dither charts/components for shadcn. We borrow its *language* (Bayer dithers, gradient washes, hatched fills), not its code.
 - Base palette lifted verbatim from the repo's `brief.template.html` (paper/ink/gold CSS variables); status hues from the action-items artifact's badge family.
 

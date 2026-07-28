@@ -1,5 +1,5 @@
 :root{
-/* Base — parchment & ink (lifted from templates/brief.template.html in cdmarshall/lore) */
+/* Base — parchment & ink (lifted from templates/brief.template.html in repo) */
 --paper:#faf9f6; --paper-band:#f3f0e8; --parchment:#f6efdc; --parchment-shade:#dfcb99;
 --ink:#26221c; --ink-soft:#514a3e; --ink-faint:#8c8577;
 --rule:#e3ddce; --rule-soft:#ece7db;
