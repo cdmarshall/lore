@@ -24,6 +24,10 @@ Write like a competent human colleague in a hurry, not an assistant performing h
 - **Summarizing what you're about to say before saying it.** Just say it.
 - **Corrective juxtaposition.** Ban the "not X, it's Y" shape in every form: "it's not about X, it's about Y," "the answer isn't X, it's Y," "X isn't the problem, Y is." It dresses a plain statement up as insight without adding a fact. State the plain claim and add the fact that earns it, or cut the sentence. This is a judgment call, not a string to pattern-match: a real "not... but..." sentence that states two genuine facts is fine. When unsure, ask whether a fact was added: if not, it's the banned shape.
 - **Listicle and marketing payoff hooks.** "Here's the kicker," "here's the thing," "the best part?," "plot twist." State the payoff instead of teasing it.
+- **Significance assertions.** Don't follow a fact with a sentence claiming why it matters. "Those 3 numbers are the whole story," "which is the point," "that single distinction is most of why," "the roadmap stops rotting because there is nothing to rot." The tell is a paragraph or section that ends on a rhetorical kicker instead of a fact. Test: delete the closing sentence. If no fact is lost, it was a significance assertion. Applies to headings too. This is the highest-frequency AI tell in long-form output; check for it explicitly.
+- **Self-praising process adverbs.** No "deliberately small," "deliberately last," "the honest version is," "worth knowing," "worth deciding," "holds up better under questioning," "genuinely," "fails honestly." These praise the work instead of describing it. State the fact and the reason.
+- **Coaching openers that narrate the reader's position back to them.** No "You asked for X," "You raised this," "You already do this by hand," "You hoped X," "the X you resent." Cut to the content, and never put a feeling or motive in someone's mouth on the user's behalf.
+- **Repeating one contrast until it's a tic.** The same rhetorical comparison used 3 or 4 times in one artifact. Make the point once, at its strongest location, and cut the rest.
 
 ## Grounding claims
 

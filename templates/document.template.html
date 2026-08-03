@@ -100,7 +100,10 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 16px; line-height: 1.55; }
   .signet { display: inline-block; background: var(--signet) no-repeat center / contain; image-rendering: pixelated; }
-  .sheet { max-width: 760px; margin: 0 auto; padding: 40px 22px 64px; }
+  /* Fluid. Prose stays at a readable measure, but the sheet is never pinned to a
+     fixed pixel width, so stat rows and card grids get room instead of wrapping. */
+  .sheet { width: 100%; max-width: min(880px, 94vw); margin: 0 auto;
+           padding: clamp(20px, 4vw, 40px) clamp(14px, 3vw, 22px) 64px; }
 
   /* Masthead */
   .masthead { border-bottom: 2px solid var(--ink); padding-bottom: 16px; margin-bottom: 8px; position: relative; }
@@ -156,9 +159,24 @@
   .talk p { font-size: 15px; line-height: 1.6; color: var(--ink); margin: 0 0 8px; }
   .talk p:last-child { margin-bottom: 0; }
 
+  /* Narrow screens. The card grid is a CSS table, which will not stack on its own. */
+  @media (max-width: 620px) {
+    .card-grid, .card-row { display: block; }
+    .card-grid .card { display: block; width: auto; }
+    .meta { gap: 4px; }
+    table.doc { display: block; overflow-x: auto; }
+    .stat-n { font-size: 28px; }
+  }
+  @media print {
+    .sheet { max-width: none; padding: 0; }
+    .card, .callout, .stat, table.doc { break-inside: avoid; }
+  }
+
   /* Stat tiles */
-  .stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; }
-  .stat { background: var(--ink); color: #fff; padding: 10px 18px 8px; text-align: center; min-width: 96px; box-shadow: var(--shadow-sprite-sm); }
+  /* auto-fit grid, so N tiles divide the row evenly and a 3rd never dangles */
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+              gap: 10px; margin: 0 0 14px; }
+  .stat { background: var(--ink); color: #fff; padding: 10px 14px 8px; text-align: center; min-width: 0; box-shadow: var(--shadow-sprite-sm); }
   .stat.gold { background: var(--gold); }
   .stat.arcane { background: var(--arcane); }
   .stat.info { background: #3a5878; }
@@ -166,7 +184,7 @@
   .stat.warn { background: #b06f2a; }
   .stat.danger { background: #a4432f; }
   .stat-n { font-family: var(--font-display); font-weight: 400; font-size: 34px; line-height: 1; display: block; }
-  .stat-l { font-family: var(--font-pixel); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .stat-l { font-family: var(--font-pixel); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; display: block; line-height: 1.25; overflow-wrap: break-word; }
 
   /* Chart box (used only by chart-bearing documents) */
   .chartbox { position: relative; height: 280px; margin: 0 0 14px; }

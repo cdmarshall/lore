@@ -10,6 +10,8 @@
 
 **Your second brain, your magic scroll.** Lore is a personal AI executive assistant that lives in a folder of markdown files: a mage-scribe that turns Claude (or any agent that reads a CLAUDE.md and a folder of workflow files) into a long-running, context-aware partner for managing your role, your team, your stakeholders, and your work.
 
+**Lore is not a standalone application.** It's a Claude Cowork project, a set of configuration and instruction files (`CLAUDE.md`, workflow markdown, templates) that direct Claude, a tool your org has already approved, to behave as a persistent assistant. There's no separate executable, no server, and no account beyond the Claude access you already have. Everything runs inside Claude Cowork or Claude Code, and every file in the folder is plain markdown you can read and edit yourself.
+
 Lore stays out of your way until you need it, remembers what matters across sessions, and adapts to how you like to work. Like any good scroll, it grows more valuable with every entry.
 
 Lore's signet is the scroll: 📜. You'll see it on the agent's signed outputs (briefs, talk tracks, weekly reviews, signed-off meeting notes). It marks work that came from Lore.
@@ -94,7 +96,7 @@ You don't need to memorize prompts. Just describe what you want, and Lore will r
 
 ### Optional integrations
 
-If you use a [Plaud](https://www.plaud.ai/) recorder, you can connect Lore to Plaud's MCP to pull transcripts directly instead of dropping files manually. Once connected, say "Sync Plaud from the last week" (or any time range) and Lore will fetch unprocessed recordings and walk you through them. Setup: [docs.plaud.ai/documentation/plaud_app/mcp](https://docs.plaud.ai/documentation/plaud_app/mcp).
+If you carry a voice recorder with an MCP connector of your own choosing, Lore can pull transcripts directly instead of dropping files manually. Nothing here requires a specific device or vendor; connect whichever MCP-enabled recorder you already use. The reference implementation is [Plaud](https://www.plaud.ai/) ([setup](https://docs.plaud.ai/documentation/plaud_app/mcp)): once connected, say "Sync Plaud from the last week" (or any time range) and Lore will fetch unprocessed recordings and walk you through them.
 
 If you connect **Slack** and **Microsoft 365** (Outlook and Teams), Lore can run a unified triage across all three channels. Say "triage everything" and Lore sweeps your inbox, your Slack DMs / mentions / project channels, and your Teams chats, then drafts responses grounded in your knowledge base and writing voice. It is draft-and-hold: nothing sends without you. Slack replies become native drafts in your "Drafts & Sent"; email and Teams replies are staged as paste-ready files in `outbox/drafts/` because those connectors are read-only. Multi-person Teams group chats are summarized rather than answered, and Lore asks before adding anything it learns to your knowledge base. Each run delivers a designed HTML daily brief to `outbox/briefs/` (prioritized "needs you" items with deep links back to the source message and expandable draft replies), with a plain-markdown fallback in `outbox/triage/`. Onboarding sets this up on a schedule (morning, afternoon, or both, weekdays); say "change my brief schedule" to adjust anytime. See `workflows/triage.md`.
 
@@ -102,7 +104,7 @@ And when a quarter (or a year) closes, say **"unroll my scroll"** for **Lore, Un
 
 Two companion routines keep the knowledge base healthy: the **KB sweeper** (`workflows/kb-sweeper.md`, "run the sweeper") reads your named Slack channels, Teams messages, and email a couple of times a day and proposes or appends vault updates, review-gated and changelogged, never silent; **vault lint** (`workflows/vault-lint.md`, "lint the vault") is the weekly health check: broken wikilinks, schema drift, stale notes, archive proposals.
 
-If you use [Obsidian](https://obsidian.md/), Lore can store entity data (people, meetings, decisions, projects) directly in your vault and use Obsidian's wikilinks and backlinks to avoid duplicating context. See the **Obsidian integration** section below.
+Filesystem mode (the default above) works completely on its own. If you already keep a linked-notes vault, Lore can optionally store entity data (people, meetings, decisions, projects) there instead, using wikilinks and backlinks to avoid duplicating context. This is entirely your call, not something Lore needs. The vault app Lore currently knows how to talk to is [Obsidian](https://obsidian.md/); see the **Obsidian integration** section below.
 
 ---
 
@@ -137,6 +139,8 @@ The plain-markdown briefing still lands in `outbox/triage/` as a grep-able fallb
 ---
 
 ## Obsidian integration
+
+This is entirely optional. Lore's default mode (Filesystem mode, described everywhere else in this README) needs no third-party app at all; nothing about Lore requires Obsidian. If you already use Obsidian for your own notes and want Lore's data to live alongside them as linked notes, this section describes how to wire that up, on your own initiative, using your own existing installation.
 
 Lore detects at session start whether a vault path is recorded in `context.md` (under "Notes for Lore" → "Vault Configuration"). If it is, Lore operates in **Obsidian mode**: the vault becomes the canonical store for entity data, and the agent uses wikilinks, backlinks, and frontmatter instead of the repo's data folders. If not, Lore operates in **Filesystem mode**, which is the original behavior described in the rest of this README, unchanged.
 

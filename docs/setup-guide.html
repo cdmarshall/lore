@@ -50,6 +50,16 @@ h2.page-title { font-family: var(--font-display); font-weight: 400; font-size: 2
 .kicker { font-family: var(--font-pixel); font-size: 11pt; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-deep); margin-bottom: 6pt; }
 .dek { font-style: italic; color: var(--ink-soft); font-size: 11pt; margin-bottom: 10pt; }
 .section-head { display: flex; align-items: baseline; gap: 8pt; margin: 13pt 0 7pt; border-bottom: 1px solid var(--rule); padding-bottom: 3pt; }
+/* Page 5 ("Connect your tools") runs five section-heads plus a card grid and a
+   callout into one page; tighten just this page's rhythm so the closing
+   callout doesn't crowd the footer. Scoped to .page-connect only. */
+.page-connect .section-head { margin-top: 8pt; }
+.page-connect .callout { margin-top: 0; }
+/* Page 8 (closing page) stacks four section-heads, a code block, and the
+   closing blessing; tighten the same way so the blessing line doesn't run
+   into the footer. Scoped to .page-closing only. */
+.page-closing .section-head { margin-top: 8pt; }
+.page-closing .closing { margin-top: 12pt; }
 .section-head .sh-label { font-family: var(--font-pixel); font-size: 12pt; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink); }
 p { margin-bottom: 8pt; }
 p.tight { margin-bottom: 4pt; }
@@ -119,7 +129,7 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
 
   <div class="section-head"><span class="sh-label">What is Lore</span></div>
   <p>Lore is a personal AI executive assistant that lives in a folder on your computer. Open that folder in the Claude desktop app (Cowork) and the agent inside becomes yours: it learns your role, your team, your stakeholders, and your priorities, then puts that knowledge to work every day.</p>
-  <p>There is no server and no account to manage. The folder is the brain. Every page of it is a plain file you can open, read, and edit.</p>
+  <p><strong>Lore is not a standalone application.</strong> It's a Claude Cowork project, a folder of configuration and instruction files that direct Claude, a tool your org has already approved, to act as a persistent assistant. There is no separate executable, no server, and no account beyond the Claude access you already have. The folder is the brain. Every page of it is a plain file you can open, read, and edit.</p>
 
   <div class="section-head"><span class="sh-label">What it does for you</span></div>
   <div class="card-grid">
@@ -254,7 +264,7 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
 </div>
 
 <!-- ── Page 4: connectors, tips, privacy ── -->
-<div class="page">
+<div class="page page-connect">
   <div class="kicker">Leveling up</div>
   <h2 class="page-title">Connect your tools</h2>
   <p class="dek">All optional. Lore is useful on day 1; connectors are what make it formidable.</p>
@@ -262,8 +272,8 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
   <div class="section-head"><span class="sh-label">Slack + Microsoft 365</span></div>
   <p>Connect both and say <strong>"triage everything."</strong> Lore sweeps your inbox, your Slack DMs and mentions, and your Teams chats, then stages a drafted reply for everything that needs one, written in your voice. Slack drafts land in your own Drafts folder; email and Teams drafts are staged as paste-ready files. Every run also delivers the Herald, your designed daily brief (next page). You can put triage on a schedule, for example twice a day.</p>
 
-  <div class="section-head"><span class="sh-label">Plaud recorder</span></div>
-  <p>If you carry a Plaud voice recorder, connect its integration and say <strong>"sync Plaud from the last week."</strong> Lore fetches the recordings it hasn't processed and walks you through them one at a time.</p>
+  <div class="section-head"><span class="sh-label">Voice recorder sync</span></div>
+  <p>If you carry a voice recorder with an MCP connector, connect it and say <strong>"sync [recorder] from the last week."</strong> Lore fetches the recordings it hasn't processed and walks you through them one at a time. Reference setup: <a href="https://www.plaud.ai/">Plaud</a>.</p>
 
   <div class="section-head"><span class="sh-label">Jira and Confluence</span></div>
   <p class="tight">Connect them and Lore grounds its briefs and updates in live tickets instead of guesses, and can write tickets when you ask.</p>
@@ -320,13 +330,13 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
 </div>
 
 <!-- ── Page 5: advanced ── -->
-<div class="page">
+<div class="page page-closing">
   <div class="kicker">For the curious</div>
   <h2 class="page-title">The advanced shelf</h2>
   <p class="dek">None of this is required. Come back when you're ready for it.</p>
 
   <div class="section-head"><span class="sh-label">Obsidian mode</span></div>
-  <p>If you use Obsidian, Lore can keep its knowledge (people, meetings, decisions, projects) in your vault as linked notes. Each fact lives in exactly one place, backlinks show every meeting a person appears in, and the graph view turns your working life into a map you can explore. Setup takes 3 steps and lives in the README under <em>Obsidian integration</em>. Once it's running, say <strong>"lint the vault"</strong> for the weekly health check: Lore sweeps for broken links, stale notes, contradictions, and drift, then delivers a styled report of proposed fixes. It never rewrites your knowledge without your sign-off.</p>
+  <p>Entirely optional, and your own call: Lore's default setup needs no vault app at all. If you already keep a linked-notes vault, Lore can keep its knowledge (people, meetings, decisions, projects) there instead, as linked notes. Each fact lives in exactly one place, backlinks show every meeting a person appears in, and the graph view turns your working life into a map you can explore. The vault app Lore currently knows how to talk to is Obsidian; setup takes 3 steps and lives in the README under <em>Obsidian integration</em>. Once it's running, say <strong>"lint the vault"</strong> for the weekly health check: Lore sweeps for broken links, stale notes, contradictions, and drift, then delivers a styled report of proposed fixes. It never rewrites your knowledge without your sign-off.</p>
 
   <div class="section-head"><span class="sh-label">Specialist sidekicks</span></div>
   <p>Lore plays well with sibling agents. Every action item carries two flags: <strong>Lore</strong> (Lore could do this itself) and <strong>Specialist</strong> (an executor agent could pick it up autonomously). Flag an item Specialist and a companion agent, our reference one is called Sigil, can do the work off-session and mark the item complete in your tracker. The wiring prompt is in the README under <em>Companion specialist agents</em>.</p>
