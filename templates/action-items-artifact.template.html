@@ -439,7 +439,9 @@ tbody tr:hover .delegate-btn { opacity: 1; }
       </div>
       <div class="qa-field">
         <div class="qa-label">Due</div>
-        <input id="qa-due" class="qa-input qa-due" placeholder="TBD" value="TBD" title="ASAP, TBD, a date (YYYY-MM-DD), or your own words">
+        <div class="due-cell-wrap qa-due-wrap">
+          <input id="qa-due" class="qa-input qa-due" placeholder="TBD" value="TBD" title="Click to pick a date, or type: ASAP, TBD, YYYY-MM-DD, or your own words">
+        </div>
       </div>
       <div class="qa-field" style="min-width:180px;flex:1">
         <div class="qa-label">Notes</div>
@@ -1121,18 +1123,28 @@ function openPopoverAt(pop, trigger) {
 }
 window.addEventListener('scroll', () => { closeAllPopovers(); closeAllDelegatePopovers(); closeAllTriagePopovers(); }, true);
 
-function makeDuePopover(item, container) {
-  const pop = document.createElement('div'); pop.className = 'due-popover';
-  pop.innerHTML = `<div class="pop-label">Quick select</div><div class="pop-presets">${['ASAP','TBD'].map(p => `<button class="pop-preset" data-val="${p}">${p}</button>`).join('')}</div><div class="pop-label">Pick a date</div><input type="date" class="pop-date-input"><div class="pop-label" style="margin-top:10px">Custom text</div><div class="pop-custom-row"><input class="pop-custom-input" placeholder="e.g. Ongoing"><button class="pop-set-btn">Set</button></div>`;
-  function applyDue(val) {
-    closeAllPopovers();
-    apply({ type: 'set-due', subject: item.subject, value: val });
-  }
-  pop.querySelectorAll('.pop-preset').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); applyDue(b.dataset.val); }));
-  pop.querySelector('.pop-date-input').addEventListener('change', e => { if (e.target.value) applyDue(e.target.value); });
-  pop.querySelector('.pop-set-btn').addEventListener('click', e => { e.stopPropagation(); const v = pop.querySelector('.pop-custom-input').value.trim(); if (v) applyDue(v); });
+// One markup + wiring path for every due picker in the view (row cells, the
+// triage pile, and the quick-add form). Callers supply only the heading and
+// what to do with the chosen value, so the three places can never drift apart.
+function duePopoverMarkup(heading) {
+  return `<div class="pop-label">${heading}</div><div class="pop-presets">${['ASAP','TBD'].map(p => `<button class="pop-preset" data-val="${p}">${p}</button>`).join('')}</div><div class="pop-label">Pick a date</div><input type="date" class="pop-date-input"><div class="pop-label" style="margin-top:10px">Custom text</div><div class="pop-custom-row"><input class="pop-custom-input" placeholder="e.g. Ongoing"><button class="pop-set-btn">Set</button></div>`;
+}
+
+function wireDuePopover(pop, onPick) {
+  pop.querySelectorAll('.pop-preset').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); onPick(b.dataset.val); }));
+  pop.querySelector('.pop-date-input').addEventListener('change', e => { if (e.target.value) onPick(e.target.value); });
+  pop.querySelector('.pop-set-btn').addEventListener('click', e => { e.stopPropagation(); const v = pop.querySelector('.pop-custom-input').value.trim(); if (v) onPick(v); });
   pop.addEventListener('click', e => e.stopPropagation());
   return pop;
+}
+
+function makeDuePopover(item, container) {
+  const pop = document.createElement('div'); pop.className = 'due-popover';
+  pop.innerHTML = duePopoverMarkup('Quick select');
+  return wireDuePopover(pop, val => {
+    closeAllPopovers();
+    apply({ type: 'set-due', subject: item.subject, value: val });
+  });
 }
 
 // ── Delegate popover ──────────────────────────────────────────────────────
@@ -1254,16 +1266,11 @@ document.addEventListener('click', e => {
 
 function makeTriageDuePopover(item) {
   const pop = document.createElement('div'); pop.className = 'due-popover triage-due-popover';
-  pop.innerHTML = `<div class="pop-label">Schedule for</div><div class="pop-presets">${['ASAP','TBD'].map(p => `<button class="pop-preset" data-val="${p}">${p}</button>`).join('')}</div><div class="pop-label">Pick a date</div><input type="date" class="pop-date-input"><div class="pop-label" style="margin-top:10px">Custom text</div><div class="pop-custom-row"><input class="pop-custom-input" placeholder="e.g. Ongoing"><button class="pop-set-btn">Set</button></div>`;
-  function applyDue(val) {
+  pop.innerHTML = duePopoverMarkup('Schedule for');
+  return wireDuePopover(pop, val => {
     closeAllTriagePopovers();
     apply({ type: 'triage-schedule', subject: item.subject, from: item.from, due: val });
-  }
-  pop.querySelectorAll('.pop-preset').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); applyDue(b.dataset.val); }));
-  pop.querySelector('.pop-date-input').addEventListener('change', e => { if (e.target.value) applyDue(e.target.value); });
-  pop.querySelector('.pop-set-btn').addEventListener('click', e => { e.stopPropagation(); const v = pop.querySelector('.pop-custom-input').value.trim(); if (v) applyDue(v); });
-  pop.addEventListener('click', e => e.stopPropagation());
-  return pop;
+  });
 }
 
 function makeTriageDelegatePopover(item) {
@@ -1688,6 +1695,28 @@ function bindQaToggle(id, getOn, setOn) {
 }
 bindQaToggle('qa-lore-toggle',       () => qaLoreOn, v => qaLoreOn = v);
 bindQaToggle('qa-specialist-toggle', () => qaSpecOn, v => qaSpecOn = v);
+
+// The Due field on the quick-add form gets the same popover as an existing
+// item's due cell: presets, a real date input, and free text. Typing straight
+// into the field still works; the popover just makes picking a date possible
+// at create time instead of only on edit.
+(() => {
+  const dueInput = document.getElementById('qa-due');
+  const wrap = dueInput.closest('.qa-due-wrap');
+  const pop = document.createElement('div'); pop.className = 'due-popover';
+  pop.innerHTML = duePopoverMarkup('Quick select');
+  wireDuePopover(pop, val => { closeAllPopovers(); dueInput.value = val; });
+  wrap.appendChild(pop);
+  // Open-only (never toggle): click and focus both fire on a mouse click, so a
+  // toggle would open then immediately close. Outside click or Escape closes.
+  const open = () => { if (!pop.classList.contains('open')) openPopoverAt(pop, dueInput); };
+  dueInput.addEventListener('click', e => { e.stopPropagation(); open(); });
+  dueInput.addEventListener('focus', open);
+  dueInput.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeAllPopovers(); return; }
+    if (e.key === 'Enter') { closeAllPopovers(); document.getElementById('qa-add-btn').click(); }
+  });
+})();
 
 document.getElementById('qa-add-btn').addEventListener('click', () => {
   const subject = document.getElementById('qa-subject').value.trim();
