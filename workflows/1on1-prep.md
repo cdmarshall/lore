@@ -40,7 +40,11 @@ Identify which active projects this person is involved in:
 
 For each project surfaced:
 - Pull the `## Current Phase` section for a status snapshot.
-- Flag any that haven't had an update since the last 1:1 (compare the most recent dated entry in `## Current Phase` against the last 1:1 date in `last_1on1` frontmatter or the most recent 1:1 note).
+- Flag any that haven't had an update since the last 1:1 (compare the most recent dated entry in `## Current Phase` against the last 1:1 date established below).
+
+**Establishing the last 1:1 date (do this before anything that depends on it).** Take the **later** of the `last_1on1` frontmatter value and the newest 1:1 meeting note found in `Meetings/`. Never use the frontmatter value alone: it is only as fresh as the last workflow run that wrote it, and a 2026-07-30 audit found it eight weeks stale on one direct report and missing entirely on two others. When the two disagree, trust the meeting notes, say so in the prep, and repair the frontmatter.
+
+To find the newest 1:1 meeting note, do not filter on `kind` alone. A meeting counts as a 1:1 when any of these hold: `kind: 1on1`; or the title contains `1on1`, `1:1`, or `1-1`; or the attendee list is exactly the user plus this person. The same audit found 15 of 17 notes in one four-day window with `kind` blank, so a `kind`-only query silently reports stale dates and produces the "you haven't met in three weeks" error when you met last week.
 - Note any commitments they made in the last 1:1 and whether they've been addressed.
 - Note any commitments the user made that may need follow-up.
 

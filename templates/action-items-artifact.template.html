@@ -1023,7 +1023,7 @@ function rebuildItems() {
   items = activeItems.map((r, i) => {
     const p = getPriority(r.due);
     return { id: i, date: r.date, created: r.created || '', from: r.from, subject: r.subject, due: r.due || 'TBD', loreable: yes(r.lore), specialistable: yes(r.specialist), notes: r.notes || '', priority: p.label, order: p.order };
-  }).sort((a, b) => a.order - b.order || (a.subject||'').localeCompare(b.subject||''));
+  }).sort(itemSortComparator);
   items.forEach(it => { loreState[it.id] = it.loreable; specialistState[it.id] = it.specialistable; notesState[it.id] = it.notes; });
 
   const thirtyDaysAgo = new Date(TODAY.getTime() - 30 * 86400000);
@@ -1033,14 +1033,31 @@ function rebuildItems() {
   }).length;
 }
 
+// Sort order: OVERDUE (1) always first, then ASAP (2), then UPCOMING (3,
+// any item with a valid scheduled date that isn't overdue, no distance cap),
+// then TBD (4, no date at all) at the bottom.
 function getPriority(due) {
-  if (due === 'ASAP')      return { label: 'ASAP',      order: 3 };
-  if (!due || due === 'TBD') return { label: 'TBD', order: 99 };
-  const d = new Date(due + 'T12:00:00'); if (isNaN(d)) return { label: 'TBD', order: 99 };
+  if (due === 'ASAP')      return { label: 'ASAP',      order: 2 };
+  if (!due || due === 'TBD') return { label: 'TBD', order: 4 };
+  const d = new Date(due + 'T12:00:00'); if (isNaN(d)) return { label: 'TBD', order: 4 };
   const diff = Math.floor((d - TODAY) / 86400000);
-  if (diff < 0)  return { label: 'OVERDUE',  order: 1 };
-  if (diff <= 7) return { label: 'UPCOMING', order: 2 };
-  return { label: 'TBD', order: 99 };
+  if (diff < 0) return { label: 'OVERDUE',  order: 1 };
+  return { label: 'UPCOMING', order: 3 };
+}
+
+// Secondary sort within each priority group: OVERDUE and UPCOMING (both have
+// a real scheduled date) sort ascending by that date. ASAP and TBD (no
+// meaningful date to sort by) sort ascending by creation date instead of
+// name; items missing a creation date sort last within their group.
+function itemSortComparator(a, b) {
+  if (a.order !== b.order) return a.order - b.order;
+  if (a.order === 1 || a.order === 3) {
+    return new Date(a.due + 'T12:00:00') - new Date(b.due + 'T12:00:00');
+  }
+  const NO_CREATED = 8640000000000000; // sorts after any real date
+  const ad = a.created ? new Date(a.created + 'T12:00:00').getTime() : NO_CREATED;
+  const bd = b.created ? new Date(b.created + 'T12:00:00').getTime() : NO_CREATED;
+  return ad - bd;
 }
 
 function relativeDue(due) {

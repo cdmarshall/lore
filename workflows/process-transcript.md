@@ -95,6 +95,15 @@ Obsidian path resolution and the `Lore/` subfolder override: `_conventions.md` â
   ```
   In Obsidian mode the entry header wikilinks the meeting note: `### YYYY-MM-DD - [[YYYY-MM-DD <kind> <subject>]]`, so observations backlink to the meeting.
 
+**Recency fields (both modes, REQUIRED, never skip):** for every attendee who has a person note, update their recency frontmatter in the same pass as the observation. This is the write half of the contract that `1on1-prep` and `cadence` read; skipping it is what silently breaks them.
+
+- `last_met: 'YYYY-MM-DD'` on every attendee, set to the meeting date, whenever the meeting date is newer than the existing value. Applies to direct reports and stakeholders alike.
+- `last_1on1: 'YYYY-MM-DD'` additionally, on direct reports only, when the meeting is genuinely a one-to-one with the user.
+- Only ever move these dates forward. If the existing value is newer than the meeting being processed (backfilling an old transcript), leave it alone.
+- Use the single-quoted `'YYYY-MM-DD'` string form so Dataview parses it as a date.
+
+**Do not decide "is this a 1:1?" from the `kind` field alone.** Vault audit on 2026-07-30 found 15 of 17 meeting notes in one four-day window with a blank `kind`, plus notes named `1on1 ...` carrying other kinds and notes named otherwise carrying `kind: 1on1`. Treat a meeting as a 1:1 when any of these hold: `kind: 1on1`; or the title contains `1on1`, `1:1`, or `1-1`; or the attendee list is exactly the user plus one direct report. Then also set `kind: 1on1` on the meeting note if it was blank, so the data improves as it is touched.
+
 **Meeting note (both modes):**
 - **Plaud note available** (fetched via `mcp__plaud__get_note` during plaud-sync): use its body as primary content. Apply terminology corrections; in Obsidian mode also resolve all participant/project names to `[[Name]]`. Save from `templates/meeting-note.template.md`. Do not regenerate a summary the Plaud note already covers.
 - **No Plaud note** (manual drop or fetch failed): generate the summary from the transcript.

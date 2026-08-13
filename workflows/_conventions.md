@@ -86,9 +86,18 @@ TABLE WITHOUT ID
   status AS Status,
   phase AS "Phase / latest"
 FROM "Projects"
-WHERE (lead = this.file.link OR contains(stakeholders, this.file.link)) AND status != "done"
+WHERE (lead = this.file.link OR contains(stakeholders, this.file.link)) AND status != "done" AND status != "backlog"
 SORT status ASC, file.name ASC
 ```
+
+`backlog` is excluded deliberately: a backlogged project is real and tracked, but it is not work in flight, so it does not belong in a person's active view. Query `Projects/` directly to see backlog items.
+
+## Project status semantics
+
+- `active`, work is moving; there is dated activity in the last 14 days.
+- `blocked`, real and wanted, but stopped on a named external dependency. A note with recent *entries* that all say the work cannot proceed is `blocked`, not `active`.
+- `backlog`, defined and intended, not yet sequenced into a sprint. Not stalled, just not started.
+- `done`, finished or shipped. **Closing is a required step, not an optional one.** When a project finishes, set `status: done`, update the `#status/*` tag to match, and append a dated closing line to `## Current Phase`. A vault where nothing is ever closed reports every finished project as stale forever; this was the state of the vault on 2026-07-30, when 8 of 39 projects were still `active` after completing, 5 of them confirmed finished by the user in a single pass.
 
 ## Frontmatter schemas
 
@@ -131,13 +140,88 @@ projects: ["[[Project]]"]
 **Project:**
 ```yaml
 type: project
-status: active | blocked | done
+status: active | blocked | backlog | done
 lead: "[[Name]]"            # day-to-day lead; can be the user or any team member
 stakeholders: ["[[Name]]"]
 start_date: YYYY-MM-DD
 phase: [current phase label]
 tracker:                    # optional: Jira epic key, Asana/Linear URL, etc.
+
+# Roadmap fields (added 2026-07-31). Required on any note that maps to a tracker epic.
+swimlane: quoting-sales-dtc | ops-platform | service-retention | data-reporting
+value_type: direct | enabling | obligation
+roadmap_state: active | parked
+annualized_benefit:         # dollars, integer, no formatting. Required when value_type is direct.
+blocked_by: ["[[Other Project]]"]   # optional; cross-lane dependencies
+channel: dtc                # optional; only where the item needs a visible channel tag
 ```
+
+### The tracker side: labels, not hierarchy
+
+Decided 2026-07-31. **The roadmap does not use Jira's Initiative hierarchy level.** Swimlane, value type, channel and parked state are all Jira **labels**; epics stay unparented.
+
+| Label | Values |
+|-------|--------|
+| swimlane | `swimlane-quoting-sales-dtc`, `swimlane-ops-platform`, `swimlane-service-retention`, `swimlane-data-reporting` |
+| value type | `value-direct`, `value-enabling`, `value-obligation` |
+| channel | `channel-dtc` (optional, second axis) |
+| parked | `roadmap-parked` (absence means active) |
+
+Why labels beat a parent here:
+
+- **One primitive for every axis.** Channel cuts across swimlane, so a parent could only ever express one of them. Labels are additive.
+- **Re-cutting the deck is a label change**, not a reparenting exercise.
+- **No Jira admin required.** No custom fields to request, so the model can ship without waiting on anyone.
+- The Initiative layer was vestigial: 28 initiatives, 0 owners, 0 dates, 3 with a written description, and 21 of 48 open epics had no parent anyway. A field that exists because the hierarchy has a slot for it is worse than no field, because it reads as meaningful.
+
+The dollar figure is the one thing a label cannot carry. `annualized_benefit` lives in the vault note's frontmatter, or comes from a Planner export at generation time. No Jira number field is needed.
+
+The generator's scope query is therefore label-based, never parent-based:
+
+```
+  AND labels in (swimlane-quoting-sales-dtc, swimlane-ops-platform,
+                 swimlane-service-retention, swimlane-data-reporting)
+```
+
+An open epic with no swimlane label is a contract violation and gets named on the weekly page. That is the replacement for the old orphan problem, and it self-reports.
+
+**Company targets go in the artifact header, not in Jira.** The 2 objectives that carried real numbers (`Increase Policy Retention (2026 Target: 90%)`, `Increase Policy Production (2026 Target: 60 PPA)`) are company goals. The monthly deck states them above the swimlanes. A Jira hierarchy level is a poor place to keep a goal.
+
+### Roadmap field semantics
+
+Added for the roadmap generator (`workflows/roadmap.md`). See `outbox/roadmap-swimlane-assignments.md` for the assignment record these were derived from.
+
+- **`value_type` answers what kind of benefit, `roadmap_state` answers whether we are doing it.** They are independent. A parked epic still has a value type.
+- **`value_type: direct` requires `annualized_benefit`.** The generator reports a missing benefit on a direct item as a contract violation by name. Enabling items report as "enables [outcome]"; obligation items report the risk retired.
+- **`roadmap_state: parked`** means defined and deliberately not prioritized. Parked items appear in the Parked column of the monthly deck's On the Horizon slide and in the weekly page, never in Coming Up. Distinct from `status: backlog`, which is about the project's own lifecycle; a parked item can be `status: backlog` or `status: active`.
+
+### Date confidence, 4 states
+
+The first draft of this rule had 3 states and a hole: an epic with every child in a sprint but no date of its own matched neither Committed nor Unscheduled. That is the most common case in the vault, and it is exactly the Jira Plans rollup scenario. Corrected 2026-07-31 during the vault seeding, after 3 of the first 23 epics fell in the gap.
+
+| State | Rule |
+|-------|------|
+| `committed` | The epic has a hand-set Target end or duedate, and every child sits in a sprint ending on or before it. |
+| `rollup` | No date on the epic, but every child sits in a sprint. The date is derived from the latest child sprint's end. This is what Plans shows and presents as certain. |
+| `provisional` | A date exists (hand-set or rollup) but some children are not in a sprint, so the date only reflects the scheduled subset. Report the ratio, e.g. "6 of 8 children scheduled". |
+| `unscheduled` | No children in any sprint, or no children at all. |
+| `at-risk` | A date exists and every child is scheduled, but evidence contradicts the date: it falls before dated work in the children, or it has already passed while the epic is open. Beats `committed` whenever both apply. |
+
+Always record the evidence next to the label, as a ratio and a date: "rollup, 5 of 5 children scheduled, latest sprint ends 2026-08-09".
+
+
+### Jira API constraints the generator must work around
+
+Measured 2026-07-31 while seeding 43 notes. These are properties of the Atlassian MCP, not of Jira.
+
+- **`searchJiraIssuesUsingJql` ignores `fields`.** Full descriptions always return, so results overflow the token limit fast. Use `searchResultMode: "count"` to size a query first (~350 tokens), then page with `maxResults: 3` and `nextPageToken`.
+- **`getJiraIssue` does respect `fields`.** `["summary","status","duedate","description"]` costs a few hundred tokens. Prefer it for single issues.
+- **Target end values cannot be read.** The field is silently dropped from responses. Its value can only be bounded by JQL comparison (`"Target end" >= x AND "Target end" <= y`). Any generator needing exact target dates has to binary-search them or use a different access path. This is the single biggest blocker to automating the confidence label.
+- **Sprint end dates are not exposed.** Membership is queryable (`sprint is not EMPTY`, `openSprints()`), the end date is not. So `committed` can never be fully verified through this MCP; the on-or-before clause stays an assumption. Name the sprint rather than asserting its end date.
+- **Concurrent sessions cross-contaminate.** Running parallel agents against this MCP returned other sessions' payloads repeatedly on 2026-07-31, including full ticket bodies from a sibling batch. Always check the `webUrl` or `key` in a response matches the JQL sent, and do not fan out parallel Jira work.
+- **Overflow files are readable.** When a response spills to `/var/folders/…`, the native Read tool reaches it, and `Grep -o` for `"key":` and `"summary":` extracts child data more cheaply than re-querying.
+
+- **Notes with no `jira` key and `type: project`** are pre-tracker ideas: real work that exists in the user's head but not in the tracker. The weekly page lists these separately as gap detection. Do not delete them and do not invent epic keys for them.
 
 ## Tag taxonomy (hierarchical, slash-delimited)
 
@@ -145,7 +229,8 @@ tracker:                    # optional: Jira epic key, Asana/Linear URL, etc.
 - Meetings: `#meeting/1on1`, `#meeting/staff`, `#meeting/roundtable`, `#meeting/decision`, `#meeting/external`
 - Decisions: `#decision/active`, `#decision/superseded`, `#decision/proposed`
 - Projects: `#project/<slug>`
-- Status: `#status/active`, `#status/blocked`, `#status/done`
+- Status: `#status/active`, `#status/blocked`, `#status/backlog`, `#status/done`
+- Roadmap: `#roadmap/direct`, `#roadmap/enabling`, `#roadmap/obligation`
 - Inbox: `#inbox/unprocessed`, `#inbox/needs-review`
 - Reference: `#playbook`, `#strategy`
 

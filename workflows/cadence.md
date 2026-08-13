@@ -19,14 +19,22 @@ Both modes cover the same two populations: direct reports and stakeholders. Peop
 
 ## Step 2, Gather Recency Data
 
-**Direct reports.** Read `last_1on1` frontmatter (or the equivalent note in filesystem-mode `team/` files, if tracked there). Compute days since. This is exact, not a proxy.
+**Never trust the frontmatter field alone.** `last_1on1` and `last_met` are only as fresh as the last workflow run that wrote them. On 2026-07-30 an audit found `last_1on1` eight weeks stale on one direct report (five unrecorded 1:1s) and absent entirely on two others, because nothing had ever written the field. Always compute the derived answer from meeting notes too, and use whichever is **more recent**. If they disagree, use the derived value and repair the frontmatter in passing.
 
-**Stakeholders** (no `last_1on1` field). Use a recency proxy, in order:
+**Direct reports.** Take the later of:
 
-1. The most recent dated entry in the person's `## Observations` section (`### YYYY-MM-DD - ...`).
-2. If no recent observation, the newest meeting note that wikilinks them: Obsidian mode, backlinks via the graph MCP tool or Grep for `[[Name]]` (`_conventions.md` → Vault access tooling); filesystem mode, Grep `meetings/notes/` for their name.
+1. `last_1on1` frontmatter (filesystem mode: the equivalent in `team/` files, if tracked).
+2. The newest meeting note that counts as a 1:1 with this person, derived per the rule below.
 
-Whichever proxy is used, label it as such in the output. It approximates last real contact, it is not a guarantee. A person can be current without an entry if the user knows otherwise, so treat this as a prompt, not a fact.
+**Stakeholders.** Take the later of:
+
+1. `last_met` frontmatter.
+2. The newest meeting note that wikilinks them: Obsidian mode, backlinks via the graph MCP tool or Grep for `[[Name]]` (`_conventions.md` → Vault access tooling); filesystem mode, Grep `meetings/notes/` for their name.
+3. If neither exists, fall back to the most recent dated entry in their `## Observations` section and label it as a proxy.
+
+**Identifying a 1:1 from meeting notes (do not use `kind` alone).** A meeting counts as a 1:1 when any of these hold: `kind: 1on1`; or the note title contains `1on1`, `1:1`, or `1-1`; or the attendee list is exactly the user plus one direct report. The `kind` field is unreliable in practice: the 2026-07-30 audit found 15 of 17 notes in one window with `kind` blank, and mismatches in both directions between title and `kind`. A `kind`-only query reported a 1:1 as nine days older than it was.
+
+Label any proxy as such in the output. Recency approximates last real contact, it is not a guarantee. A person can be current without an entry if the user knows otherwise, so treat this as a prompt, not a fact.
 
 ---
 
