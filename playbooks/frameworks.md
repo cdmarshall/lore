@@ -133,31 +133,3 @@ Low Power   │ Monitor        │ Keep Informed
 1. What did you complete?
 2. What are you working on?
 3. Any blockers?
-
----
-
-## Insurance-Specific
-
-### Personal Lines Basics
-
-- Auto, Home, Renters, Umbrella
-- High volume, lower touch
-- Regulatory compliance critical
-- Renewal retention focus
-
-### Commercial Lines Basics
-
-- Business property, liability, workers comp, commercial auto
-- Lower volume, higher complexity
-- Relationship-driven
-- Customized coverage structures
-
-### Key Insurance Metrics
-
-| Metric | What It Measures |
-|--------|------------------|
-| Loss Ratio | Claims paid / Premiums earned |
-| Combined Ratio | (Losses + Expenses) / Premiums |
-| Retention Rate | Policies renewed / Policies up for renewal |
-| Quote-to-Bind | Quotes that become policies |
-| Policy Lifetime Value | Total premium over relationship |

@@ -29,40 +29,37 @@ Read in parallel:
 - One file per direct report under `team/`, recent observations
 - Stale active projects from the most recent `outbox/vault-lint-*.md` report if one exists from the last 14 days (`bash ls outbox/vault-lint-*.md`, check the date in the filename); skip silently if none exists, so silent stalls surface in the Friday agenda.
 
-For action items (completed-this-week, active blockers, delegated items), try in order:
+**Sweep this week's agent sessions** per `_conventions.md` → Recap sourcing: Cowork sessions active Monday to Friday, and this week's rows of `inbox/cc-sessions/sessions.jsonl` for Claude Code. Much of the user's week happens in sessions rather than in Slack, Teams, or meeting notes, and a prep built without them undersells their own recap in section 3. If the digest is stale or missing, say so and offer the refresh command; do not let that half go silently uncounted. Feed what shipped into sections 2 and 3, and name the coverage in the prep's source line.
 
-1. `bash ls inbox/action-items.snapshot.md`. If present, parse once at the start and use for sections 2-4. Primary path.
-2. `inbox/action-items-state.json` if it exists (future-proof, rarely present today). Same shape, JSON.
-3. If neither exists, ask: *"Want roundtable prep to include this week's completed items, active blockers, and delegated follow-ups? If yes, click Download snapshot in your action items artifact and save the file to `inbox/action-items.snapshot.md` (or paste it here)."*
-4. If declined, skip the dependent sections; leave placeholders.
+For action items (completed this week, active blockers, delegated items), query The Quest Log with ArtifactData (`workflows/action-items.md` → Reading current state) once at the start: `completed` items whose `completed` date falls Monday to Friday, `active` items that are overdue or ASAP, and every `delegated` item. Use them for sections 2-4. If the tracker can't be reached, say so in the prep's source line and leave placeholders.
 
 Never read `inbox/action-items.md` (see CLAUDE.md → Key behaviors).
 
 ### 2. Identify This Week's Completed Items
 
-If you have a view of state, scan `completed` items for entries where `completed` falls in this week (Mon-Fri). These feed **Milestone Celebrations** and the user's own **Recap**.
+From The Quest Log, scan `completed` items for entries where `completed` falls in this week (Mon-Fri). These feed **Milestone Celebrations** and the user's own **Recap**.
 
-No view: placeholder, *"(Fill in from the action items artifact: items completed this week.)"*
+Tracker unreachable: placeholder, *"(Fill in from The Quest Log: items completed this week.)"*
 
 ### 3. Identify Active Blockers
 
-If you have a view of state, scan `active` items for:
+From The Quest Log, scan `active` items for:
 - OVERDUE items (due date in the past)
 - Items explicitly waiting on another person or team (per notes)
 - Items marked ASAP
 
-Candidates for the **Parking Lot**. No view: placeholder.
+Candidates for the **Parking Lot**. Tracker unreachable: placeholder.
 
 ### 4. Anticipate Team Round-Robin Updates
 
-**April Barclay does not attend the product roundtable.** Exclude her from the Team Round-Robin section entirely (no card, no placeholder). Check each direct report's profile note for a similar non-attendance flag before including them; this is instance data and may change.
+Check each direct report's profile note for a non-attendance flag (some people skip the roundtable) and leave anyone flagged out of the Team Round-Robin section entirely: no card, no placeholder. This is instance data and may change.
 
 For each direct report (named in `context.md`) **who attends the roundtable**, scan `team/[name].md` recent Observations to infer:
 - **Recap**: what they probably finished or progressed this week
 - **Focus**: what they're likely heads-down on next week
 - **Blockers**: known dependencies or blockers in observations
 
-If you have a view of state, also scan `delegated` items assigned to this person and surface as **Follow-up** prompts so the user can close the loop live. No view: placeholder line under Follow-up.
+From The Quest Log, also scan `delegated` items assigned to this person and surface as **Follow-up** prompts so the user can close the loop live. Tracker unreachable: placeholder line under Follow-up.
 
 Hedge the inferred parts ("likely to mention", "may flag"): prompts for the user to listen for, not authoritative summaries.
 
@@ -81,6 +78,8 @@ Content spec:
 - [Current priority 1 and relevant context]
 - [Current priority 2 and relevant context]
 - [Any top-down updates or org context worth flagging]
+
+> Leadership check-in points must be things the user would actually tell this team this week (launch timing, hiring status, priority shifts, who is out). Do not lift standing background from `context.md` (headcount against plan, org-wide context) into a talking point; it reads as filler and the user won't say it.
 
 ---
 

@@ -1,15 +1,4 @@
-<!DOCTYPE html>
-<script type="application/json" id="cowork-artifact-meta">
-{
-  "name": "The Quest Log",
-  "schemaVersion": 4,
-  "description": "Live action items tracker, including triage. The artifact's IndexedDB is the sole source of truth. Agent pushes apply as delta operations (add, propose, complete, delegate, reopen, archive, update) on top of IDB; full-state replacement is never used. 'propose' lands a candidate item in the triage pile, where the user resolves it in one click (Do now / Schedule / Delegate / Delete) before it becomes a real item; there is no separate triage artifact or sync-back step. Item context lives in the notes field; the legacy actionNeeded field is still accepted on incoming operations and folded into notes. The Download snapshot file is a restore-only backup."
-}
-</script>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Quest Log</title>
 <style>
 /* Fonts are embedded (latin subset, woff2 via @fontsource) because Cowork's
    artifact CSP blocks external stylesheets from fonts.googleapis.com. */
@@ -357,18 +346,16 @@ tbody tr:hover .delegate-btn { opacity: 1; }
 .triage-btn-delegate:hover { background: var(--info-soft); }
 .triage-btn-delete { color: var(--ink-faint); }
 .triage-btn-delete:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
+.triage-btn-done { color: var(--success); border-color: var(--success); background: var(--success-soft); }
+.triage-btn-done:hover { background: var(--success-soft); border-color: var(--ink); }
+.subject-text.pending-done { text-decoration: line-through; color: var(--ink-faint); }
+tr.row-pending-done > td { opacity: 0.55; transition: opacity 0.15s ease; }
+.pending-note { font-family: var(--font-pixel); font-size: 14px; letter-spacing: 0.04em; color: var(--ink-faint); margin-top: 4px; }
+.delegate-other { margin-top: 6px; }
+.delegate-other-input { width: 100%; font-family: var(--font-body); font-size: 13px; padding: 6px 10px; border: 2px solid var(--rule); background: var(--card); color: var(--ink); }
+.delegate-other-input:focus { outline: none; border-color: var(--gold); }
 </style>
-</head>
-<body>
 
-<!-- Embedded seed data (substituted by the agent at create/update time).
-     Contains: { seedVersion, schemaVersion, teamMembers, operations[] }.
-     The operations array is a delta applied on top of whatever is already in
-     IDB. Full state is never embedded; the artifact's IDB is the sole source
-     of truth. The placeholder string below is intentionally only mentioned
-     in this one place so the build script's global replace can't accidentally
-     hit any other code. -->
-<script type="application/json" id="seed-data">/*__LORE_ACTION_ITEMS_SEED_PLACEHOLDER__*/</script>
 
 <div class="header">
   <div class="header-row">
@@ -382,18 +369,8 @@ tbody tr:hover .delegate-btn { opacity: 1; }
       <span class="sync-label" id="sync-label">Loading...</span>
     </div>
     <div class="menu-row">
-      <!--
-        Auto-backup button (id "backup-btn") was here. It depended on
-        FileSystemFileHandle.createWritable(), which Cowork's current webview
-        blocks (platform policy: programmatic file writes from artifact JS
-        aren't allowed). The supporting JS (enableAutoBackup, writeAutoBackup,
-        ensureBackupPermission, buildStateSnapshot, etc.) is intentionally
-        left intact below. If a future Cowork build allows createWritable,
-        re-add a header-btn element with id="backup-btn" here and the click
-        handler will auto-bind on next load.
-      -->
-      <button class="header-btn" id="export-btn" title="Download a markdown snapshot of the current items. Save it to inbox/action-items.snapshot.md in your Lore workspace so Lore can read your current state when you ask.">Download snapshot</button>
-      <button class="header-btn secondary" id="restore-btn" title="Restore items from a previously downloaded snapshot. Replaces all current items in this artifact.">Restore from backup</button>
+      <button class="header-btn" id="export-btn" title="Download a markdown backup of every item. Lore does not need it: Lore reads this tracker directly.">Download snapshot</button>
+      <button class="header-btn secondary" id="restore-btn" title="Restore items from a previously downloaded snapshot. Replaces all current items in this tracker.">Restore from backup</button>
       <input type="file" id="restore-file-input" accept=".md,text/markdown,text/plain" style="display:none">
     </div>
   </div>
@@ -495,195 +472,59 @@ tbody tr:hover .delegate-btn { opacity: 1; }
 
 <div class="footer">
   <span id="showing"></span>
-  <span class="tip" id="footer-tip">Click any cell to edit · This view is the source of truth · <strong>Download snapshot</strong> → save to <code>inbox/action-items.snapshot.md</code> so Lore can read current state</span>
+  <span class="tip" id="footer-tip">Click any cell to edit · Saved to this tracker's database · Lore reads and writes the same records, no snapshot needed</span>
 </div>
 
 <script>
 // ─────────────────────────────────────────────────────────────────────────────
-// Action Items Artifact (IndexedDB-backed)
-// IndexedDB is the sole source of truth. All edits in this view are instant
-// and persist across reloads. Agent pushes arrive as delta operations (add,
-// propose, complete, delegate, reopen, archive, update) in the embedded seed
-// and are applied on top of IDB; the agent never replaces IDB wholesale.
+// The Quest Log (database-backed, hosted claude.ai artifact)
+// Every item is one document in this artifact's `db` store (collection
+// `items`, id `q-<fnv1a32(norm(subject)|norm(from))>`). The store is the sole
+// source of truth. This page and Lore read and write the same documents:
+// the page through `claude.use('db')`, Lore through the ArtifactData tool.
+// There is no seed, no snapshot ritual, and no IndexedDB.
 //
-// Triage lives here too now (merged in from the old separate
-// action-item-triage artifact). 'propose' adds a candidate to triageItems;
-// the user resolves each one in the UI via Do now / Schedule / Delegate /
-// Delete, which is what actually creates the real active/delegated item (or
-// discards it). There is no cross-artifact sync-back step: the resolution
-// click IS the write, so there's nothing for the agent to read back and
-// nothing that can be truncated the way the old cross-artifact console-log
-// handoff was.
+// In-page edits mutate the in-memory lists (activeItems, completedItems,
+// delegatedItems, archivedItems, triageItems), then syncToDb() diffs those
+// lists against the last database snapshot and writes only the documents
+// that changed. Live snapshots from the store (including Lore's writes)
+// rebuild the lists, so an agent change shows up without a reload.
 //
-// Two manual escape hatches exist:
-//   - Download snapshot: writes the current IDB state to a markdown file
-//     (restore-only backup; never used as agent source-of-truth).
-//   - Restore from backup: replaces IDB content from a previously downloaded
-//     snapshot. Use only if the artifact was deleted or IDB was wiped.
+// Triage lives here too. Lore proposes an item by writing a document with
+// status "triage"; the user resolves it with one click (Do now, Already
+// done, Schedule, Delegate, Delete). Delete leaves a "dismissed" tombstone
+// rather than removing the document, so Lore's dedup still sees the key and
+// never re-proposes something the user threw away.
+//
+// Escape hatches: Download snapshot (markdown backup via the `downloads`
+// capability) and Restore from backup (replaces every item from a snapshot).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TODAY = (() => { const d = new Date(); d.setHours(12,0,0,0); return d; })();
 const TODAY_STR = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })();
 
 // ── State ──────────────────────────────────────────────────────────────────
-// triageItems holds newly-proposed items that haven't been resolved yet. An
-// item never becomes a real active/delegated item until the user resolves it
-// through one of the four triage actions (Do now, Schedule, Delegate,
-// Delete). This replaces the old separate action-item-triage artifact and
-// its enqueue/sync/ack handoff: everything lives in one IDB now, so there is
-// no cross-artifact console-log payload to read back, and nothing to
-// truncate.
+// In-memory lists, rebuilt from the database on every snapshot. triageItems
+// holds proposed items that haven't been resolved yet; nothing becomes a real
+// active/delegated/completed item until the user resolves it.
 let activeItems = [], completedItems = [], archivedItems = [], delegatedItems = [], triageItems = [];
 let items = [];
 let recentlyCompleted = 0;
 const loreState = {}, specialistState = {}, notesState = {};
+// pendingCompletes: items checked off but not yet committed. One click starts
+// a short countdown with the row struck through; unchecking cancels it.
+// Nothing is written until the countdown elapses, so undo is just clearing
+// the timer. Keyed by subject (mark-complete matches on subject) and re-read
+// on every render so a pending row survives unrelated re-renders.
+const pendingCompletes = {};
+const PENDING_COMPLETE_MS = 5000;
 let activeFilter = 'all', searchQuery = '';
-// lastSeenSeedVersion tracks the seedVersion we last consumed. On bootstrap,
-// if the embedded seedVersion is different, the agent has pushed new
-// operations and we apply them as a delta on top of IDB. IDB is never
-// wholesale replaced; it's the source of truth.
-let lastSeenSeedVersion = null;
 
-// ── Storage layer ──────────────────────────────────────────────────────────
-// Try IndexedDB first. If it's unavailable (Cowork's sandboxed iframe may
-// block it) fall back to localStorage. If THAT's blocked, fall back to an
-// in-memory store and warn the user that changes won't persist.
-const STORAGE_NAMESPACE = 'lore-action-items';
-let storage = null; // { kind: 'idb'|'ls'|'mem', getItem, setItem }
-
-function memStorage() {
-  const m = {};
-  return {
-    kind: 'mem',
-    async getItem(k) { return m[k]; },
-    async setItem(k, v) { m[k] = v; }
-  };
-}
-function lsStorage() {
-  return {
-    kind: 'ls',
-    async getItem(k) { try { const v = localStorage.getItem(STORAGE_NAMESPACE + ':' + k); return v ? JSON.parse(v) : undefined; } catch (_) { return undefined; } },
-    async setItem(k, v) { localStorage.setItem(STORAGE_NAMESPACE + ':' + k, JSON.stringify(v)); }
-  };
-}
-function idbStorage() {
-  const DB = STORAGE_NAMESPACE;
-  const STORE = 'data';
-  function open() {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB, 1);
-      req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error || new Error('idb open failed'));
-      req.onblocked = () => reject(new Error('idb open blocked'));
-    });
-  }
-  return {
-    kind: 'idb',
-    async getItem(k) {
-      const db = await open();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE, 'readonly');
-        const r = tx.objectStore(STORE).get(k);
-        r.onsuccess = () => resolve(r.result);
-        r.onerror = () => reject(r.error);
-      });
-    },
-    async setItem(k, v) {
-      const db = await open();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE, 'readwrite');
-        tx.objectStore(STORE).put(v, k);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
-    }
-  };
-}
-
-async function pickStorage() {
-  // Try IDB with a timeout (it can hang in some sandboxed contexts).
-  if (typeof indexedDB !== 'undefined') {
-    try {
-      const candidate = idbStorage();
-      // Smoke test: write+read a tiny key with a 2-second timeout.
-      await Promise.race([
-        (async () => {
-          await candidate.setItem('_probe', 1);
-          const v = await candidate.getItem('_probe');
-          if (v !== 1) throw new Error('idb probe mismatch');
-        })(),
-        new Promise((_, rej) => setTimeout(() => rej(new Error('idb probe timeout')), 2000))
-      ]);
-      return candidate;
-    } catch (_) { /* fall through to localStorage */ }
-  }
-  if (typeof localStorage !== 'undefined') {
-    try {
-      const candidate = lsStorage();
-      await candidate.setItem('_probe', 1);
-      if ((await candidate.getItem('_probe')) === 1) return candidate;
-    } catch (_) { /* fall through */ }
-  }
-  return memStorage();
-}
-
-async function loadStored() {
-  if (!storage) return false;
-  try {
-    const stored = await storage.getItem('items');
-    if (!stored || !stored.activeItems) return false;
-    activeItems         = stored.activeItems    || [];
-    completedItems      = stored.completedItems || [];
-    archivedItems       = stored.archivedItems  || [];
-    delegatedItems      = stored.delegatedItems || [];
-    triageItems         = stored.triageItems    || [];
-    lastSeenSeedVersion = stored.lastSeenSeedVersion || null;
-    if ((stored.dataVersion || 3) < DATA_VERSION) {
-      migrateData();
-      try { await saveStored(); } catch (_) {}
-    }
-    return true;
-  } catch (_) { return false; }
-}
-async function saveStored() {
-  if (!storage) return;
-  try {
-    await storage.setItem('items', { activeItems, completedItems, archivedItems, delegatedItems, triageItems, lastSeenSeedVersion, dataVersion: DATA_VERSION, savedAt: new Date().toISOString() });
-  } catch (e) {
-    showToast('warn', `Local save failed (${storage.kind}): ${e.message}. Changes are in memory only, use Download snapshot to back up.`, null, null);
-  }
-}
-
-// Backup-handle stash uses a small IDB if available, otherwise nothing
-// (localStorage can't store FileSystemFileHandle objects).
-async function stashHandle(key, handle) {
-  if (storage && storage.kind === 'idb') { try { await storage.setItem(key, handle); } catch (_) {} }
-}
-async function loadStashedHandle(key) {
-  if (storage && storage.kind === 'idb') { try { return await storage.getItem(key); } catch (_) {} }
-  return undefined;
-}
-
-// Parse the agent's embedded seed. Returns null if no seed (or unsubstituted placeholder).
-function readEmbeddedSeed() {
-  const tag = document.getElementById('seed-data');
-  const txt = tag ? tag.textContent.trim() : '';
-  if (!txt) return null;
-  try { return JSON.parse(txt); } catch (_) { return null; }
-}
-
-// ── Operations-based seed application (artifact-as-source-of-truth) ─────────
-// The agent's seed contains an operations[] array. Each operation is a delta:
-// add, complete, delegate, delegateComplete, reopen, archive, or update.
-// Operations are applied on top of whatever is already in IDB. The artifact's
-// IDB is never wholesale replaced; user-driven edits made in this view are
-// preserved across agent pushes.
-//
-// Item-matching key for operations targeting an existing item is subject+from,
-// normalized (trim + lowercase). For 'add' ops, the same key is used to dedup
-// against existing items in any list before insertion.
-const norm = s => (s == null ? '' : String(s)).trim().toLowerCase();
+// ── Item keys ──────────────────────────────────────────────────────────────
+// Every item is identified by subject+from, normalized (trim, lowercase,
+// collapse whitespace). Lore computes the same key on its side
+// (scripts/quest-log-ops.js), so both writers address the same document.
+const norm = s => (s == null ? '' : String(s)).trim().toLowerCase().replace(/\s+/g, ' ');
 const keyOf = it => `${norm(it && it.subject)}|${norm(it && it.from)}`;
 
 // ── Legacy-field helpers (schemaVersion 4) ──────────────────────────────────
@@ -721,231 +562,172 @@ function migrateData() {
   archivedItems.forEach(fold);
 }
 
-function applyOperations(seed) {
-  if (!seed || !Array.isArray(seed.operations)) {
-    lastSeenSeedVersion = seed && seed.seedVersion || lastSeenSeedVersion;
-    return { applied: 0, skipped: 0 };
+// ── Database layer ─────────────────────────────────────────────────────────
+// Document shape (collection `items`): the item's own fields, plus
+//   status   'triage' | 'active' | 'delegated' | 'completed' | 'archived' | 'dismissed'
+//   seq      ms timestamp; list order (newest first, triage oldest first)
+//   updatedAt, updatedBy ('ui' | 'lore' | an agent name), and optional
+//   proposedAt / triagedAt set by whoever moved it.
+// Date fields keep their historical names: `completed`, `delegated`,
+// `archived`, `dismissed` are YYYY-MM-DD dates.
+const ITEM_FIELDS = ['date','created','from','subject','due','lore','specialist','notes','resolution','completed','delegatedTo','delegated','archived','dismissed'];
+const META_FIELDS = ['seq','proposedAt','triagedAt','createdBy'];
+const LISTS = () => ({ triage: triageItems, active: activeItems, delegated: delegatedItems, completed: completedItems, archived: archivedItems });
+
+function fnv1a(str) {
+  let h = 0x811c9dc5;
+  for (const b of new TextEncoder().encode(str)) { h ^= b; h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, '0');
+}
+const docIdFor = it => 'q-' + fnv1a(keyOf(it));
+
+let dbNs = null;                 // the db namespace, null until connected (or if unavailable)
+let remote = new Map();          // doc id -> body, from the latest snapshot
+let haveSnapshot = false;
+let inflight = 0;                // writes not yet acknowledged
+const pendingBodies = new Map(); // doc id -> body this page has queued but the store hasn't confirmed
+const writeChains = new Map();   // doc id -> promise chain (one write at a time per document)
+
+function pick(obj, fields) {
+  const out = {};
+  for (const f of fields) if (obj && obj[f] !== undefined && obj[f] !== '') out[f] = obj[f];
+  return out;
+}
+function sameItem(a, b) {
+  return JSON.stringify(pick(a, ['status', ...ITEM_FIELDS])) === JSON.stringify(pick(b, ['status', ...ITEM_FIELDS]));
+}
+
+// Lists -> desired documents. Meta fields carry over from the stored copy.
+function buildDesired() {
+  const desired = new Map();
+  const now = Date.now();
+  // Reuse the id a document already has for this key, so a document written
+  // under a different id (by hand, by another tool) is updated in place rather
+  // than duplicated. A renamed item has a new key, so it gets a new id.
+  const idByKey = new Map();
+  for (const [id, d] of remote) {
+    const k = keyOf(d);
+    if (!idByKey.has(k) || d.status !== 'dismissed') idByKey.set(k, id);
   }
-
-  // Build lookup sets for dedup. These mutate as we apply ops so a later op
-  // in the same batch sees the effect of earlier ops.
-  const activeKeys    = new Set(activeItems.map(keyOf));
-  const completedKeys = new Set(completedItems.map(keyOf));
-  const archivedKeys  = new Set(archivedItems.map(keyOf));
-  const delegatedKeys = new Set(delegatedItems.map(keyOf));
-  const triageKeys    = new Set(triageItems.map(keyOf));
-  const anyKey = k => activeKeys.has(k) || completedKeys.has(k) || archivedKeys.has(k) || delegatedKeys.has(k) || triageKeys.has(k);
-
-  let applied = 0, skipped = 0;
-
-  for (const op of seed.operations) {
-    if (!op || typeof op !== 'object') { skipped++; continue; }
-    try {
-      switch (op.op) {
-        case 'add': {
-          const src = op.item || {};
-          const k = `${norm(src.subject)}|${norm(src.from)}`;
-          if (!src.subject) { skipped++; break; }
-          // Dedup: if any list already has this subject+from, no-op.
-          if (anyKey(k)) { skipped++; break; }
-          activeItems.unshift({
-            date: src.date || TODAY_STR,
-            created: src.created || TODAY_STR,
-            from: src.from || '',
-            subject: src.subject,
-            due: mapLegacyDue(src.due || 'TBD'),
-            lore: src.lore || '',
-            specialist: src.specialist || '',
-            notes: foldLegacyNotes(src)
-          });
-          activeKeys.add(k);
-          applied++;
-          break;
-        }
-        case 'propose': {
-          // Adds a candidate item to the triage pile, NOT to the active list.
-          // It only becomes a real item once the user resolves it in the UI
-          // via one of the four triage actions (Do now / Schedule / Delegate
-          // / Delete). This is the replacement for the old separate
-          // action-item-triage artifact's 'enqueue' op.
-          const src = op.item || {};
-          const k = `${norm(src.subject)}|${norm(src.from)}`;
-          if (!src.subject) { skipped++; break; }
-          if (anyKey(k)) { skipped++; break; }
-          triageItems.push({
-            date: src.date || TODAY_STR,
-            created: src.created || TODAY_STR,
-            from: src.from || '',
-            subject: src.subject,
-            due: mapLegacyDue(src.due || 'TBD'),
-            lore: src.lore || '',
-            specialist: src.specialist || '',
-            notes: foldLegacyNotes(src)
-          });
-          triageKeys.add(k);
-          applied++;
-          break;
-        }
-        case 'complete': {
-          const k = `${norm(op.subject)}|${norm(op.from)}`;
-          if (!op.subject) { skipped++; break; }
-          let idx = activeItems.findIndex(it => keyOf(it) === k);
-          if (idx >= 0) {
-            const it = activeItems.splice(idx, 1)[0];
-            activeKeys.delete(k);
-            if (!completedKeys.has(k)) {
-              completedItems.unshift({
-                date: it.date,
-                created: it.created || '',
-                from: it.from,
-                subject: it.subject,
-                resolution: op.resolution || it.notes || '(complete)',
-                completed: op.completedDate || TODAY_STR
-              });
-              completedKeys.add(k);
-            }
-            applied++;
-            break;
-          }
-          idx = delegatedItems.findIndex(it => keyOf(it) === k);
-          if (idx >= 0) {
-            const it = delegatedItems.splice(idx, 1)[0];
-            delegatedKeys.delete(k);
-            if (!completedKeys.has(k)) {
-              completedItems.unshift({
-                date: it.date,
-                created: it.created || '',
-                from: it.from,
-                subject: it.subject,
-                resolution: op.resolution || `Delegated to ${it.delegatedTo}: ${it.notes || '(complete)'}`,
-                completed: op.completedDate || TODAY_STR
-              });
-              completedKeys.add(k);
-            }
-            applied++;
-            break;
-          }
-          // Already completed or doesn't exist: no-op
-          skipped++;
-          break;
-        }
-        case 'delegate': {
-          const k = `${norm(op.subject)}|${norm(op.from)}`;
-          if (!op.subject || !op.delegatedTo) { skipped++; break; }
-          const idx = activeItems.findIndex(it => keyOf(it) === k);
-          if (idx < 0) { skipped++; break; }
-          const it = activeItems.splice(idx, 1)[0];
-          activeKeys.delete(k);
-          delegatedItems.unshift({
-            date: it.date,
-            created: it.created || '',
-            from: it.from,
-            subject: it.subject,
-            delegatedTo: op.delegatedTo,
-            delegated: op.delegatedDate || TODAY_STR,
-            notes: it.notes || ''
-          });
-          delegatedKeys.add(k);
-          applied++;
-          break;
-        }
-        case 'reopen': {
-          const k = `${norm(op.subject)}|${norm(op.from)}`;
-          if (!op.subject) { skipped++; break; }
-          // Search delegated → completed → archived (in that order)
-          let idx = delegatedItems.findIndex(it => keyOf(it) === k);
-          if (idx >= 0) {
-            const it = delegatedItems.splice(idx, 1)[0];
-            delegatedKeys.delete(k);
-            if (!activeKeys.has(k)) {
-              activeItems.unshift({
-                date: it.date, created: it.created || '', from: it.from,
-                subject: it.subject, due: 'TBD',
-                lore: '', specialist: '', notes: it.notes || ''
-              });
-              activeKeys.add(k);
-            }
-            applied++; break;
-          }
-          idx = completedItems.findIndex(it => keyOf(it) === k);
-          if (idx >= 0) {
-            const it = completedItems.splice(idx, 1)[0];
-            completedKeys.delete(k);
-            if (!activeKeys.has(k)) {
-              activeItems.unshift({
-                date: it.date, created: it.created || '', from: it.from,
-                subject: it.subject, due: 'TBD',
-                lore: '', specialist: '', notes: it.resolution || ''
-              });
-              activeKeys.add(k);
-            }
-            applied++; break;
-          }
-          idx = archivedItems.findIndex(it => keyOf(it) === k);
-          if (idx >= 0) {
-            const it = archivedItems.splice(idx, 1)[0];
-            archivedKeys.delete(k);
-            if (!activeKeys.has(k)) {
-              activeItems.unshift({
-                date: it.date, created: it.created || '', from: it.from,
-                subject: it.subject, due: 'TBD',
-                lore: '', specialist: '', notes: it.notes || ''
-              });
-              activeKeys.add(k);
-            }
-            applied++; break;
-          }
-          skipped++;
-          break;
-        }
-        case 'archive': {
-          const k = `${norm(op.subject)}|${norm(op.from)}`;
-          if (!op.subject) { skipped++; break; }
-          const idx = activeItems.findIndex(it => keyOf(it) === k);
-          if (idx < 0) { skipped++; break; }
-          const it = activeItems.splice(idx, 1)[0];
-          activeKeys.delete(k);
-          if (!archivedKeys.has(k)) {
-            archivedItems.unshift({
-              date: it.date, created: it.created || '', from: it.from,
-              subject: it.subject, notes: it.notes || '',
-              archived: op.archivedDate || TODAY_STR
-            });
-            archivedKeys.add(k);
-          }
-          applied++;
-          break;
-        }
-        case 'update': {
-          const k = `${norm(op.subject)}|${norm(op.from)}`;
-          if (!op.subject || !op.fields || typeof op.fields !== 'object') { skipped++; break; }
-          const it = activeItems.find(x => keyOf(x) === k);
-          if (!it) { skipped++; break; }
-          const allowed = ['date','created','from','subject','due','lore','specialist','notes'];
-          for (const [field, value] of Object.entries(op.fields)) {
-            if (field === 'actionNeeded') {
-              // Legacy field: fold into notes instead of storing it.
-              it.notes = foldLegacyNotes({ subject: it.subject, actionNeeded: value, notes: it.notes });
-            } else if (field === 'due') {
-              it.due = mapLegacyDue(value);
-            } else if (allowed.includes(field)) {
-              it[field] = value;
-            }
-          }
-          applied++;
-          break;
-        }
-        default:
-          skipped++;
+  for (const [status, list] of Object.entries(LISTS())) {
+    list.forEach((it, i) => {
+      const id = idByKey.get(keyOf(it)) || docIdFor(it);
+      if (desired.has(id)) return; // same key in two lists: first one wins
+      const prev = remote.get(id) || {};
+      const meta = pick(prev, META_FIELDS);
+      if (prev.status !== status || meta.seq === undefined) {
+        // newest-first lists: an item that just arrived goes to the front
+        meta.seq = status === 'triage' ? (meta.seq || now + i) : now - i;
       }
-    } catch (e) {
-      console.error('applyOperations: failed op', op, e);
-      skipped++;
-    }
+      desired.set(id, Object.assign({}, pick(it, ITEM_FIELDS), meta, { status }));
+    });
   }
+  return desired;
+}
 
-  lastSeenSeedVersion = seed.seedVersion || null;
-  return { applied, skipped };
+// Documents -> lists. Legacy fields are folded on the way in.
+function rebuildFromRemote() {
+  const buckets = { triage: [], active: [], delegated: [], completed: [], archived: [] };
+  for (const [, d] of remote) {
+    if (!buckets[d.status]) continue; // dismissed tombstones and unknown statuses stay out of view
+    const it = pick(d, ITEM_FIELDS);
+    // Accept the op-style date names too (completedDate etc.) so a hand-written
+    // agent document still lands its dates.
+    if (!it.completed && d.completedDate) it.completed = d.completedDate;
+    if (!it.delegated && d.delegatedDate) it.delegated = d.delegatedDate;
+    if (!it.archived && d.archivedDate) it.archived = d.archivedDate;
+    if (d.actionNeeded) it.notes = foldLegacyNotes(Object.assign({}, it, { actionNeeded: d.actionNeeded }));
+    if (it.due) it.due = mapLegacyDue(it.due);
+    it._seq = d.seq || 0;
+    buckets[d.status].push(it);
+  }
+  const bySeqDesc = (a, b) => b._seq - a._seq;
+  buckets.triage.sort((a, b) => a._seq - b._seq);
+  buckets.active.sort(bySeqDesc);
+  buckets.delegated.sort(bySeqDesc);
+  buckets.archived.sort(bySeqDesc);
+  buckets.completed.sort((a, b) => String(b.completed || '').localeCompare(String(a.completed || '')) || bySeqDesc(a, b));
+  for (const list of Object.values(buckets)) list.forEach(it => { delete it._seq; });
+  triageItems = buckets.triage; activeItems = buckets.active; delegatedItems = buckets.delegated;
+  completedItems = buckets.completed; archivedItems = buckets.archived;
+  renderAll();
+}
+
+function queueWrite(id, body) {
+  inflight++;
+  pendingBodies.set(id, body);
+  updateSyncState();
+  const prev = writeChains.get(id) || Promise.resolve();
+  const next = prev.then(() => dbNs.doc('items/' + id).set(body)).catch(err => {
+    setSync('error', 'Save failed');
+    showToast('error', `Could not save a change (${(err && err.code) || 'error'}). Reload the tracker and try again.`, null, null);
+  }).finally(() => {
+    inflight--;
+    if (pendingBodies.get(id) === body) pendingBodies.delete(id);
+    updateSyncState();
+  });
+  writeChains.set(id, next);
+  return next;
+}
+
+// Diff the lists against the last snapshot and write what changed. A
+// document that disappeared from every list becomes a dismissed tombstone,
+// never a delete: its key keeps blocking re-proposal.
+function syncToDb() {
+  if (!dbNs) { updateSyncState(); return; }
+  const desired = buildDesired();
+  const stamp = { updatedAt: new Date().toISOString(), updatedBy: 'ui' };
+  for (const [id, body] of desired) {
+    const prev = remote.get(id);
+    if (prev && sameItem(prev, body)) continue;
+    if (prev && prev.status === 'triage' && body.status !== 'triage') body.triagedAt = stamp.updatedAt;
+    const full = Object.assign(body, stamp);
+    remote.set(id, full);
+    queueWrite(id, full);
+  }
+  for (const [id, prev] of remote) {
+    if (desired.has(id) || prev.status === 'dismissed') continue;
+    const tomb = Object.assign({}, prev, { status: 'dismissed', dismissed: TODAY_STR }, stamp);
+    remote.set(id, tomb);
+    queueWrite(id, tomb);
+  }
+}
+
+function updateSyncState() {
+  if (!dbNs) { setSync('error', haveSnapshot ? 'Offline' : 'Not connected'); return; }
+  if (inflight > 0) { setSync('stale', 'Saving…'); return; }
+  setSync('', haveSnapshot ? 'Live' : 'Loading…');
+}
+
+async function connectDb() {
+  const claudeRt = window.claude;
+  if (!claudeRt || typeof claudeRt.use !== 'function') return null;
+  const ns = await claudeRt.use('db');
+  if (!ns) return null;
+  ns.collection('items').onSnapshot(snap => {
+    // The store's view, with this page's own unconfirmed writes laid on top.
+    // Lists are always rebuilt from it, so a later diff never compares stale
+    // lists against fresh documents (which would revert or tombstone someone
+    // else's change, Lore's included).
+    remote = new Map(snap.docs.map(d => [d.id, d.data()]));
+    for (const [id, body] of pendingBodies) remote.set(id, body);
+    haveSnapshot = true;
+    rebuildFromRemote();
+    updateSyncState();
+  }, err => {
+    dbNs = null;
+    setSync('error', 'Disconnected');
+    showToast('error', `Lost the connection to the tracker's database (${err && err.code}). Reload to reconnect.`, null, null);
+  });
+  ns.doc('meta/settings').onSnapshot(snap => {
+    setTeamMembers(snap.exists ? (snap.data().teamMembers || []) : []);
+    renderAll();
+  }, () => {});
+  return ns;
+}
+
+function renderAll() {
+  rebuildItems(); renderStats(); applyFilters(); renderDelegatedSection(); renderTriageSection();
 }
 
 // ── Toast helpers ──────────────────────────────────────────────────────────
@@ -974,7 +756,7 @@ function setSync(state, label) {
 
 // ── Markdown serializer (for backup file) ──────────────────────────────────
 function serializeMarkdown() {
-  let out = '# Action Items\n\n> Snapshot of the live tracker. The artifact is the source of truth. This file is a restore-only backup, not consumed by Lore as an input.\n\n';
+  let out = '# Action Items\n\n> Backup of The Quest Log. The tracker database is the source of truth and Lore reads it directly; this file is for Restore from backup only.\n\n';
   out += '## Active\n\n| Date | Created | From | Subject | Due | Lore | Specialist | Notes |\n|------|---------|------|---------|-----|------|------------|-------|\n';
   for (const it of activeItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.due || 'TBD'} | ${it.lore || ''} | ${it.specialist || ''} | ${it.notes || ''} |\n`;
   out += '\n## Completed\n\n| Date | Created | From | Subject | Resolution | Completed |\n|------|---------|------|---------|------------|-----------|\n';
@@ -983,36 +765,37 @@ function serializeMarkdown() {
   for (const it of delegatedItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.delegatedTo || ''} | ${it.delegated || ''} | ${it.notes || ''} |\n`;
   out += '\n## Archived\n\n| Date | Created | From | Subject | Notes | Archived |\n|------|---------|------|---------|-------|----------|\n';
   for (const it of archivedItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.notes || ''} | ${it.archived || ''} |\n`;
-  out += '\n## Triage\n\n> Not yet resolved. Won\'t show up anywhere else until triaged (Do now / Schedule / Delegate / Delete) in the artifact.\n\n| Date | Created | From | Subject | Due | Lore | Specialist | Notes |\n|------|---------|------|---------|-----|------|------------|-------|\n';
+  out += '\n## Triage\n\n> Not yet resolved. Won\'t show up anywhere else until triaged (Do now / Already done / Schedule / Delegate / Delete) in the tracker.\n\n| Date | Created | From | Subject | Due | Lore | Specialist | Notes |\n|------|---------|------|---------|-----|------|------------|-------|\n';
   for (const it of triageItems) out += `| ${it.date || ''} | ${it.created || ''} | ${it.from || ''} | ${it.subject || ''} | ${it.due || 'TBD'} | ${it.lore || ''} | ${it.specialist || ''} | ${it.notes || ''} |\n`;
   out += '\n';
   return out;
 }
 
 // ── Manual export (download) ───────────────────────────────────────────────
-// Filename note: download as action-items.snapshot.md so the user can drag it
-// directly into inbox/ in their Lore workspace and Lore will pick it up as
-// the canonical "what's on my plate right now" read path. The naming is
-// intentionally distinct from the gitignored inbox/action-items.md, which is
-// a legacy restore-only backup the agent does not read.
-function downloadCurrentAsMarkdown() {
-  const blob = new Blob([serializeMarkdown()], { type: 'text/markdown' });
+// A markdown backup of every item. Lore does not need it to read state (it
+// reads the database directly); it exists for Restore from backup and for
+// keeping a copy outside claude.ai. Hosted pages can't trigger downloads on
+// their own, so this goes through the `downloads` capability, falling back
+// to an anchor where that capability is absent.
+let downloadsNs = null;
+function snapshotFilename() { return `quest-log-snapshot-${TODAY_STR}.md`; }
+function downloadViaAnchor(data) {
+  const blob = new Blob([data], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = `action-items.snapshot.md`;
+  a.href = url; a.download = snapshotFilename();
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-document.getElementById('export-btn').addEventListener('click', downloadCurrentAsMarkdown);
-
-// ── Sync state indicator ───────────────────────────────────────────────────
-// The artifact's IDB is the live source of truth. The only meaningful states
-// are "live and persisting" or "broken" (no storage available).
-function updateSyncState() {
-  if (storage && storage.kind === 'mem') { setSync('error', 'Not persisting'); return; }
-  setSync('', 'Live');
+async function downloadCurrentAsMarkdown() {
+  const data = serializeMarkdown();
+  if (downloadsNs) {
+    try { await downloadsNs.save({ filename: snapshotFilename(), data }); return; }
+    catch (e) { showToast('warn', 'Snapshot not saved. You can try again from the Download snapshot button.', null, null, 5000); return; }
+  }
+  downloadViaAnchor(data);
 }
+document.getElementById('export-btn').addEventListener('click', downloadCurrentAsMarkdown);
 
 // ── Derive / render ────────────────────────────────────────────────────────
 function rebuildItems() {
@@ -1165,16 +948,27 @@ function makeDuePopover(item, container) {
 }
 
 // ── Delegate popover ──────────────────────────────────────────────────────
-// Team members are read from the embedded seed (stamped at build time by
-// reading the team/ directory). Empty array = no team files = delegate
-// functionality is hidden entirely.
-const TEAM_MEMBERS = (() => {
-  try {
-    const tag = document.getElementById('seed-data');
-    const seed = tag ? JSON.parse(tag.textContent.trim()) : null;
-    return (seed && Array.isArray(seed.teamMembers)) ? seed.teamMembers : [];
-  } catch (_) { return []; }
-})();
+// Team members come from the `meta/settings` document (Lore writes it from
+// the team/ folder or the knowledge base). Delegation works with an empty
+// list too: every delegate popover also takes a typed name.
+const TEAM_MEMBERS = [];
+function setTeamMembers(list) {
+  TEAM_MEMBERS.length = 0;
+  (Array.isArray(list) ? list : []).forEach(n => { if (n && !TEAM_MEMBERS.includes(n)) TEAM_MEMBERS.push(String(n)); });
+}
+// A "someone else" field for delegate popovers. onPick(name) fires on Enter.
+function makeDelegateOtherInput(onPick) {
+  const wrap = document.createElement('div'); wrap.className = 'delegate-other';
+  const inp = document.createElement('input'); inp.className = 'delegate-other-input'; inp.placeholder = TEAM_MEMBERS.length ? 'Someone else…' : 'Name, then Enter';
+  inp.setAttribute('aria-label', 'Delegate to someone else');
+  inp.addEventListener('click', e => e.stopPropagation());
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { const v = inp.value.trim(); if (v) onPick(v); }
+    if (e.key === 'Escape') { closeAllDelegatePopovers(); closeAllTriagePopovers(); }
+  });
+  wrap.appendChild(inp);
+  return wrap;
+}
 
 function makeDelegatePopover(item) {
   const pop = document.createElement('div'); pop.className = 'delegate-popover';
@@ -1190,6 +984,7 @@ function makeDelegatePopover(item) {
     people.appendChild(btn);
   });
   pop.appendChild(lbl); pop.appendChild(people);
+  pop.appendChild(makeDelegateOtherInput(name => { closeAllDelegatePopovers(); apply({ type: 'delegate', subject: item.subject, delegatedTo: name }); }));
   pop.addEventListener('click', e => e.stopPropagation());
   return pop;
 }
@@ -1304,6 +1099,7 @@ function makeTriageDelegatePopover(item) {
     people.appendChild(btn);
   });
   pop.appendChild(lbl); pop.appendChild(people);
+  pop.appendChild(makeDelegateOtherInput(name => { closeAllTriagePopovers(); apply({ type: 'triage-delegate', subject: item.subject, from: item.from, delegatedTo: name }); }));
   pop.addEventListener('click', e => e.stopPropagation());
   return pop;
 }
@@ -1361,7 +1157,7 @@ function renderTriageSection() {
   schedWrap.appendChild(schedBtn); schedWrap.appendChild(schedPop);
   actions.appendChild(schedWrap);
 
-  if (TEAM_MEMBERS.length > 0) {
+  {
     const delWrap = document.createElement('div'); delWrap.className = 'triage-pop-wrap';
     const delBtn = document.createElement('button'); delBtn.className = 'triage-btn triage-btn-delegate'; delBtn.textContent = 'Delegate…';
     const delPop = makeTriageDelegatePopover(item);
@@ -1369,6 +1165,11 @@ function renderTriageSection() {
     delWrap.appendChild(delBtn); delWrap.appendChild(delPop);
     actions.appendChild(delWrap);
   }
+
+  const doneBtn = document.createElement('button'); doneBtn.className = 'triage-btn triage-btn-done'; doneBtn.textContent = 'Already done';
+  doneBtn.title = 'Skip Active entirely and file it straight to Completed';
+  doneBtn.addEventListener('click', () => apply({ type: 'triage-done', subject: item.subject, from: item.from }));
+  actions.appendChild(doneBtn);
 
   const delBtn2 = document.createElement('button'); delBtn2.className = 'triage-btn triage-btn-delete'; delBtn2.textContent = 'Delete';
   delBtn2.title = 'Discard, this never becomes an action item';
@@ -1491,14 +1292,11 @@ function renderRows(filtered) {
     subjectEditable.querySelector('.editable').classList.add('subject-text');
     subjectRow.appendChild(subjectEditable);
 
-    const confirmStrip = document.createElement('div'); confirmStrip.className = 'confirm-strip';
-    const shortName = item.subject.length > 44 ? item.subject.slice(0, 44) + '…' : item.subject;
-    confirmStrip.innerHTML = `<span>Mark <strong>"${shortName}"</strong> as complete?</span><button class="btn-yes">Done</button><button class="btn-no">Cancel</button>`;
-    confirmStrip.querySelector('.btn-yes').addEventListener('click', () => {
-      confirmStrip.classList.remove('show');
-      apply({ type: 'mark-complete', subject: item.subject });
-    });
-    confirmStrip.querySelector('.btn-no').addEventListener('click', () => { confirmStrip.classList.remove('show'); cb.checked = false; });
+    if (pendingCompletes[item.subject]) {
+      cb.checked = true;
+      subjectEditable.querySelector('.subject-text').classList.add('pending-done');
+      tr.classList.add('row-pending-done');
+    }
 
     tdMain.appendChild(subjectRow);
 
@@ -1512,7 +1310,10 @@ function renderRows(filtered) {
     tdMain.appendChild(ageLine);
 
     tdMain.appendChild(makeNotesArea(item));
-    tdMain.appendChild(confirmStrip);
+    if (pendingCompletes[item.subject]) {
+      const pn = document.createElement('div'); pn.className = 'pending-note'; pn.textContent = 'Completing… uncheck to undo';
+      tdMain.appendChild(pn);
+    }
 
     const tdFrom = document.createElement('td'); tdFrom.style.width = '140px';
     tdFrom.appendChild(makeEditableCell(item.from, nv => { apply({ type: 'set-from', subject: item.subject, value: nv }); }));
@@ -1530,7 +1331,7 @@ function renderRows(filtered) {
     const tdAgent = document.createElement('td'); tdAgent.style.cssText = 'width:96px;text-align:center;vertical-align:top;padding-top:9px';
     tdAgent.appendChild(makeFlagsToggle(item));
 
-    const hasDelegation = TEAM_MEMBERS.length > 0;
+    const hasDelegation = true;
     const tdArc = document.createElement('td'); tdArc.style.cssText = `width:${hasDelegation ? 100 : 68}px;vertical-align:top;padding-top:11px;position:relative`;
     if (hasDelegation) {
       const delegateWrap = document.createElement('div'); delegateWrap.className = 'delegate-wrap';
@@ -1544,7 +1345,7 @@ function renderRows(filtered) {
     arcBtn.addEventListener('click', () => { apply({ type: 'archive', subject: item.subject }); });
     tdArc.appendChild(arcBtn);
 
-    cb.addEventListener('change', () => { cb.checked = false; confirmStrip.classList.add('show'); });
+    cb.addEventListener('change', () => { if (cb.checked) scheduleComplete(item); else cancelPendingComplete(item.subject); });
     tr.appendChild(tdCb); tr.appendChild(tdPri); tr.appendChild(tdMain); tr.appendChild(tdFrom); tr.appendChild(tdDue); tr.appendChild(tdAgent); tr.appendChild(tdArc);
     tbody.appendChild(tr);
   });
@@ -1589,7 +1390,7 @@ document.getElementById('delegated-section-header').addEventListener('click', ()
 });
 document.getElementById('search').addEventListener('input', e => { searchQuery = e.target.value; applyFilters(); });
 
-// ── Mutations: change in-memory state, persist to IDB, write backup ────────
+// ── Mutations: change in-memory state, then sync the diff to the database ─
 function applyMutationToState(op) {
   const findActive = subj => activeItems.find(it => it.subject === subj);
   const findActiveIdx = subj => activeItems.findIndex(it => it.subject === subj);
@@ -1618,6 +1419,15 @@ function applyMutationToState(op) {
       if (idx >= 0) {
         const it = triageItems.splice(idx, 1)[0];
         delegatedItems.unshift({ date: it.date, created: it.created || TODAY_STR, from: it.from, subject: it.subject, delegatedTo: op.delegatedTo, delegated: TODAY_STR, notes: it.notes || '' });
+      }
+      break;
+    }
+    case 'triage-done': {
+      // Already done: skips Active and files straight to Completed.
+      const idx = findTriageIdx(op.subject, op.from);
+      if (idx >= 0) {
+        const it = triageItems.splice(idx, 1)[0];
+        completedItems.unshift({ date: it.date, created: it.created || TODAY_STR, from: it.from, subject: it.subject, resolution: it.notes || 'Already done', completed: TODAY_STR });
       }
       break;
     }
@@ -1665,7 +1475,7 @@ function applyMutationToState(op) {
       const didx = delegatedItems.findIndex(it => it.subject === op.subject);
       if (didx >= 0) {
         const it = delegatedItems.splice(didx, 1)[0];
-        completedItems.unshift({ date: it.date, created: it.created || '', from: it.from, subject: it.subject, resolution: `Delegated to ${it.delegatedTo}, ${it.notes || '(complete)'}`, completed: TODAY_STR });
+        completedItems.unshift({ date: it.date, created: it.created || '', from: it.from, subject: it.subject, resolution: `Delegated to ${it.delegatedTo}: ${it.notes || '(complete)'}`, completed: TODAY_STR });
       }
       break;
     }
@@ -1684,20 +1494,27 @@ function applyMutationToState(op) {
   }
 }
 
-let saveQueue = Promise.resolve();
 function apply(op) {
   applyMutationToState(op);
-  rebuildItems(); renderStats(); applyFilters(); renderDelegatedSection(); renderTriageSection();
-  saveQueue = saveQueue.then(async () => {
-    try {
-      await saveStored();
-      updateSyncState();
-      writeAutoBackup();
-    } catch (err) {
-      setSync('error', 'Save failed');
-      showToast('error', `Save failed: ${err.message}`, null, null);
-    }
-  });
+  renderAll();
+  syncToDb();
+}
+
+function scheduleComplete(item) {
+  if (pendingCompletes[item.subject]) return; // one click is enough
+  const timeoutId = setTimeout(() => {
+    delete pendingCompletes[item.subject];
+    apply({ type: 'mark-complete', subject: item.subject });
+  }, PENDING_COMPLETE_MS);
+  pendingCompletes[item.subject] = { timeoutId };
+  applyFilters();
+}
+function cancelPendingComplete(subject) {
+  const p = pendingCompletes[subject];
+  if (!p) return;
+  clearTimeout(p.timeoutId);
+  delete pendingCompletes[subject];
+  applyFilters();
 }
 
 // ── Quick-add ──────────────────────────────────────────────────────────────
@@ -1757,235 +1574,11 @@ document.getElementById('qa-add-btn').addEventListener('click', () => {
 });
 document.getElementById('qa-subject').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('qa-add-btn').click(); });
 
-// ── Auto-backup (state mirror) ─────────────────────────────────────────────
-// When the user enables auto-backup, they pick a target file via
-// showSaveFilePicker (one-time gesture). The FileSystemFileHandle is stashed
-// in IDB; permission persists across reloads. After every mutation, this view
-// serializes its current IDB state (active/completed/delegated/archived) as
-// JSON and writes it to that file. Lore reads the file as a near-realtime
-// view of state for dedup, "what's on my plate," 1:1 prep, etc.
-//
-// The file is a *mirror* written only by this view, never by the agent. The
-// artifact's IDB remains the sole source of truth.
-let backupHandle = null;
-let backupEnabled = false;
-let backupNeedsRegrant = false;
-// Flipped to false if we detect this webview blocks createWritable (Cowork's
-// embedded webview does). When false, the button greys out and explains why.
-let backupSupported = true;
-
-function isPlatformUnsupportError(e) {
-  const msg = String((e && e.message) || e || '').toLowerCase();
-  return msg.includes('not allowed') && (msg.includes('user agent') || msg.includes('platform'));
-}
-
-function buildStateSnapshot() {
-  return {
-    writtenAt: new Date().toISOString(),
-    schemaVersion: 4,
-    note: 'Auto-saved by the action items artifact. Source of truth is the artifact IDB; this file is a read-only mirror for the agent.',
-    active: activeItems,
-    completed: completedItems,
-    delegated: delegatedItems,
-    archived: archivedItems,
-    triage: triageItems
-  };
-}
-
-async function ensureBackupPermission(handle, withGesture) {
-  if (!handle) return false;
-  // Cowork's webview (and some other Chromium embeddings) exposes
-  // showSaveFilePicker but does NOT expose queryPermission/requestPermission
-  // on FileSystemFileHandle. In that environment, the handle from a user
-  // gesture is implicitly granted for the session, and the only way to test
-  // it is to actually attempt a write. Trust the handle here; writeAutoBackup
-  // catches and surfaces any real permission/write failure.
-  if (typeof handle.queryPermission !== 'function') return true;
-  try {
-    let perm = await handle.queryPermission({ mode: 'readwrite' });
-    if (perm === 'granted') return true;
-    if (withGesture && typeof handle.requestPermission === 'function') {
-      perm = await handle.requestPermission({ mode: 'readwrite' });
-      return perm === 'granted';
-    }
-    return false;
-  } catch (_) {
-    // Permission API threw (some sandboxed webviews). Trust the handle and
-    // let the write itself be the real gate.
-    return true;
-  }
-}
-
-let autoBackupQueue = Promise.resolve();
-function writeAutoBackup() {
-  if (!backupEnabled || !backupHandle) return;
-  // Snapshot state synchronously so we don't capture a half-mutated view if
-  // multiple ops fire in quick succession.
-  const snapshot = buildStateSnapshot();
-  autoBackupQueue = autoBackupQueue.then(async () => {
-    try {
-      const ok = await ensureBackupPermission(backupHandle, false);
-      if (!ok) {
-        backupEnabled = false;
-        backupNeedsRegrant = true;
-        updateBackupStatus();
-        showToast('warn', 'Auto-backup paused: write permission was revoked. Click <strong>Auto-backup</strong> to re-grant access.', null, null);
-        return;
-      }
-      const writable = await backupHandle.createWritable();
-      await writable.write(JSON.stringify(snapshot, null, 2));
-      await writable.close();
-    } catch (e) {
-      backupEnabled = false;
-      if (isPlatformUnsupportError(e)) {
-        backupSupported = false;
-        // Clear any stale stashed handle so the next reload doesn't replay
-        // this failure. Once Cowork supports createWritable, the user can
-        // re-enable from a fresh button.
-        backupHandle = null;
-        try { await stashHandle('backupHandle', null); } catch (_) {}
-        updateBackupStatus();
-        // No toast: the button is hidden in this build, so a user-facing
-        // toast would be confusing. The failure is logged via console.
-        console.warn('Auto-backup unsupported in this webview (createWritable blocked); state mirror disabled.');
-      } else {
-        backupNeedsRegrant = true;
-        updateBackupStatus();
-        showToast('error', `Auto-backup write failed: ${(e && e.message) || e}.`, null, null);
-      }
-    }
-  });
-}
-
-async function enableAutoBackup() {
-  if (typeof window.showSaveFilePicker !== 'function') {
-    showToast('error', 'Auto-backup not supported in this view (showSaveFilePicker unavailable).', null, null);
-    return;
-  }
-  let handle;
-  try {
-    handle = await window.showSaveFilePicker({
-      suggestedName: 'action-items-state.json',
-      types: [{ description: 'Action items state (JSON)', accept: { 'application/json': ['.json'] } }]
-    });
-  } catch (e) {
-    if (e && e.name === 'AbortError') return; // user cancelled the picker
-    showToast('error', `Could not open file picker: ${(e && e.message) || e}`, null, null);
-    return;
-  }
-  // If the permission API exists, request a grant explicitly so we surface
-  // any prompt. If it doesn't, we trust the handle and fall through to the
-  // actual write below as the real test.
-  await ensureBackupPermission(handle, true);
-  // Inline write probe: this is the real test. If permission was actually
-  // denied or the webview rejects the write, we catch it here and tell the
-  // user exactly what went wrong rather than toasting "enabled" and then
-  // failing silently inside the queue.
-  try {
-    const writable = await handle.createWritable();
-    await writable.write(JSON.stringify(buildStateSnapshot(), null, 2));
-    await writable.close();
-  } catch (e) {
-    if (isPlatformUnsupportError(e)) {
-      // The webview disallows programmatic writes entirely. No amount of
-      // retrying or permission re-granting will fix it. Permanently disable.
-      backupSupported = false;
-      updateBackupStatus();
-      showToast('warn',
-        'Auto-backup is not supported in this Cowork build: the webview blocks programmatic file writes. ' +
-        'Use <strong>Download snapshot</strong> when you want Lore to see current state.',
-        null, null);
-    } else {
-      showToast('error',
-        `Auto-backup not enabled: write to <strong>${handle.name}</strong> failed (${(e && e.message) || e}). ` +
-        `Try a different location, or use <strong>Download snapshot</strong> instead.`,
-        null, null);
-    }
-    return;
-  }
-  backupHandle = handle;
-  backupEnabled = true;
-  backupNeedsRegrant = false;
-  try { await stashHandle('backupHandle', handle); } catch (_) {}
-  updateBackupStatus();
-  showToast('info',
-    `Auto-backup enabled. State mirrors to <strong>${handle.name}</strong> after every change. ` +
-    `Save it inside your Lore workspace (e.g. <code>inbox/action-items-state.json</code>) so Lore can read it.`,
-    null, null, 8000);
-}
-
-async function disableAutoBackup() {
-  backupHandle = null;
-  backupEnabled = false;
-  backupNeedsRegrant = false;
-  try { await stashHandle('backupHandle', null); } catch (_) {}
-  updateBackupStatus();
-  showToast('info', 'Auto-backup disabled. Lore no longer has a read path to your current state.', null, null, 4000);
-}
-
-function updateBackupStatus() {
-  const btn = document.getElementById('backup-btn');
-  if (!btn) return;
-  btn.classList.remove('on', 'paused');
-  if (!backupSupported) {
-    btn.textContent = 'Auto-backup: not supported';
-    btn.title = 'This Cowork build does not allow artifacts to write files programmatically. Use Download snapshot to share state with Lore.';
-    btn.disabled = true;
-    btn.style.opacity = '0.5';
-    btn.style.cursor = 'not-allowed';
-    return;
-  }
-  btn.disabled = false;
-  btn.style.opacity = '';
-  btn.style.cursor = '';
-  if (backupEnabled && backupHandle) {
-    btn.textContent = `Auto-backup: ${backupHandle.name}`;
-    btn.classList.add('on');
-    btn.title = 'Auto-backup is on. Click to disable. Every change writes the current state to the linked JSON file.';
-  } else if (backupNeedsRegrant && backupHandle) {
-    btn.textContent = `Auto-backup paused: ${backupHandle.name}`;
-    btn.classList.add('paused');
-    btn.title = 'Permission was revoked or write failed. Click to re-grant access.';
-  } else {
-    btn.textContent = 'Enable auto-backup';
-    btn.title = 'One-time setup: pick a JSON file where this view auto-saves a current state snapshot after every change. Lore reads that file to know what is on your plate.';
-  }
-}
-
-// Button is intentionally absent from the DOM in this Cowork build (see the
-// HTML comment in the menu-row). Guard the binding so we don't throw when
-// the element is missing. When/if the button is restored, this code is ready.
-(function bindBackupBtn() {
-  const btn = document.getElementById('backup-btn');
-  if (!btn) return;
-  btn.addEventListener('click', async () => {
-    if (backupEnabled) {
-      if (window.confirm('Disable auto-backup? Lore will no longer have a read path to your current action items state.')) {
-        await disableAutoBackup();
-      }
-      return;
-    }
-    if (backupNeedsRegrant && backupHandle) {
-      const ok = await ensureBackupPermission(backupHandle, true);
-      if (ok) {
-        backupEnabled = true;
-        backupNeedsRegrant = false;
-        updateBackupStatus();
-        writeAutoBackup();
-        showToast('info', `Auto-backup resumed: ${backupHandle.name}`, null, null, 4000);
-        return;
-      }
-      // Re-grant failed; fall through to fresh enable
-    }
-    await enableAutoBackup();
-  });
-})();
-
 // ── Restore from backup ────────────────────────────────────────────────────
 // Parses a markdown snapshot (the same format Download snapshot writes) and
-// replaces the artifact's IDB content with its contents. Only meant for
-// recovery (artifact was deleted, IDB was wiped, etc.). Never used by the
-// agent as a path for ongoing updates.
+// replaces every item in the database with its contents. Only meant for
+// recovery (a bad bulk edit, a rebuilt tracker). Never used by the agent as
+// a path for ongoing updates.
 function parseMarkdownBackup(content) {
   const lines = String(content || '').split('\n');
   let section = 'preamble';
@@ -2042,30 +1635,24 @@ async function restoreFromBackup(file) {
       return;
     }
     const currentTotal = activeItems.length + completedItems.length + delegatedItems.length + archivedItems.length + triageItems.length;
+    const summary = `${parsed.active.length} active, ${parsed.completed.length} completed, ` +
+      `${parsed.delegated.length} delegated, ${parsed.archived.length} archived, ${parsed.triage.length} in triage`;
+    const doRestore = () => {
+      hideToast();
+      activeItems    = parsed.active;
+      completedItems = parsed.completed;
+      archivedItems  = parsed.archived;
+      delegatedItems = parsed.delegated;
+      triageItems    = parsed.triage;
+      renderAll();
+      syncToDb(); // writes every restored item; anything not in the backup becomes a dismissed tombstone
+      showToast('info', `Restored from backup: ${summary}.`, null, null, 5000);
+    };
     if (currentTotal > 0) {
-      const ok = window.confirm(
-        `This will REPLACE your current items (${currentTotal} total) with the backup ` +
-        `(${parsed.active.length} active, ${parsed.completed.length} completed, ` +
-        `${parsed.delegated.length} delegated, ${parsed.archived.length} archived, ${parsed.triage.length} in triage). ` +
-        `\n\nContinue?`
-      );
-      if (!ok) return;
+      showToast('warn', `Replace your current ${currentTotal} items with this backup (${summary})?`, 'Replace', doRestore);
+    } else {
+      doRestore();
     }
-    activeItems    = parsed.active;
-    completedItems = parsed.completed;
-    archivedItems  = parsed.archived;
-    delegatedItems = parsed.delegated;
-    triageItems    = parsed.triage;
-    // Reset lastSeenSeedVersion so the current embedded seed (if any) won't
-    // re-apply on the next reload. The agent's next push will re-prime it.
-    lastSeenSeedVersion = null;
-    await saveStored();
-    rebuildItems(); renderStats(); applyFilters(); renderDelegatedSection(); renderTriageSection();
-    updateSyncState();
-    showToast('info',
-      `Restored from backup: ${parsed.active.length} active, ${parsed.completed.length} completed, ` +
-      `${parsed.delegated.length} delegated, ${parsed.archived.length} archived, ${parsed.triage.length} in triage.`,
-      null, null, 5000);
   } catch (e) {
     showToast('error', `Restore failed: ${(e && e.message) || e}`, null, null);
   }
@@ -2082,93 +1669,24 @@ document.getElementById('restore-file-input').addEventListener('change', e => {
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 async function init() {
-  setSync('stale', 'Loading...');
+  setSync('stale', 'Loading…');
+  renderAll();
   try {
-    storage = await pickStorage();
-    if (storage.kind === 'mem') {
+    if (window.claude && typeof window.claude.use === 'function') {
+      window.claude.use('downloads').then(ns => { downloadsNs = ns; }).catch(() => {});
+    }
+    dbNs = await connectDb();
+    if (!dbNs) {
+      setSync('error', 'Not connected');
       showToast('warn',
-        'This view doesn\'t allow persistent storage (IndexedDB and localStorage both unavailable). Items will work for this session but won\'t be saved when you close the artifact. Use <strong>Download snapshot</strong> to back up before closing.',
+        'This view can\'t reach the tracker\'s database, so nothing will load or save here. Open The Quest Log on claude.ai while signed in.',
         null, null);
-    }
-
-    const hasStored = await loadStored();
-    const seed = readEmbeddedSeed();
-
-    if (!hasStored) {
-      // First run with no IDB content. Start empty. If the seed contains
-      // operations, apply them so a brand-new install can still receive items
-      // from an agent push, but we never pull a "full state" from the seed.
-      // To recover prior items, the user can click "Restore from backup".
-      activeItems = []; completedItems = []; archivedItems = []; delegatedItems = []; triageItems = [];
-      if (seed) {
-        applyOperations(seed);
-        if (!seed.seedVersion) lastSeenSeedVersion = null;
-      }
-      try { await saveStored(); } catch (_) {}
-    } else if (seed && seed.seedVersion && seed.seedVersion !== lastSeenSeedVersion) {
-      // Returning user, agent has pushed a new operations seed since we last
-      // saw the artifact. Apply the operations as a delta on top of IDB,
-      // user edits made in this view are preserved.
-      const result = applyOperations(seed);
-      try { await saveStored(); } catch (_) {}
-      if (result.applied > 0) {
-        const noun = result.applied === 1 ? 'change' : 'changes';
-        showToast('info', `Action items updated by Lore (${result.applied} ${noun}).`, null, null, 4000);
-      }
-    }
-
-    rebuildItems(); renderStats(); applyFilters(); renderDelegatedSection(); renderTriageSection();
-    // Hide delegation UI entirely if no team members and no existing delegated items
-    if (TEAM_MEMBERS.length === 0 && delegatedItems.length === 0) {
-      const pill = document.getElementById('delegated-pill');
-      const outer = document.getElementById('delegated-outer');
-      if (pill) pill.classList.add('hidden');
-      if (outer) outer.classList.add('hidden');
+      return;
     }
     updateSyncState();
-
-    // Restore auto-backup handle if previously set. Permission may have been
-    // revoked across sessions; in that case we mark it paused and let the
-    // user re-grant via the button.
-    try {
-      const stashed = await loadStashedHandle('backupHandle');
-      if (stashed) {
-        backupHandle = stashed;
-        const ok = await ensureBackupPermission(stashed, false);
-        if (ok) {
-          backupEnabled = true;
-          backupNeedsRegrant = false;
-          updateBackupStatus();
-          // Write a fresh backup so the file reflects current IDB (especially
-          // important when the agent just pushed new operations).
-          writeAutoBackup();
-        } else {
-          backupEnabled = false;
-          backupNeedsRegrant = true;
-          updateBackupStatus();
-        }
-      } else {
-        updateBackupStatus();
-      }
-    } catch (_) {
-      updateBackupStatus();
-    }
   } catch (err) {
     setSync('error', 'Init failed');
-    showToast('error',
-      `Initialization failed: ${(err && err.message) || err}. ` +
-      `Diagnostics: indexedDB=${typeof indexedDB !== 'undefined'}, localStorage=${typeof localStorage !== 'undefined'}, ` +
-      `seedDataPresent=${!!document.getElementById('seed-data')}, ` +
-      `seedLength=${(document.getElementById('seed-data')||{}).textContent?.length || 0}.`,
-      null, null);
-    // Last-resort: try to apply any operations from the seed against in-memory state.
-    try {
-      storage = memStorage();
-      activeItems = []; completedItems = []; archivedItems = []; delegatedItems = []; triageItems = [];
-      const seed = readEmbeddedSeed();
-      if (seed) applyOperations(seed);
-      rebuildItems(); renderStats(); applyFilters(); renderDelegatedSection(); renderTriageSection();
-    } catch (_) {}
+    showToast('error', `Couldn't start the tracker: ${(err && err.message) || err}. Reload to try again.`, null, null);
   }
 }
 
@@ -2182,5 +1700,3 @@ window.addEventListener('unhandledrejection', e => {
 
 init();
 </script>
-</body>
-</html>

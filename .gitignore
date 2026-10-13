@@ -34,8 +34,12 @@
 
 # --- Inbox: action items, working documents ---
 /inbox/*.md
-/inbox/action-items-state.json
+/inbox/action-items-state.json  # retired (pre-database tracker); kept so old copies stay untracked
+/inbox/cc-sessions/*
+!/inbox/cc-sessions/.gitkeep
 /inbox/.update-last-check
+/inbox/.migrations
+/inbox/archive/
 /inbox/documents/*
 !/inbox/documents/.gitkeep
 
@@ -85,10 +89,6 @@
 # --- Exception: docs/ ships the committed setup guide PDF ---
 !/docs/*.pdf
 
-# --- Real release-channel config (the committed update-channel.json is a
-#     placeholder; make-release.sh injects this into the release zip) ---
-/update-channel.local.json
-
 # --- Secrets ---
 .secrets/
 *.token
@@ -113,5 +113,5 @@ __pycache__/
 *.pyc
 node_modules/
 
-# --- Release build output (upload to SharePoint, never commit) ---
+# --- Release build output (attached to the GitHub Release, never commit) ---
 /dist/

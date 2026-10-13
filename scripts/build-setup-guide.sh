@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
-# Rebuild docs/lore-setup-guide.pdf from docs/setup-guide.html.
-#
-# The HTML is self-contained (fonts, dither tiles, and the sprite signet are
-# inlined as data URIs), so the only dependency is WeasyPrint:
+# Rebuild both designed guides: docs/lore-setup-guide.pdf and
+# docs/lore-grimoire.pdf (The Keeper's Grimoire). Kept as the familiar entry
+# point; the work happens in scripts/build-guides.py.
 #   pip install weasyprint --break-system-packages
-#
-# Run from the repo root:
 #   ./scripts/build-setup-guide.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
-python3 -m weasyprint docs/setup-guide.html docs/lore-setup-guide.pdf
-echo "Rebuilt docs/lore-setup-guide.pdf"
+python3 scripts/build-guides.py "$@"

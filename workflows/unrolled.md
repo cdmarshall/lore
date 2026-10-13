@@ -11,7 +11,8 @@ The Wrapped-style recap: a designed, chart-heavy HTML page of the keeper's produ
 - **Count, never invent.** Every number on the page comes from a source listed below. A stat whose source is missing or empty is dropped entirely; never render a zero for data that simply wasn't tracked. A young install produces a short scroll, and that's fine.
 - **Show the window.** The masthead meta always states the exact period covered.
 - **Estimates are labeled.** The time-reclaimed number is an estimate by construction; its math is printed on the page (see below). Everything else is a raw count.
-- **Fresh snapshot first.** Quest stats need the artifact's current state: ask the user to click Download snapshot (or use `inbox/action-items.snapshot.md` if it is fresher than a day). No snapshot: drop the quest sections and say why in one line.
+- **Quest stats come straight from The Quest Log.** List every item with ArtifactData (`workflows/action-items.md` → Reading current state); the read is live, so there is no snapshot to request. If the tracker can't be reached, drop the quest sections and say why in one line.
+- **Count the agent sessions too.** Per `_conventions.md` → Recap sourcing: Cowork sessions and the Claude Code digest at `inbox/cc-sessions/sessions.jsonl`. Sessions are where much of the quarter happened; a recap sourced only from notes and triage records undercounts it. Name the coverage in the footer.
 
 ## Data sources and how to count
 
@@ -19,11 +20,13 @@ Storage-mode branching per `_conventions.md` (vault paths in Obsidian mode, repo
 
 | Stat | Source | Method |
 |------|--------|--------|
-| Quests completed (+ per-week series) | Snapshot → Completed table | rows with `completed` in window; bucket by ISO week |
-| Quest velocity (added vs completed) | Snapshot → all tables, `created` + `completed` | two series on one bar chart |
-| Oldest quest slain | Snapshot → Completed | max(`completed` minus `created`), name it |
-| Quest-giver leaderboard | Snapshot → `from` fields | top 5 by count, horizontal bar |
-| Delegations per companion | Snapshot → Delegated → `delegatedTo` | tally |
+| Quests completed (+ per-week series) | Quest Log → `completed` items | rows with `completed` in window; bucket by ISO week |
+| Quest velocity (added vs completed) | Quest Log → all items, `created` + `completed` | two series on one bar chart |
+| Oldest quest slain | Quest Log → `completed` items | max(`completed` minus `created`), name it |
+| Quest-giver leaderboard | Quest Log → `from` fields | top 5 by count, horizontal bar |
+| Delegations per companion | Quest Log → `delegated` items → `delegatedTo` | tally |
+| Sessions run (+ per-week series, per-project mix) | Cowork session history; `inbox/cc-sessions/sessions.jsonl` | count sessions active in the window (digest: any `activeDates` entry in window, never `start`); bucket by ISO week; `projectRoot` for the project mix |
+| Days with session activity | Same digest | distinct `activeDates` in window. Never sum elapsed minutes into hours: wall-clock includes idle time |
 | Meetings held (+ heaviest council day) | Meeting notes (`Meetings/` or `meetings/notes/`) | count notes dated in window; weekday histogram from dates |
 | Most frequent companions | Meeting-note attendee/frontmatter fields | top names, excluding the user |
 | Transcripts processed | `meetings/transcripts/.processed` + `.plaud-processed` | line counts are all-time; for the window, count transcript files dated in it |
@@ -59,7 +62,7 @@ Build from `templates/document.template.html` (CLAUDE.md → Creating outputs), 
 - **Charts follow `design-system/charts/README.md`**: inline `chart-theme.js`, embed the Chart.js engine block copied from `design-system/charts/demo.html` (never a CDN tag in outbox documents; Cowork's file preview blocks remote scripts), `LoreCharts.applyTheme(Chart)`, dither-fill every series, one `chartbox` block per chart.
 - Suggested spread, skipping any without data: quests-per-week bars (dotted, with the added series hatched), heaviest-council-day weekday histogram, quest-giver leaderboard (horizontal bars), channel-mix doughnut, scroll-growth line.
 - Between charts, one-line callouts for the superlatives: the oldest quest slain, the busiest week, the most frequent companion. `callout` for the single best stat of the period.
-- Close with the signet footer (the template's) and `{{DOC_FOOT_RIGHT}}` naming the sources ("counted from the quest log snapshot, meeting notes, and triage records").
+- Close with the signet footer (the template's) and `{{DOC_FOOT_RIGHT}}` naming the sources ("counted from The Quest Log, meeting notes, triage records, and Cowork plus Claude Code sessions through <date>").
 
 ## Tone
 

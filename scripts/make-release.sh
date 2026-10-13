@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Cut a Lore release package. Maintainer-only (requires git); end users never
-# run this. Produces everything you upload to the SharePoint release folder.
+# run this. Builds the package and publishes it as a GitHub Release.
 #
 # Usage:
 #   ./scripts/make-release.sh 1.1.0 "One-line release notes"
@@ -12,15 +12,11 @@
 #      allowed to touch on a user's machine; personal gitignored files can
 #      never appear in it.
 #   3. Builds dist/lore-<version>.zip containing exactly those files.
-#   4. Writes dist/lore-release.json (the feed users' installs check).
-#   5. Commits the VERSION/manifest bump and tags v<version>.
-#
-#   6. Pushes the commit and the tag, and (if the GitHub CLI is installed and
-#      authenticated) creates a GitHub Release with the zip attached.
-#
-# Then: upload dist/lore-<version>.zip and dist/lore-release.json to the
-# SharePoint folder named in update-channel.json (overwrite the old feed
-# file; leave old zips around for rollback). That upload is the launch.
+#   4. Commits the VERSION/manifest bump and tags v<version>.
+#   5. Pushes the commit and the tag, and (if the GitHub CLI is installed and
+#      authenticated) creates a GitHub Release with the zip and installers
+#      attached. Publishing that Release is the launch: package installs
+#      check the latest GitHub Release once a day.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -30,6 +26,17 @@ NOTES="${2:?Usage: make-release.sh <version> \"<notes>\"}"
 if [ -n "$(git status --porcelain)" ]; then
   echo "Working tree is dirty. Commit or stash first; the release must match a commit."
   exit 1
+fi
+
+# Guide upkeep (CLAUDE.md -> Key behaviors -> Guide upkeep): the grimoire's
+# "What's new" page should name this release, and its PDF must be rebuilt.
+if ! grep -q "v${VERSION_NEW%.*}" docs/grimoire.body.html; then
+  echo "Warning: docs/grimoire.body.html doesn't mention v${VERSION_NEW%.*}. Update What's new before releasing (continuing in 5s; Ctrl-C to stop)."
+  sleep 5
+fi
+if [ docs/grimoire.body.html -nt docs/lore-grimoire.pdf ]; then
+  echo "Warning: docs/lore-grimoire.pdf looks older than its source. Run: python3 scripts/build-guides.py (continuing in 5s; Ctrl-C to stop)."
+  sleep 5
 fi
 
 echo "$VERSION_NEW" > VERSION
@@ -43,19 +50,7 @@ files = [f for f in files if f and f != "release-manifest.json" and os.path.isfi
 if "VERSION" not in files:
     files.append("VERSION")
 
-# The committed update-channel.json is an org-agnostic placeholder. If the
-# gitignored update-channel.local.json exists, its contents ship in the
-# package as update-channel.json (and are hashed in the manifest), so package
-# installs get the real channel while the git repo never carries it.
-overrides = {}
-if os.path.exists("update-channel.local.json"):
-    with open("update-channel.local.json", "rb") as fh:
-        overrides["update-channel.json"] = fh.read()
-    print("Injecting update-channel.local.json as the package's update-channel.json")
-
 def content_of(f):
-    if f in overrides:
-        return overrides[f]
     with open(f, "rb") as fh:
         return fh.read()
 
@@ -71,25 +66,11 @@ os.makedirs("dist", exist_ok=True)
 zip_name = f"lore-{version}.zip"
 with zipfile.ZipFile(os.path.join("dist", zip_name), "w", zipfile.ZIP_DEFLATED) as z:
     for f in sorted(files):
-        if f in overrides:
-            z.writestr(f, overrides[f])
-        else:
-            z.write(f)
+        z.write(f)
     z.write("release-manifest.json")
-
-feed = {
-    "version": version,
-    "date": datetime.date.today().isoformat(),
-    "notes": notes,
-    "zipName": zip_name,
-}
-with open(os.path.join("dist", "lore-release.json"), "w") as fh:
-    json.dump(feed, fh, indent=2)
-    fh.write("\n")
 
 print(f"Manifest: {len(manifest['files'])} committed files")
 print(f"Package:  dist/{zip_name}")
-print(f"Feed:     dist/lore-release.json")
 PY
 
 git add VERSION release-manifest.json
@@ -128,7 +109,7 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   for r in $(git remote); do
     slug=$(repo_slug "$r")
     echo "Creating GitHub Release v${VERSION_NEW} on ${slug} (remote: ${r})..."
-    gh release create "v${VERSION_NEW}" "dist/lore-${VERSION_NEW}.zip" \
+    gh release create "v${VERSION_NEW}" "dist/lore-${VERSION_NEW}.zip" dist/Install-Lore-Mac.zip dist/Install-Lore-Windows.bat \
       --repo "$slug" --title "v${VERSION_NEW}" --notes "${NOTES}" \
       || echo "  Release on ${slug} failed (non-fatal). If it's a different GitHub account, run: gh auth switch, then: gh release create v${VERSION_NEW} dist/lore-${VERSION_NEW}.zip --repo ${slug} --title v${VERSION_NEW} --notes \"${NOTES}\""
   done
@@ -139,7 +120,6 @@ else
 fi
 
 echo
-echo "Done. Last step (this is the launch):"
-echo "  Upload everything in dist/ to the SharePoint release folder"
-echo "  (lore-${VERSION_NEW}.zip, lore-release.json overwriting the old one,"
-echo "  and the two Install-Lore-* installers)."
+echo "Done. If a GitHub Release was skipped or failed above, create it on the"
+echo "repository's Releases page: tag v${VERSION_NEW}, these notes, and every file in dist/"
+echo "attached. The published Release is the launch."

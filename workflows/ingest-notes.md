@@ -105,7 +105,7 @@ Offer a recommended default based on note type, marked clearly.
 
 **Filesystem mode:**
 - **Meeting notes** → `meetings/notes/YYYY-MM-DD-[slug].md` using `templates/meeting-note.template.md`
-- **Action items** → push as `add` operations to the live artifact (`workflows/action-items.md`). Never write to `inbox/action-items.md`.
+- **Action items** → write as operations to The Quest Log (`workflows/action-items.md`): `add` when the user clearly owns it now, `propose` when they should decide. Never write to `inbox/action-items.md`.
 - **Profile updates** → the relevant `team/` or `stakeholders/` file (append, never overwrite)
 - **Project updates** → if the notes reference an active project, append a dated status block to `projects/[slug].md` under `## Current Phase`. No file yet for a recognized initiative: offer to create one from `templates/project.template.md`.
 - **Reference docs / ideas / brainstorms** → `outbox/YYYY-MM-DD-[slug].md`
@@ -113,13 +113,13 @@ Offer a recommended default based on note type, marked clearly.
 
 **Obsidian mode:**
 - **Meeting notes** → Write the vault note `Meetings/YYYY-MM-DD <kind> <subject>.md`, frontmatter per `_conventions.md` → Frontmatter schemas (Meeting).
-- **Action items** → same as filesystem mode (artifact is canonical in both modes).
+- **Action items** → same as filesystem mode (The Quest Log is canonical in both modes).
 - **Profile updates** → Edit the person note `People/<Full Name>.md`, inserting the new observation above the first existing `###` entry in `## Observations`. No `## Observations` heading yet: Edit to add the full section (heading plus entry) to the note. Never overwrite.
 - **Project updates** → Edit the project note `Projects/<Name>.md`, inserting the new content after the last line of the `Current Phase` section.
 - **Reference docs / ideas / brainstorms** → `outbox/YYYY-MM-DD-[slug].md` (filesystem outbox, not vault).
 - **Decisions** → vault note `Decisions/YYYY-MM-DD <Title>.md`, frontmatter per `_conventions.md` → Frontmatter schemas (Decision).
 
-The artifact dedupes `add` ops on `subject + from`. If a new note adds real context to an existing item, emit an `update` op instead of a duplicate `add`.
+The Quest Log dedupes on `subject + from`. If a new note adds real context to an existing item, emit an `update` op instead of a duplicate `add`.
 
 ### Handling unknown people
 
@@ -162,7 +162,7 @@ Summarize what was done:
 
 ### Files Created or Updated
 - meetings/notes/YYYY-MM-DD-[name].md, meeting summary created
-- Action items artifact, pushed [N] operations
+- The Quest Log: [N] operations written ([M] skipped as duplicates)
 - stakeholders/[name].md, observations appended
 - decisions/log.md, [N] decision(s) logged
 - outbox/YYYY-MM-DD-[slug].md, reference doc saved

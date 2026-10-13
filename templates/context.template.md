@@ -60,17 +60,29 @@
 
 ## Tools & Integrations
 
-### [Tool name, e.g., Confluence]
+> Written by onboarding Phase 6 (`workflows/connectors.md`). Say "check my connectors" to refresh it.
 
-| Space | Key | ID |
-|-------|-----|-----|
+### Connectors
+
+| Role | Tool | Status | Connector | Checked |
+|------|------|--------|-----------|---------|
+| Email | | | | |
+| Team chat | | | | |
+| Calendar | | | | |
+| Meeting notes and transcripts | | | | |
+| Work tracker | | | | |
+| Docs and wiki | | | | |
+| Service or shared inbox | | | | |
+
+> Status: `connected`, `not connected`, `needs reconnecting`, or `no connector`. Connector: the server name as it appears in tool names (`mcp__<server>__...`).
+
+### [Tool name] scope
+
+> One sub-section per connected tool: addresses, channels, team or project keys, spaces, whatever the lookups need.
+
+| Name | Key / ID | Notes |
+|------|----------|-------|
 | | | |
-
-### [Tool name, e.g., Jira]
-
-| Project | Key | ID | Description |
-|---------|-----|-----|-------------|
-| | | | |
 
 ## Working Style & Preferences
 
@@ -105,3 +117,14 @@
 > Anything else Lore should know about your situation, preferences, or working environment.
 
 -
+
+### Timezone
+
+- **Timezone:** <IANA name, e.g. America/Phoenix>. Every rendered time converts through this zone; Lore never guesses it (`workflows/_conventions.md` → Timezone).
+
+### Quest Log
+
+> The hosted action-items tracker. Lore writes this during onboarding; it reads and writes the tracker's database directly.
+
+- **URL:**
+- **Created:**

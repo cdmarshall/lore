@@ -20,6 +20,8 @@ Monthly health check for the instruction files themselves: `CLAUDE.md`, `workflo
 
 **f. STATE.md hygiene.** Read `STATE.md` if present. Flag: length over roughly 150 lines; resolved open-failures still listed (cross-check against recent verified facts or outputs); general rules broad enough to belong in `CLAUDE.md` or a workflow instead of session memory. Propose the promotion and the line to cut once promoted.
 
+**g. Guide freshness.** The Keeper's Grimoire must describe what keepers actually see. Run `git log -1 --format=%cI -- docs/grimoire.body.html` and `git log --since=<that date> --name-only --format= -- CLAUDE.md workflows templates scripts | sort -u`. For each file changed since the grimoire was last touched, decide from its diff whether the change is user-visible (`CLAUDE.md` → Key behaviors → Guide upkeep). List user-visible changes the grimoire doesn't mention, and any migration id in `workflows/migrations.md` missing from the grimoire's migrations page. Also confirm `docs/lore-grimoire.pdf` is newer than `docs/grimoire.body.html` (a stale PDF means the rebuild was skipped).
+
 ---
 
 ## Step 2, Write the Report
@@ -52,6 +54,9 @@ Structure:
 
 ## STATE.md Hygiene
 - [finding]: [line count / stale entry / promotion candidate].
+
+## Guide Freshness
+- [file changed since the grimoire was updated]: [user-visible change the grimoire doesn't cover, and the page it belongs on].
 
 ## Baseline Table (updated this run)
 | File | Words |

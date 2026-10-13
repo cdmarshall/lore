@@ -37,7 +37,11 @@ OOO events: `CLAUDE.md` → Key behaviors. Note for awareness; don't include in 
 
 ### 4. Check tracked action items
 
-Read path: `CLAUDE.md` → Session start, step 4. If `inbox/action-items.snapshot.md` is present, parse its `## Active` table and surface items due today or overdue; note the file's mtime for freshness. If no snapshot exists, point the user at the live action items artifact and remind them they can drop a fresh snapshot for tomorrow's briefing.
+Read path: `CLAUDE.md` → Session start, step 5. Query The Quest Log with ArtifactData (`workflows/action-items.md` → Reading current state) for `active` items due today, overdue, or ASAP, and count what is waiting in triage. If the tracker can't be reached, say so in the briefing in one line and keep rendering; a briefing that refuses to render is worse than one with a labeled gap.
+
+### 4b. Pick up yesterday's agent sessions
+
+Per `_conventions.md` → Recap sourcing: yesterday's Cowork sessions, and yesterday's rows in `inbox/cc-sessions/sessions.jsonl` for Claude Code. Surface unfinished threads: a session that ended mid-task, an artifact built but not delivered, a decision left open. This is where "what was I in the middle of" gets answered. The briefing does not nag about a stale digest; it just says which populations it covered.
 
 ### 5. Check current priorities and project status
 
@@ -55,7 +59,7 @@ Read `context.md` for priorities and active initiatives. For each, check for a p
 | 10:30 AM | [Meeting] | [Prep, if any] |
 
 ## Tracked Action Items
-[If a snapshot is present, list due-today and overdue items and note its age. Otherwise: "No fresh snapshot available. Click Download snapshot in your action items artifact and save to inbox/action-items.snapshot.md for tomorrow's briefing."]
+[Due-today, overdue, and ASAP items from The Quest Log, plus "N waiting in triage" if any. If the tracker couldn't be reached: "Couldn't reach The Quest Log this morning; open it directly for today's list."]
 - [ ] **[Sender]**: [Action needed] - due [date]
 
 ## New Action Items from Email

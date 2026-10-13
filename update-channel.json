@@ -1,7 +1,5 @@
 {
-  "_comment": "Where package installs look for new releases. This committed copy is a placeholder so the public repo stays org-agnostic: put your real values in update-channel.local.json (gitignored, same shape) and make-release.sh injects them into the release zip, so package installs receive the real channel while the git repo never carries it. Git installs ignore this file entirely; they track their own origin remote. Full mechanics: workflows/update.md.",
-  "type": "sharepoint",
-  "releaseFolderUrl": "SET-IN-update-channel.local.json",
-  "feedFileName": "lore-release.json",
-  "developerGitRemote": "your install's own git origin"
+  "_comment": "Where installs look for new releases: this repository's GitHub Releases. A fork sets repo to its own owner/name. Git installs ignore this file and track their own origin remote. Mechanics: workflows/update.md.",
+  "type": "github-releases",
+  "repo": "cdmarshall/lore"
 }

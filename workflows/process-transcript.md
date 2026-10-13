@@ -50,7 +50,7 @@ For each identified person (except the user), extract:
 - **Decisions made**: decisions reached, context/rationale, options considered and rejected. Before logging, apply the decision-log test (`_conventions.md` → Decision-log discipline). Failing decisions stay in the meeting note only; no log entry for routine calls ("we'll meet Tuesday," "Jane takes the ticket").
 - **Action items**: commitments they made, requests made of them, follow-ups they own.
 
-For the user: extract their action items and commitments. These push to the artifact as `add` ops (section 5, Both Modes). Never write `inbox/action-items.md`. Soft promises and check-backs that aren't task-shaped (waiting-on, "I'll get you X by Friday," "revisit in Q3") go to the commitments ledger instead, captured in section 5 alongside the other writes: `workflows/commitments.md`.
+For the user: extract their action items and commitments. These go to The Quest Log as `propose` ops (section 5, Both Modes). Never write `inbox/action-items.md`. Soft promises and check-backs that aren't task-shaped (waiting-on, "I'll get you X by Friday," "revisit in Q3") go to the commitments ledger instead, captured in section 5 alongside the other writes: `workflows/commitments.md`.
 
 ### 4. Identify and update projects
 
@@ -69,7 +69,7 @@ Do not touch `context.md` Active Initiatives rows automatically; prompt the user
 
 ### 4.5. Triage for the user's own action items
 
-Extracted action items belonging to the user do **not** push straight to the Active list. They go in as `propose` ops (same `the-quest-log` artifact, same script) so they land in that artifact's own "To Triage" pile, where the user resolves each one with a single click, Do now / Schedule / Delegate / Delete, before it becomes a real tracked commitment. Full procedure and rationale: section 5, "Both Modes: user's action items" below, and `workflows/action-items.md` → "Action item triage."
+Extracted action items belonging to the user do **not** push straight to the Active list. They go in as `propose` ops to The Quest Log so they go to its "To Triage" pile, where the user resolves each one with a single click, Do now / Already done / Schedule / Delegate / Delete, before it becomes a real tracked commitment. Full procedure and rationale: section 5, "Both Modes: user's action items" below, and `workflows/action-items.md` → "Action item triage."
 
 Other attendees' action items are unaffected: they stay in the meeting note only, per section 6's "Others' Action Items" output, same as always.
 
@@ -127,7 +127,7 @@ Obsidian path resolution and the `Lore/` subfolder override: `_conventions.md` �
 
 #### Section 5, Both Modes: user's action items
 
-Push as `propose` operations to the live `the-quest-log` artifact ("The Quest Log") (same artifact and script as everything else in `workflows/action-items.md`; there is no separate triage artifact). Full mechanics: `workflows/action-items.md` → "Action item triage." Never write `inbox/action-items.md`.
+Write `propose` operations to The Quest Log (the same tracker and procedure as everything else in `workflows/action-items.md`; there is no separate triage artifact). Full mechanics: `workflows/action-items.md` → "Action item triage." Never write `inbox/action-items.md`.
 
 Per `propose` op, `item` carries the same fields as an `add` op:
 - `item.date` = meeting/source date (when the item originated)
@@ -139,9 +139,9 @@ Per `propose` op, `item` carries the same fields as an `add` op:
 - `item.specialist` = `"Y"` if a sibling specialist agent (e.g., Sigil) could pick it up autonomously, else `""`
 - `item.notes` = the full description plus any notes-worthy context (the retired `actionNeeded` field's content lives here now)
 
-Dedup is authoritative on `subject + from` (normalized), checked against every list in the artifact including the triage pile: a `propose` no-ops if that key already exists anywhere, so reprocessing never re-proposes something already triaged or already active.
+Dedup is authoritative on `subject + from` (normalized): a `propose` no-ops if that key already exists in any status, dismissed tombstones included, so reprocessing never re-proposes something already triaged, active, or thrown away.
 
-Procedure: assemble `propose` ops → `node scripts/build-action-items-artifact.js <ops>` → `mcp__cowork__update_artifact(id="the-quest-log", html_path="outbox/action-items-artifact-built.html", ...)`. Verify per `_conventions.md` → Verification loops (confirm the build succeeded, report the op count) and surface the proposed count in the Output Summary. Don't claim items were "added to the tracker"; they're waiting in "To Triage" until the user resolves each card (`workflows/action-items.md` → "Action item triage").
+Procedure: read the tracker, assemble `propose` ops, write them as an ArtifactData `batch` (by hand for a few, `scripts/quest-log-ops.js` for many), per `workflows/action-items.md` → Writing. Verify per `_conventions.md` → Verification loops (re-query `status == "triage"` and report how many were proposed and how many were skipped as duplicates) and surface the proposed count in the Output Summary. Don't claim items were "added to the tracker"; they're waiting in "To Triage" until the user resolves each card (`workflows/action-items.md` → "Action item triage").
 
 ### 6. Output summary
 
@@ -162,16 +162,16 @@ Procedure: assemble `propose` ops → `node scripts/build-action-items-artifact.
 - meetings/transcripts/{date}-{meeting-name}.md - Raw transcript saved
 - team/{person}.md - Added observations
 - stakeholders/{person}.md - Added observations
-- Action Items artifact - Proposed [N] item(s) to your "To Triage" pile
+- The Quest Log - Proposed [N] item(s) to your "To Triage" pile
 - decisions/log.md - Added decision on [topic]
 
 ### Your Action Items (waiting in "To Triage")
 - [ ] [Action 1]
 - [ ] [Action 2]
 
-Resolve them whenever in the Action Items artifact, one card at a time: Do now, Schedule, Delegate, or Delete. Each click is final, there's nothing further to sync.
+Resolve them whenever in The Quest Log, one card at a time: Do now, Already done, Schedule, Delegate, or Delete. Each click is final; there's nothing further to sync.
 
-(Dedup happens on subject + from across the whole artifact, so exact duplicates are silently no-oped and won't reappear if this transcript ever gets reprocessed.)
+(Dedup happens on subject + from across the whole tracker, so exact duplicates are skipped and won't reappear if this transcript is ever reprocessed.)
 
 ### Others' Action Items (Tracked in meeting notes)
 - [ ] [Person]: [Action] - Due: [date]

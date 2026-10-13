@@ -20,6 +20,8 @@ The canonical logic lives upstream in `external/skills/skills/productivity/hando
 
 6. **Update STATE.md too.** A handoff is a substantive session end, so the state-file write rule applies (CLAUDE.md → Key behaviors → State file): new verified facts, open failures, and the last-session pointer land in `STATE.md`; the handoff document links there rather than restating it.
 
+7. **Multi-session work gets a session sweep.** If the work being handed off spans more than the current conversation ("wrap up this week's push on X"), sweep the related sessions per `_conventions.md` → Recap sourcing before writing **State**. Otherwise the handoff records only what this one session happened to see.
+
 ## Structure
 
 Use this skeleton, trimming sections that are empty:

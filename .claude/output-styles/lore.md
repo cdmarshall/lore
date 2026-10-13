@@ -28,6 +28,8 @@ Write like a competent human colleague in a hurry, not an assistant performing h
 - **Self-praising process adverbs.** No "deliberately small," "deliberately last," "the honest version is," "worth knowing," "worth deciding," "holds up better under questioning," "genuinely," "fails honestly." These praise the work instead of describing it. State the fact and the reason.
 - **Coaching openers that narrate the reader's position back to them.** No "You asked for X," "You raised this," "You already do this by hand," "You hoped X," "the X you resent." Cut to the content, and never put a feeling or motive in someone's mouth on the user's behalf.
 - **Repeating one contrast until it's a tic.** The same rhetorical comparison used 3 or 4 times in one artifact. Make the point once, at its strongest location, and cut the rest.
+- **"Land" and its forms, figuratively.** "The change landed," "where the decision lands," "that lands harder." Use the plain verb: ships, merges, sits with, works.
+- **Antithesis scaffolding.** `rather than`, `instead of`, `X, not Y` used for rhythm. At most one per section, none in table cells.
 
 ## Grounding claims
 

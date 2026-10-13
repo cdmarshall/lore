@@ -32,10 +32,11 @@ Wait for confirmation. If they defer, they can say "run onboarding" anytime.
 - What company do you work for?
 - What industry or sector?
 - Who do you report to (name and title), if anyone?
+- What timezone do you work in? (Confirm it as an IANA name such as `America/Phoenix`. Never infer it from a state or city: some regions skip daylight saving and a guess can be an hour off for most of the year.)
 
 **Output:**
 1. Copy `templates/context.template.md` to `context.md`.
-2. Fill in the **Role** section.
+2. Fill in the **Role** section, and **Notes for Lore** → **Timezone**.
 
 ---
 
@@ -114,15 +115,19 @@ Person-note structure and frontmatter schema: `_conventions.md`.
 
 ---
 
-## Phase 6, Tools and integrations
+## Phase 6, Tools and connectors
 
-**Ask:**
-- Do you use Jira, Confluence, Slack, Notion, Salesforce, Linear, Asana, or other tools regularly? For the ones where I might need to look something up on your behalf, can you tell me the relevant project or workspace names and IDs if you know them?
+Lore makes no assumption about the user's stack. Run `workflows/connectors.md` in full:
 
-**Capturing:** Enough to scope later MCP-connector searches. Names alone are fine if they don't know IDs.
+1. **Detect first, quietly:** inventory the connectors this session can reach and confirm each with one read-only call.
+2. **Ask role by role,** leading with what you found: "I can already reach Slack and Linear from here. What do you use for email?" Roles: email, team chat, calendar, meeting notes and transcripts, work tracker, docs and wiki, service or shared inbox, anything else. Skip what doesn't apply. Where the knowledge base lives is asked in Phase 7.5.
+3. **Wire up what's connected** (scope: addresses, channels, project keys, spaces); for anything not connected, show the connect card or say where to connect it (claude.ai → Settings → Connectors, or the connectors menu in Cowork). Never block on a missing connector.
 
 **Output:**
-- Populate the **Tools & Integrations** section of `context.md`, a sub-section per tool.
+- The **Connectors** table and per-tool scope in `context.md` → **Tools & Integrations**.
+- A three-line summary: what's wired up, what to connect next, and what that unlocks.
+
+Phases 7.7 and 7.8 read the table to decide whether a daily brief is possible.
 
 ---
 
@@ -159,17 +164,19 @@ Capture the choice (and any custom description) under **Lore's tone** in the **W
 
 ---
 
-## Phase 7.5, Obsidian setup (optional)
+## Phase 7.5, Where your knowledge base lives
 
-Runs only if the user has an Obsidian vault. Otherwise skip entirely; they can set up Obsidian later per `README.md` → "Obsidian integration" (Dataview and Semantic Notes Vault MCP plugin install steps).
+Lore keeps notes about people, projects, meetings and decisions in one of three places. Offer the ones that fit what Phase 6 found (Notion only if the Notion connector is connected; Obsidian if they use it or Semantic Notes Vault MCP tools are present):
 
-**Detect:** ask whether they use Obsidian (or check for Semantic Notes Vault MCP tools in the session, which imply they do). If no vault, skip this phase.
+> "Where should I keep notes about the people, projects, meetings and decisions I learn about? 1. **This folder** (the default; plain files on your computer, nothing to set up). 2. **Notion**: databases in your private Notion space, with two-way links so every person shows their meetings and projects. 3. **Obsidian**: a vault you already keep, with wikilinks and backlinks."
 
-**Ask:**
+- **This folder:** nothing to do; skip to Phase 7.6.
+- **Notion:** run `workflows/notion-kb.md` → Setup (it reuses an existing Lore page if there is one), then skip to Phase 7.6. Mention once that pages in their private space are private to them, though workspace admins on some Notion plans can still reach private content.
+- **Obsidian:** continue below.
 
-> "Do you use Obsidian? I can use your vault as the canonical store for people, meetings, decisions, and projects, instead of (or alongside) the filesystem folders in this repo. The big advantage is Obsidian's wikilinks and backlinks, each fact lives in exactly one place, and you can see every meeting / decision a person appears in with one click. All I need is the vault's filesystem path. Want me to set that up?"
+### Obsidian setup
 
-If no, skip to Phase 8. If yes, continue.
+They can also set this up later per `README.md` → "Obsidian integration" (Dataview and Semantic Notes Vault MCP plugin install steps).
 
 **Ask for subfolder name** (AskUserQuestion-style multiple choice):
 
@@ -250,7 +257,7 @@ If no, skip to Phase 8. If yes, continue with whichever connectors are present.
 
 ## Phase 7.7, Daily brief schedule
 
-Goal: every install leaves onboarding with at least 1 scheduled triage per weekday, so a designed brief shows up without being asked. Runs only if a messaging connector (Microsoft 365 or Slack) is available; if none, skip with one line ("Once you connect Outlook/Teams or Slack, say 'schedule my triage' and I'll set up your daily brief.").
+Goal: every install leaves onboarding with at least 1 scheduled triage per weekday, so a designed brief shows up without being asked. Runs only if `context.md` → Connectors has an **email** or **team chat** tool with status `connected` and a triage adapter in `workflows/triage.md`; if none, skip with one line naming their tools ("Once you connect <their email tool> or <their chat tool>, say 'schedule my triage' and I'll set up your daily brief.").
 
 1. **Scope the triage first.** Run the Fresh setup procedure from `workflows/triage.md` (channel discovery, key people, email tiers, `triage-config.md`). Keep it brisk; defaults from `context.md` are fine and the user can tune the config file later.
 2. **Ask the cadence** (multiple choice):
@@ -268,7 +275,7 @@ If task creation fails (scheduling tool unavailable), don't block onboarding; no
 The taste of the real thing before onboarding ends. Runs only if Phase 7.7 ran (a messaging connector is present and `triage-config.md` exists); otherwise skip silently.
 
 1. **Offer it, default yes:**
-   > "One last thing: want me to run your first sweep right now? I'll go through your last day of email, Slack, and Teams and deliver your first Herald, your daily brief, so you can see exactly what lands tomorrow morning. Takes a few minutes."
+   > "One last thing: want me to run your first sweep right now? I'll go through your last day of <their connected email and chat tools> and deliver your first Herald, your daily brief, so you can see exactly what arrives tomorrow morning. Takes a few minutes."
 2. If yes, execute `workflows/triage.md` end to end, with one override: **sweep the last 24 hours** regardless of what `inbox/.triage-last-run` says (Fresh setup just initialized it to now, which would make this run sweep nothing). Update the tracker to this run's start time afterward, as usual. Everything else is the full workflow, including drafts (draft-and-hold as always), the HTML Herald, and the verifier pass.
 3. The masthead follows the normal on-demand title rule ("The <Weekday> Herald"); let the weather line acknowledge the occasion, e.g. "Your first Herald: two things need you, and the scroll is just getting warmed up."
 4. Deliver it the standard way (link the HTML as the primary), then say in one line: this exact thing now arrives on the schedule they picked in Phase 7.7.
@@ -283,35 +290,23 @@ If the run fails partway (rate limits, connector hiccups), deliver whatever sour
 
 1. Confirm `context.md` is fully written. Show a brief summary (3 to 5 lines).
 
+1a. **Mark migrations done.** A fresh install already has the current structure: write every id from `workflows/migrations.md` → The list to `inbox/.migrations` with today's date, so none is offered later.
+
 1b. **Seed the state file.** Copy `templates/state.template.md` to `STATE.md` at the repo root and write the first Last session entry ("onboarding completed, workspace created"). CLAUDE.md → Key behaviors → State file explains its lifecycle.
 
 1c. **Mention the evals harness** in one sentence: "When you correct my writing style, I save a before/after example to `evals/examples/` so it sticks; `evals/README.md` explains the format."
 
-2. **Create the live action items artifact.** The user's canonical action items tracker (sidebar widget: add, complete, delegate, search). Rules and full procedure: `workflows/action-items.md` and CLAUDE.md → Key behaviors.
+2. **Create The Quest Log.** The user's canonical action items tracker: a hosted claude.ai artifact (add, complete, delegate, triage, search) whose items live in its own database. Follow `workflows/action-items.md` → "Creating the tracker": publish the template with the `db`, `user` and `downloads` capabilities, record the URL and date in `context.md` → "Notes for Lore" → "Quest Log", and write `meta/settings` with the team members from Phase 3.
+   - If publishing fails (no Artifact tool in this session, say), don't block onboarding. Note it wasn't created; the user can ask later by saying "create my quest log."
 
-   Steps:
-   - Run the build script with an empty operations array to produce a fresh artifact HTML:
-     ```bash
-     node scripts/build-action-items-artifact.js '[]'
-     ```
-     This writes `outbox/action-items-artifact-built.html` with no seeded items.
-   - Call `mcp__cowork__create_artifact` with `id`: `the-quest-log`, `html_path`: absolute path to `outbox/action-items-artifact-built.html`, `mcp_tools`: `[]`.
-   - If the create call fails (e.g., the artifact tool isn't available), don't block onboarding. Note it wasn't created; the user can ask later by saying "create my action items artifact."
-
-3. **Teach the snapshot ritual.** How Lore reads current state (the agent can't read the artifact's IDB directly):
-
-   > "Whenever you want me to know what's currently on your plate (for prep, planning, dedup, or just 'what should I work on'), click **Download snapshot** in the action items artifact and save the file to `inbox/action-items.snapshot.md` in this Lore workspace. I'll read it. You only need to do this when you want me to have a fresh view; for adding new items or marking things complete, I push changes to the artifact directly and don't need to read first.
-   >
-   > If you'd rather not save the file, you can paste the snapshot content directly in chat and I'll use that."
-
-   This is the only manual ritual in the system. Everything else is automatic.
+3. **Explain how the tracker works,** in two sentences: "The Quest Log is yours to work in directly; I read and write the same list, so there's nothing to export or sync. Items I pull from meetings wait in its To Triage pile until you decide what to do with each one." Mention it's private to them until they share it.
 
 4. Tell the user the workspace is ready. Suggest first actions based on what they shared:
-   - "Open the action items artifact in your sidebar to start tracking work."
-   - "When you have a meeting transcript, drop it in `meetings/transcripts/` or paste it here, and I'll process it (new items get pushed to the artifact)."
-   - "Say 'morning sync' to start your day with a briefing (works best with a fresh `inbox/action-items.snapshot.md`)."
+   - "Open The Quest Log to start tracking work."
+   - "When you have a meeting transcript, drop it in `meetings/transcripts/` or paste it here, and I'll process it (new items go to the Quest Log's triage pile)."
+   - "Say 'morning sync' to start your day with a briefing."
    - If they have direct reports: "Before your next 1:1, say 'help me prep for my 1:1 with [name]' and I'll pull their profile."
-   - **Triage (email + Slack + Teams sweep):** if Phase 7.8 delivered their first Herald, point at it ("that's what arrives on your schedule; say 'triage everything' anytime for another"). If only Phase 7.7 ran, remind them when their first scheduled brief lands. If Phase 7.7 was skipped (no connectors yet): Lore can run a unified triage across your messaging channels, draft replies, and surface what needs your attention. Out of the box it monitors **Outlook/Teams** (via the Microsoft 365 connector) and **Slack** (via the Slack connector); Gmail/Google Chat need a G Suite connector. Once connectors are installed, say "schedule my triage" and Lore scopes the watch list and sets up the daily brief. Channels beyond the defaults are added by saying "add #channel-name to my triage watch list" anytime.
+   - **Triage:** if Phase 7.8 delivered their first Herald, point at it ("that's what arrives on your schedule; say 'triage everything' anytime for another"). If only Phase 7.7 ran, remind them when their first scheduled brief arrives. If Phase 7.7 was skipped: Lore can sweep their email and team chat, draft replies, and surface what needs them, once those tools are connected; say "check my connectors" after connecting and then "schedule my triage".
 
 5. Remind them they can edit `context.md` anytime, and that workflows live in `workflows/`.
 
@@ -342,7 +337,7 @@ Transcripts/_README.md                  ← naming convention placeholder
 Projects/_README.md                     ← naming convention placeholder
 ```
 
-Plus a live `the-quest-log` artifact ("The Quest Log") in the Cowork sidebar (Phase 8 step 2). That artifact, not any local file, is the source of truth for action items. All other folders (decisions/, meetings/notes/, meetings/transcripts/, weekly-reviews/, outbox/, inbox/documents/) stay empty until normal workflows populate them.
+Plus The Quest Log, a hosted claude.ai artifact whose URL is recorded in `context.md` (Phase 8 step 2). Its database, not any local file, is the source of truth for action items. All other folders (decisions/, meetings/notes/, meetings/transcripts/, weekly-reviews/, outbox/, inbox/documents/) stay empty until normal workflows populate them.
 
 ---
 

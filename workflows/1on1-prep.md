@@ -21,15 +21,11 @@ Storage mode: see `_conventions.md` → Storage-mode branching.
 Read in parallel:
 - `team/[name].md`, their profile, active projects, recent observations, commitments
 - Open Waiting on / Promised entries involving this person from the commitments ledger (`workflows/commitments.md`)
+- Agent sessions since the last 1:1 that touch this person or their projects, per `_conventions.md` → Recap sourcing. This is how you catch a promise the user already delivered on in a session and would otherwise walk in still owing.
 
-For action items involving this person (sourced from them, delegated to them, etc.), try the read paths in order:
+For action items involving this person (sourced from them, delegated to them, etc.), query The Quest Log with ArtifactData (`workflows/action-items.md` → Reading current state): `active` items whose `from` names them and `delegated` items whose `delegatedTo` does. Use them for sections 4 and 5. If the tracker can't be reached, build the prep from `team/[name].md` and say plainly that action items are missing.
 
-1. **Check `inbox/action-items.snapshot.md`** (`bash ls inbox/action-items.snapshot.md`). If present, parse its `## Active` and `## Delegated` sections and use them for sections 4 and 5. This is the primary path.
-2. **Check `inbox/action-items-state.json`** (future-proof; rarely exists today). Same logic against its `active` and `delegated` arrays.
-3. **If neither file exists, ask the user**: "Want me to pull active and delegated items involving [Name]? If yes, click Download snapshot in your action items artifact and save the file to `inbox/action-items.snapshot.md` (or paste it here)."
-4. **If they decline**, produce a prep brief from `team/[name].md` only. Note the gap explicitly so the user can fill it in from the artifact themselves.
-
-Never read `inbox/action-items.md` (legacy backup, distinct from `action-items.snapshot.md`).
+Never read `inbox/action-items.md` or `inbox/action-items.snapshot.md`; both are retired.
 
 ### 3. Pull Active Projects and Commitments
 
@@ -50,19 +46,19 @@ To find the newest 1:1 meeting note, do not filter on `kind` alone. A meeting co
 
 ### 4. Surface Delegated Items (REQUIRED)
 
-If you have a view of state from step 2 (state file or snapshot), scan the delegated items for any where `delegatedTo` matches this person's name. These are items the user handed off and needs to close the loop on.
+From The Quest Log (step 2), scan the delegated items for any where `delegatedTo` matches this person's name. These are items the user handed off and needs to close the loop on.
 
 If any exist, list them in the prep under **Follow up on delegated items** with the subject, expected action, and delegation date. This is the primary mechanism for following up on delegated work.
 
-If you don't have a view of state, add a placeholder: *"(Check the action items artifact for items delegated to [Name].)"*
+If the tracker could not be reached, add a placeholder: *"(Check The Quest Log for items delegated to [Name].)"*
 
 ### 5. Identify Action Items to Discuss
 
-If you have a view of state, surface from the active items:
+From The Quest Log, surface from the active items:
 - Any items sourced **From** this person that the user hasn't completed yet
 - Any OVERDUE or ASAP items connected to their domain
 
-If you don't have a view of state, add a placeholder line in the prep brief.
+If the tracker could not be reached, add a placeholder line in the prep brief.
 
 ### 6. Check for Feedback Signals
 

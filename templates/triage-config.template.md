@@ -65,5 +65,5 @@
 
 ## Knowledge base
 
-- Vault subfolder: <from context.md Vault Configuration, e.g. `Lore - Acme/`>.
+- Vault subfolder: <from context.md Vault Configuration, e.g. `Lore/` or `Lore - <Company>/`>.
 - Additive updates only: observations appended to People/Projects notes; decisions logged to Decisions.

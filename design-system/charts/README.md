@@ -22,8 +22,8 @@ new Chart(ctx, {
   data: {
     labels: ['Jan', 'Feb', 'Mar'],
     datasets: [
-      Object.assign({ label: 'Quotes', data: [186, 240, 205] }, LoreCharts.seriesStyle(0, 'dotted')),
-      Object.assign({ label: 'Binds',  data: [92, 130, 118] },  LoreCharts.seriesStyle(1, 'hatched'))
+      Object.assign({ label: 'Signups', data: [186, 240, 205] }, LoreCharts.seriesStyle(0, 'dotted')),
+      Object.assign({ label: 'Activations',  data: [92, 130, 118] },  LoreCharts.seriesStyle(1, 'hatched'))
     ]
   }
 });

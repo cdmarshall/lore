@@ -14,6 +14,8 @@ Vault lint checks Obsidian-only conventions (frontmatter schemas, wikilinks, dat
 
 If Obsidian mode, confirm the vault path from `context.md` → Vault Configuration and proceed.
 
+If **Notion mode**, run the same checks against the databases (`workflows/notion-kb.md`), with these substitutions: (a) broken links become relation targets that are archived or missing, and body mentions shown as unresolved; (b) orphans are pages whose relations and backlinks are all empty; schema drift is a select value outside the documented options or a required property left empty (`Relationship` and `Status` on People, `Status` on Projects, `Date` and `Kind` on Meetings); staleness and archive candidates use `Updated` and the dated body lines exactly as in Obsidian. Frontmatter-YAML and Dataview-block checks don't apply. Archive proposals set `Archived`, never trash pages.
+
 ---
 
 ## Step 2, Run the Checks

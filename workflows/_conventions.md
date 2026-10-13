@@ -4,19 +4,22 @@ Single source of truth for shared conventions. Read on demand from workflows (e.
 
 ## Storage-mode branching
 
-Every workflow that touches entity data branches on storage mode. Decide once per session:
+Every workflow that touches entity data branches on storage mode. There are three: **Filesystem** (repo folders, the default), **Obsidian** (a vault on disk), and **Notion** (databases in the user's Notion workspace). Decide once per session:
 
-1. Read `context.md` → **Notes for Lore** → **Vault Configuration** for a recorded vault path.
+1. Read `context.md` → **Notes for Lore** → **Vault Configuration**.
+   - **`Backend: notion`** → **Notion mode.** Confirm with one cheap Notion call (fetch the recorded root page). Every workflow's **Obsidian-mode branch applies**, translated through `workflows/notion-kb.md` → "How Obsidian concepts map to Notion" (notes become database pages, frontmatter becomes properties, wikilinks become relations and page mentions, Dataview becomes data-source queries). Steps 2 to 4 below don't apply. If the connector is unreachable, say so and stop writing entity data; never fall back to the repo folders on your own, since that splits the knowledge base.
+   - A vault path recorded (and no `Backend: notion`) → continue with step 2.
 2. If a vault path is recorded, the session is **Obsidian mode**: the vault is canonical for entity context (people, projects, meetings, decisions, observations). Confirm the vault is live by probing the **Semantic Notes Vault MCP** (`system` info, or any `vault`/`dataview` call), NOT by `bash ls` on the recorded path.
    - **The vault often lives in iCloud (`iCloud~md~obsidian/...`), which is not mounted in the shell sandbox. A failed `bash ls` on that path means the shell can't see it, NOT that the vault is unreachable.** Never downgrade to Filesystem mode off a bash path check alone. Verified 2026-07-14: a bash-only check wrongly forced Filesystem mode for a whole 1:1 prep while the MCP was connected the entire time, dropping canonical observations and a required "Topics to Raise in Next 1:1" coaching item.
-3. Fall back to **Filesystem mode** (entity data in repo folders `team/`, `stakeholders/`, `projects/`, `meetings/`, `decisions/`) only when either (a) no vault path is recorded, or (b) a vault path is recorded but the Semantic Notes Vault MCP is genuinely unreachable AND native reads against the vault path also fail. State which of these triggered the fallback.
-4. The action-items artifact is canonical for action items in **both** modes (see `workflows/action-items.md`).
+3. **If native reads against the vault path fail because the folder is not connected to this session, get it connected before concluding anything.** In Cowork, request the folder (the session's folder-access request tool, or ask the user to add it to the project). An unmounted vault at session start is the normal case, not a fault, and it is the most common reason a read against the vault path errors.
+4. Fall back to **Filesystem mode** (entity data in repo folders `team/`, `stakeholders/`, `projects/`, `meetings/`, `decisions/`) only when either (a) no vault path is recorded, or (b) a vault path is recorded, the Semantic Notes Vault MCP is genuinely unreachable, AND native reads still fail after step 3. State which of these triggered the fallback. If the user has recorded that the vault is their only copy of entity data, say the vault is unreachable and stop rather than writing entity data into the repo folders, which would split the knowledge base in two.
+5. The Quest Log is canonical for action items in **every** mode (see `workflows/action-items.md`).
 
-Read the matching context file only: Obsidian mode reads `Context.md` from the vault root (adds wikilinks on entity tables); filesystem mode reads `context.md` at repo root. Same information; write updates to the active-mode file only, never both.
+Read the matching context file only: Obsidian mode reads `Context.md` from the vault root (adds wikilinks on entity tables); filesystem mode reads `context.md` at repo root. Same information; write updates to the active-mode file only, never both. Notion mode is the exception: `context.md` stays canonical (it holds the Vault Configuration that points at Notion), and the Notion **Context** page is a linked copy updated in the same step.
 
 ## Vault structure (Obsidian mode)
 
-Personal entity data lives under a dedicated subfolder inside the user's vault. The repo still holds workflows, templates, playbooks, scripts, and the action-items snapshot.
+Personal entity data lives under a dedicated subfolder inside the user's vault. The repo still holds workflows, templates, playbooks, and scripts. Action items live in The Quest Log in either mode.
 
 ```
 <vault-root>/
@@ -110,13 +113,15 @@ team: <team-name>
 manager: "[[Name]]"
 location: <city/region>
 start_date: YYYY-MM-DD
-status: active | departed          # omit or "active" for current employees
+status: active | incoming | departing | departed   # omit or "active" for current employees
 aka: <fuller/legal name>           # optional; only if different from filename
 last_1on1: YYYY-MM-DD             # direct reports only
 departure_date: YYYY-MM-DD          # optional; only when departed
 departure_reason: resigned | terminated | retired | transferred   # optional
 tags: [person/direct-report]       # appropriate tag from taxonomy
 ```
+
+`incoming` is an accepted offer or an offer in flight: the person will join and is worth a note, but has no start date yet. `departing` means notice is given and a `departure_date` is set, but the last day has not passed.
 
 **Meeting:**
 ```yaml
@@ -145,83 +150,8 @@ lead: "[[Name]]"            # day-to-day lead; can be the user or any team membe
 stakeholders: ["[[Name]]"]
 start_date: YYYY-MM-DD
 phase: [current phase label]
-tracker:                    # optional: Jira epic key, Asana/Linear URL, etc.
-
-# Roadmap fields (added 2026-07-31). Required on any note that maps to a tracker epic.
-swimlane: quoting-sales-dtc | ops-platform | service-retention | data-reporting
-value_type: direct | enabling | obligation
-roadmap_state: active | parked
-annualized_benefit:         # dollars, integer, no formatting. Required when value_type is direct.
-blocked_by: ["[[Other Project]]"]   # optional; cross-lane dependencies
-channel: dtc                # optional; only where the item needs a visible channel tag
+tracker:                    # optional: issue or project key/URL in the team's tracker (Linear, Jira, Asana)
 ```
-
-### The tracker side: labels, not hierarchy
-
-Decided 2026-07-31. **The roadmap does not use Jira's Initiative hierarchy level.** Swimlane, value type, channel and parked state are all Jira **labels**; epics stay unparented.
-
-| Label | Values |
-|-------|--------|
-| swimlane | `swimlane-quoting-sales-dtc`, `swimlane-ops-platform`, `swimlane-service-retention`, `swimlane-data-reporting` |
-| value type | `value-direct`, `value-enabling`, `value-obligation` |
-| channel | `channel-dtc` (optional, second axis) |
-| parked | `roadmap-parked` (absence means active) |
-
-Why labels beat a parent here:
-
-- **One primitive for every axis.** Channel cuts across swimlane, so a parent could only ever express one of them. Labels are additive.
-- **Re-cutting the deck is a label change**, not a reparenting exercise.
-- **No Jira admin required.** No custom fields to request, so the model can ship without waiting on anyone.
-- The Initiative layer was vestigial: 28 initiatives, 0 owners, 0 dates, 3 with a written description, and 21 of 48 open epics had no parent anyway. A field that exists because the hierarchy has a slot for it is worse than no field, because it reads as meaningful.
-
-The dollar figure is the one thing a label cannot carry. `annualized_benefit` lives in the vault note's frontmatter, or comes from a Planner export at generation time. No Jira number field is needed.
-
-The generator's scope query is therefore label-based, never parent-based:
-
-```
-  AND labels in (swimlane-quoting-sales-dtc, swimlane-ops-platform,
-                 swimlane-service-retention, swimlane-data-reporting)
-```
-
-An open epic with no swimlane label is a contract violation and gets named on the weekly page. That is the replacement for the old orphan problem, and it self-reports.
-
-**Company targets go in the artifact header, not in Jira.** The 2 objectives that carried real numbers (`Increase Policy Retention (2026 Target: 90%)`, `Increase Policy Production (2026 Target: 60 PPA)`) are company goals. The monthly deck states them above the swimlanes. A Jira hierarchy level is a poor place to keep a goal.
-
-### Roadmap field semantics
-
-Added for the roadmap generator (`workflows/roadmap.md`). See `outbox/roadmap-swimlane-assignments.md` for the assignment record these were derived from.
-
-- **`value_type` answers what kind of benefit, `roadmap_state` answers whether we are doing it.** They are independent. A parked epic still has a value type.
-- **`value_type: direct` requires `annualized_benefit`.** The generator reports a missing benefit on a direct item as a contract violation by name. Enabling items report as "enables [outcome]"; obligation items report the risk retired.
-- **`roadmap_state: parked`** means defined and deliberately not prioritized. Parked items appear in the Parked column of the monthly deck's On the Horizon slide and in the weekly page, never in Coming Up. Distinct from `status: backlog`, which is about the project's own lifecycle; a parked item can be `status: backlog` or `status: active`.
-
-### Date confidence, 4 states
-
-The first draft of this rule had 3 states and a hole: an epic with every child in a sprint but no date of its own matched neither Committed nor Unscheduled. That is the most common case in the vault, and it is exactly the Jira Plans rollup scenario. Corrected 2026-07-31 during the vault seeding, after 3 of the first 23 epics fell in the gap.
-
-| State | Rule |
-|-------|------|
-| `committed` | The epic has a hand-set Target end or duedate, and every child sits in a sprint ending on or before it. |
-| `rollup` | No date on the epic, but every child sits in a sprint. The date is derived from the latest child sprint's end. This is what Plans shows and presents as certain. |
-| `provisional` | A date exists (hand-set or rollup) but some children are not in a sprint, so the date only reflects the scheduled subset. Report the ratio, e.g. "6 of 8 children scheduled". |
-| `unscheduled` | No children in any sprint, or no children at all. |
-| `at-risk` | A date exists and every child is scheduled, but evidence contradicts the date: it falls before dated work in the children, or it has already passed while the epic is open. Beats `committed` whenever both apply. |
-
-Always record the evidence next to the label, as a ratio and a date: "rollup, 5 of 5 children scheduled, latest sprint ends 2026-08-09".
-
-
-### Jira API constraints the generator must work around
-
-Measured 2026-07-31 while seeding 43 notes. These are properties of the Atlassian MCP, not of Jira.
-
-- **`searchJiraIssuesUsingJql` ignores `fields`.** Full descriptions always return, so results overflow the token limit fast. Use `searchResultMode: "count"` to size a query first (~350 tokens), then page with `maxResults: 3` and `nextPageToken`.
-- **`getJiraIssue` does respect `fields`.** `["summary","status","duedate","description"]` costs a few hundred tokens. Prefer it for single issues.
-- **Target end values cannot be read.** The field is silently dropped from responses. Its value can only be bounded by JQL comparison (`"Target end" >= x AND "Target end" <= y`). Any generator needing exact target dates has to binary-search them or use a different access path. This is the single biggest blocker to automating the confidence label.
-- **Sprint end dates are not exposed.** Membership is queryable (`sprint is not EMPTY`, `openSprints()`), the end date is not. So `committed` can never be fully verified through this MCP; the on-or-before clause stays an assumption. Name the sprint rather than asserting its end date.
-- **Concurrent sessions cross-contaminate.** Running parallel agents against this MCP returned other sessions' payloads repeatedly on 2026-07-31, including full ticket bodies from a sibling batch. Always check the `webUrl` or `key` in a response matches the JQL sent, and do not fan out parallel Jira work.
-- **Overflow files are readable.** When a response spills to `/var/folders/…`, the native Read tool reaches it, and `Grep -o` for `"key":` and `"summary":` extracts child data more cheaply than re-querying.
-
-- **Notes with no `jira` key and `type: project`** are pre-tracker ideas: real work that exists in the user's head but not in the tracker. The weekly page lists these separately as gap detection. Do not delete them and do not invent epic keys for them.
 
 ## Tag taxonomy (hierarchical, slash-delimited)
 
@@ -230,7 +160,6 @@ Measured 2026-07-31 while seeding 43 notes. These are properties of the Atlassia
 - Decisions: `#decision/active`, `#decision/superseded`, `#decision/proposed`
 - Projects: `#project/<slug>`
 - Status: `#status/active`, `#status/blocked`, `#status/backlog`, `#status/done`
-- Roadmap: `#roadmap/direct`, `#roadmap/enabling`, `#roadmap/obligation`
 - Inbox: `#inbox/unprocessed`, `#inbox/needs-review`
 - Reference: `#playbook`, `#strategy`
 
@@ -257,4 +186,49 @@ If `context.md` has a `## Terminology & Corrections` section, silently apply its
 
 ## Verification loops
 
-Before declaring any multi-step operation done, name the observable signal that confirms it, then check that signal. Examples: after an action-items push, confirm the build script succeeded and report the op count applied; after writing or editing vault notes, Read at least one back to confirm the edit landed; after a triage run, reconcile items found vs items dispositioned and report the counts. "It should have worked" is not a signal.
+Before declaring any multi-step operation done, name the observable signal that confirms it, then check that signal. Examples: after writing to The Quest Log, re-query the documents you wrote and report what changed and what was skipped; after writing or editing vault notes, Read at least one back to confirm the edit landed; after a triage run, reconcile items found vs items dispositioned and report the counts. "It should have worked" is not a signal.
+
+## Recap sourcing (any workflow that summarizes a period)
+
+Applies to every workflow whose output summarizes what happened over a window: `roundtable-prep`, `unrolled`, `morning-sync`, `1on1-prep`, `cadence`, `handoff`, and the Friday weekly review. A workflow that recaps a period and is not named here still follows this section.
+
+**Sweep the agent sessions in the window.** A large share of the user's work happens inside agent sessions, not in Slack, email, or meeting notes, so a recap built only from messages and notes undercounts what they did. There are two populations and neither covers the other:
+
+| Population | How to read it |
+|---|---|
+| **Cowork sessions** | Whatever session-history tools this session exposes (for example `list_sessions` plus `read_transcript`). The listing may carry no timestamps: date a session from its transcript, never from its position in a list. Skip child sessions (subagents of one already counted) and the session you are running in. If this session has no session-history tools, say so in the coverage line. |
+| **Claude Code sessions** | The digest at `inbox/cc-sessions/sessions.jsonl`, written by `scripts/build-cc-session-digest.js` run **from Claude Code** (Cowork cannot read `~/.claude`; a Glob there may list files that Read then refuses). |
+
+For the digest:
+
+- One JSON object per session: `projectRoot`, `activeDates`, `start`, `end`, `userMessages`, `filesTouched`, `firstPrompt`.
+- **Window on `activeDates`, never on `start`.** Sessions get resumed for days or weeks; filtering by start date drops resumed work out of the period it happened in.
+- **`activeDates` are local calendar days in the zone of the machine that built the digest (the windowed `digest-*.md` it writes alongside names that zone); `start` and `end` are UTC instants.** Never slice a day out of `start`: evening work lands on the next UTC day and Friday work in the next ISO week. If that zone differs from `context.md`'s, the digest was built elsewhere and day assignments need re-checking.
+- **Never total elapsed minutes into an hours figure.** Wall-clock span includes idle nights. Report distinct active days, session count, and files written.
+- **Group by `projectRoot`**, which rolls git worktrees up into their project.
+- `summary` is usually null; use `firstPrompt` plus `filesTouched` to say what a session was.
+- **Missing or older than the window:** say so and offer the fix ("My view of your Claude Code sessions stops at <date>. Run `node scripts/build-cc-session-digest.js --days 90` from Claude Code in this repo and I'll pick it up."). Never silently omit the population.
+- The digest is a table of contents, not an archive: opening prompts and file paths only, never conversation bodies.
+
+Across both populations: count what you find as the user's work (artifacts shipped, decisions made, problems solved, things unblocked), reconcile rather than double-count (a session that produced an `outbox/` file and the file are one item), and **name the coverage in the artifact's source line** ("Cowork sessions plus Claude Code through 2026-10-09"). Never imply coverage you did not have.
+
+Action items need no freshness gate: The Quest Log is read live (`workflows/action-items.md`). Say when you read it.
+
+## Timezone (hard rule)
+
+Every artifact that renders a time (briefs, triage records, meeting notes, filename `-HHMM` suffixes) converts through the user's timezone, **read from `context.md` → "Notes for Lore" → Timezone** as an IANA name (for example `America/Phoenix`).
+
+- Convert explicitly: `TZ=<zone> date -d @<unix_ts>`, or format the ISO `Z` string against that zone. A bare `date` in the sandbox, local or cloud, is not evidence of the user's zone.
+- **Never guess the zone from a state, city, or "Mountain time".** Some regions skip daylight saving while their neighbors observe it (Arizona, for one), so a region name can be wrong by an hour for most of the year. A wrong guess silently mislabels every timestamp in every brief until someone notices.
+- No timezone recorded: ask, then record it. Do not proceed on a guess.
+
+## Outlook draft body formatting (hard rule)
+
+`outlook_create_draft` / `outlook_create_reply_draft` / `outlook_create_reply_all_draft` / `outlook_update_draft` take a `bodyType` and enforce it strictly.
+
+- **Never use the `comment` parameter; always `body` + `bodyType`.** `comment` is plain text that the connector HTML-escapes before prepending it to the quoted original, so any markup reaches the recipient as visible `<p>` tags. The tell on inspection: `body.contentType: "html"` with the reply text escaped to `&lt;p&gt;` above a real-HTML quoted original.
+- `bodyType: "text"` → plain prose only, never tag characters (they render literally). Separate paragraphs with a blank line; the connector converts newlines to `<br />`, including above an HTML quoted original.
+- **Self-check before every draft call:** with `bodyType: "text"`, the `body` string contains zero `<` characters. If it has any, it was composed as HTML: strip to blank-line prose or switch to `"html"`. Check the string you are about to pass, not after the fact.
+- `bodyType: "html"` → every paragraph in `<p>...</p>`, breaks as `<br>`, bare tags only, no attributes beyond `a[href|name|target]`. Never re-embed a quoted original's styled HTML through `outlook_update_draft`; it is rejected. To fix a reply draft's body, delete it and recreate it from the source message so the tool rebuilds the quote.
+- Default to `"text"` for ordinary short replies; use `"html"` only for a list, a link, or paragraphs the blank-line convention would blur.
+- A returned `id` and `webLink` do not prove the body is clean. If there is doubt about the bodyType used, read the draft back.

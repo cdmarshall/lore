@@ -1,0 +1,288 @@
+<!--
+  The Keeper's Grimoire: Lore's usage guide for keepers already in the field.
+  Editable source. scripts/build-guides.py wraps it in the setup guide's head
+  (fonts, tokens, components) to produce docs/grimoire.html and
+  docs/lore-grimoire.pdf. Keep "What's new" (page 2) and the migrations page
+  current: CLAUDE.md → Key behaviors → Guide upkeep.
+  Pages are fixed letter size; check the rendered PDF for overflow after edits.
+-->
+
+<!-- ── Page 1: cover ── -->
+<div class="page">
+  <div class="masthead">
+    <span class="signet"></span>
+    <div>
+      <h1>The Keeper's Grimoire</h1>
+      <div class="mast-tag">Lore in daily use &middot; v1.1, October 2026</div>
+    </div>
+  </div>
+  <p class="dek">For keepers already in the field. The setup guide gets you started; this book is for the days after: what changed, what to say, and what to do when something looks off.</p>
+
+  <div class="section-head"><span class="sh-label">How to read it</span></div>
+  <table class="guide">
+    <tr><th style="width:38%">If you are</th><th>Start at</th></tr>
+    <tr><td>Updating from an earlier Lore</td><td><strong>What's new</strong> (page 2), then <strong>Your migrations</strong> (page 3)</td></tr>
+    <tr><td>New, and onboarding just finished</td><td><strong>The Quest Log</strong> (page 4) and <strong>Spells for every day</strong> (page 7)</td></tr>
+    <tr><td>Adding or switching tools</td><td><strong>Your tools</strong> (page 5)</td></tr>
+    <tr><td>Deciding where notes should live</td><td><strong>Where your knowledge lives</strong> (page 6)</td></tr>
+    <tr><td>Stuck</td><td><strong>When something looks off</strong> (page 8)</td></tr>
+  </table>
+
+  <div class="section-head"><span class="sh-label">This release at a glance</span></div>
+  <div class="card-grid">
+    <div class="card-row">
+      <div class="card arcane">
+        <h3>One list, two hands</h3>
+        <p>The Quest Log keeps its items in its own database. Lore reads and writes the same list you do: no more downloading snapshots.</p>
+      </div>
+      <div class="card">
+        <h3>Your tools, your way</h3>
+        <p>Lore asks what you use for email, chat, meetings and tracking, wires up what's connected, and tells you where to connect the rest.</p>
+      </div>
+    </div>
+    <div class="card-row">
+      <div class="card">
+        <h3>Notion as memory</h3>
+        <p>Keep people, projects, meetings and decisions in your private Notion space, with two-way links and backlinks.</p>
+      </div>
+      <div class="card arcane">
+        <h3>Updates that finish themselves</h3>
+        <p>When a release reshapes your data, Lore runs the steps for you after the update and asks before anything you'd notice.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <h3>The rule that never changes</h3>
+    <p>Lore drafts and holds; it never sends. Every reply, update and message waits for you.</p>
+  </div>
+
+  <div class="page-foot"><span class="pf-left"><span class="signet" style="width:16px;height:19px"></span> Lore &middot; the keeper's grimoire</span><span class="pf-right">Page 1 of 8</span></div>
+</div>
+
+<!-- ── Page 2: what's new ── -->
+<div class="page">
+  <div class="kicker">The latest chapter</div>
+  <h2 class="page-title">What's new in v1.1</h2>
+  <p class="dek">October 2026. Everything here arrives with the update; anything that touches your own data runs as a migration (next page).</p>
+
+  <table class="guide">
+    <tr><th style="width:30%">Change</th><th>What it means for you</th></tr>
+    <tr><td><strong>The Quest Log has its own database</strong></td><td>It now lives on claude.ai, private to you, and opens in the browser or in Cowork. Lore reads it directly, so "what's on my plate" is always current. Download snapshot is now only a backup.</td></tr>
+    <tr><td><strong>Triage: Already done</strong></td><td>A fifth button on triage cards files an item straight to Completed.</td></tr>
+    <tr><td><strong>Undo a check-off</strong></td><td>Checking an item strikes it through for five seconds before it completes. Uncheck to undo.</td></tr>
+    <tr><td><strong>Delegate to anyone</strong></td><td>Type any name in the delegate picker, not only people on your team list.</td></tr>
+    <tr><td><strong>Tools by role</strong></td><td>Lore records which tool you use for each job and only sweeps those. Say "check my connectors" after connecting something new.</td></tr>
+    <tr><td><strong>Notion knowledge base</strong></td><td>A third home for Lore's memory, beside this folder and Obsidian. Say "set up Notion" or "migrate to Notion".</td></tr>
+    <tr><td><strong>Smarter triage</strong></td><td>No drafts for threads you already answered, a last-second re-check before each draft, and Outlook links that open the draft itself.</td></tr>
+    <tr><td><strong>Recaps count your sessions</strong></td><td>Weekly reviews, 1:1 prep and Unrolled include what you did in Claude sessions, and say which sessions they could see.</td></tr>
+    <tr><td><strong>Your timezone, on record</strong></td><td>Every time in a brief converts through the zone you gave Lore, never a guess.</td></tr>
+    <tr><td><strong>Screenshots in documents</strong></td><td>Preps and reports can carry images inline.</td></tr>
+  </table>
+
+  <div class="callout arcane">
+    <h3>Nothing you wrote was touched</h3>
+    <p>Updates only replace Lore's own playbooks and templates. Your profile, team pages, notes and Quest Log items stay exactly as they were until a migration asks to move them.</p>
+  </div>
+
+  <div class="page-foot"><span class="pf-left"><span class="signet" style="width:16px;height:19px"></span> Lore &middot; the keeper's grimoire</span><span class="pf-right">Page 2 of 8</span></div>
+</div>
+
+<!-- ── Page 3: migrations ── -->
+<div class="page">
+  <div class="kicker">For returning keepers</div>
+  <h2 class="page-title">Your migrations</h2>
+  <p class="dek">Right after an update, Lore lists the setup steps your install still needs. It does the quiet ones and asks before the rest. Put any off and it offers them again next session.</p>
+
+  <table class="guide">
+    <tr><th style="width:28%">Migration</th><th>What happens</th><th style="width:19%">You'll be asked</th></tr>
+    <tr><td><strong>Move the Quest Log</strong></td><td>Lore creates the new tracker and copies every item across with its original dates. It needs one last snapshot from the old tracker: open it in the Cowork sidebar and click Download snapshot when asked.</td><td>Yes, to start and for the snapshot</td></tr>
+    <tr><td><strong>Record your timezone</strong></td><td>One question. Every time Lore renders depends on it.</td><td>Yes</td></tr>
+    <tr><td><strong>Build your connectors table</strong></td><td>Lore checks what's connected and fills in what it already knows; it asks only about roles nothing answers.</td><td>Only for gaps</td></tr>
+    <tr><td><strong>Session history folder</strong></td><td>Creates the folder recaps read your Claude Code history from.</td><td>No</td></tr>
+    <tr><td><strong>Retire old snapshot files</strong></td><td>Offers to move old snapshot files into <code>inbox/archive/</code>. Never deletes them.</td><td>Yes</td></tr>
+    <tr><td><strong>Offer Notion</strong></td><td>If Notion is connected, one offer to move your knowledge base there. Say no and it won't ask again.</td><td>Yes, once</td></tr>
+  </table>
+
+  <div class="section-head"><span class="sh-label">Running them yourself</span></div>
+  <table class="guide">
+    <tr><th style="width:38%">You want to</th><th>Say</th></tr>
+    <tr><td>Do everything that's pending</td><td class="say">"Run migrations"</td></tr>
+    <tr><td>Wait until later</td><td class="say">"Later" (it asks again next session)</td></tr>
+    <tr><td>See what's done</td><td class="say">"Which migrations have run?"</td></tr>
+  </table>
+  <p class="tight">The record lives in <code>inbox/.migrations</code>, one line per finished step. Each one checks before it acts, so running it twice changes nothing.</p>
+
+  <div class="callout">
+    <h3>After the Quest Log moves</h3>
+    <p>The old sidebar tracker is frozen. Lore stops reading it; delete it from Cowork whenever you like. Your new tracker's link is saved in your profile, and "open my quest log" brings it up.</p>
+  </div>
+
+  <div class="page-foot"><span class="pf-left"><span class="signet" style="width:16px;height:19px"></span> Lore &middot; the keeper's grimoire</span><span class="pf-right">Page 3 of 8</span></div>
+</div>
+
+<!-- ── Page 4: quest log ── -->
+<div class="page">
+  <div class="kicker">The ledger</div>
+  <h2 class="page-title">The Quest Log</h2>
+  <p class="dek">Your one list of action items. You work in it; Lore works in it too, and changes appear for both of you as they happen.</p>
+
+  <div class="section-head"><span class="sh-label">The triage pile</span></div>
+  <p class="tight">Items Lore finds in meetings and messages arrive as cards, one at a time, oldest first. One click decides each:</p>
+  <table class="guide">
+    <tr><th style="width:24%">Button</th><th>Result</th></tr>
+    <tr><td><strong>Do now</strong></td><td>Active, due ASAP, top of the list.</td></tr>
+    <tr><td><strong>Already done</strong></td><td>Straight to Completed, today's date.</td></tr>
+    <tr><td><strong>Schedule&hellip;</strong></td><td>Active with the date or words you pick.</td></tr>
+    <tr><td><strong>Delegate&hellip;</strong></td><td>Straight to Delegated: a teammate, or any name you type.</td></tr>
+    <tr><td><strong>Delete</strong></td><td>Gone from view, and Lore remembers you threw it away so it never proposes it again. Undo covers a mis-click.</td></tr>
+  </table>
+
+  <div class="section-head"><span class="sh-label">Working the list</span></div>
+  <p class="tight"><strong>Check it off:</strong> the row strikes through for five seconds, then completes. Uncheck to undo. <strong>Edit in place:</strong> click a subject, source, due date or note. <strong>Filters:</strong> Overdue, Due Soon, ASAP, TBD, Lore-Ready, Specialist-Ready, Stale. <strong>Flags:</strong> Lore means Lore could do it for you; Specialist means a companion agent could.</p>
+
+  <div class="section-head"><span class="sh-label">Asking Lore about it</span></div>
+  <table class="guide">
+    <tr><th style="width:38%">You want to</th><th>Say</th></tr>
+    <tr><td>See what's on your plate</td><td class="say">"What's on my plate?"</td></tr>
+    <tr><td>Add something</td><td class="say">"Add: send the renewal quote to Sam by Friday"</td></tr>
+    <tr><td>Close or hand off</td><td class="say">"Mark the vendor review done" / "Delegate X to Avery"</td></tr>
+    <tr><td>Review the pile</td><td class="say">"What's in my triage queue?"</td></tr>
+  </table>
+
+  <div class="callout arcane">
+    <h3>Backups and sharing</h3>
+    <p>Download snapshot saves a markdown copy; Restore from backup puts one back after asking. The tracker is private to you. Share it from its Share menu and editors can work the list too.</p>
+  </div>
+
+  <div class="page-foot"><span class="pf-left"><span class="signet" style="width:16px;height:19px"></span> Lore &middot; the keeper's grimoire</span><span class="pf-right">Page 4 of 8</span></div>
+</div>
+
+<!-- ── Page 5: connectors ── -->
+<div class="page">
+  <div class="kicker">Your instruments</div>
+  <h2 class="page-title">Your tools</h2>
+  <p class="dek">Lore asks what you use for each job instead of assuming. Whatever is connected gets wired in; the rest is noted, with where to connect it.</p>
+
+  <table class="guide">
+    <tr><th style="width:24%">Role</th><th>What it unlocks</th><th style="width:28%">For example</th></tr>
+    <tr><td><strong>Email</strong></td><td>The email sweep in triage, reply drafts, the Herald</td><td>Outlook, Gmail</td></tr>
+    <tr><td><strong>Team chat</strong></td><td>The chat sweep, drafts, knowledge sweeps</td><td>Slack, Teams</td></tr>
+    <tr><td><strong>Calendar</strong></td><td>Morning sync and prep timing</td><td>Outlook, Google</td></tr>
+    <tr><td><strong>Meeting notes</strong></td><td>Transcript processing and proposed action items</td><td>A recorder app, Notion AI notes</td></tr>
+    <tr><td><strong>Work tracker</strong></td><td>Ticket context in drafts and recaps</td><td>Linear, Jira, Asana</td></tr>
+    <tr><td><strong>Docs and wiki</strong></td><td>Linked-doc context, document ingest</td><td>Notion, Confluence, Drive</td></tr>
+    <tr><td><strong>Shared inbox</strong></td><td>Noted now; a triage source later</td><td>Front, Zendesk</td></tr>
+  </table>
+
+  <div class="section-head"><span class="sh-label">Connecting something new</span></div>
+  <p class="tight">Add the connector in claude.ai under Settings, then Connectors (or the connectors menu in a Cowork chat), then tell Lore: <strong>"I connected Linear"</strong> or <strong>"check my connectors."</strong> Lore confirms it works with one read-only call, asks the few scoping questions it needs (your channels, your project keys), and adds it to your profile. If it unlocks the daily brief, Lore offers to schedule it.</p>
+
+  <div class="section-head"><span class="sh-label">Changing tools</span></div>
+  <p class="tight">Say <strong>"I switched email to Gmail"</strong> and Lore updates that one role. A tool with no connector yet is recorded honestly: Lore tells you it can't read it, and you forward or paste what you want it to see.</p>
+
+  <div class="callout">
+    <h3>What Lore will never do</h3>
+    <p>Use a connector you didn't name for that job, write anything while testing a connector, or look outside the channels, projects and spaces you gave it.</p>
+  </div>
+
+  <div class="page-foot"><span class="pf-left"><span class="signet" style="width:16px;height:19px"></span> Lore &middot; the keeper's grimoire</span><span class="pf-right">Page 5 of 8</span></div>
+</div>
+
+<!-- ── Page 6: knowledge base ── -->
+<div class="page">
+  <div class="kicker">The library</div>
+  <h2 class="page-title">Where your knowledge lives</h2>
+  <p class="dek">Lore keeps a page for every person, project, meeting and decision it learns about. Choose where those pages live.</p>
+
+  <table class="guide">
+    <tr><th style="width:20%">Home</th><th>Best for</th><th style="width:33%">Set up by saying</th></tr>
+    <tr><td><strong>This folder</strong></td><td>The default. Plain files on your computer; nothing to install.</td><td class="say">(nothing to set up)</td></tr>
+    <tr><td><strong>Notion</strong></td><td>Teams already in Notion. Two-way links between every page; reachable from any device.</td><td class="say">"Set up Notion"</td></tr>
+    <tr><td><strong>Obsidian</strong></td><td>Keepers who already keep a vault and want its graph view.</td><td class="say">"Set up Obsidian"</td></tr>
+  </table>
+
+  <div class="section-head"><span class="sh-label">Inside the Notion library</span></div>
+  <p class="tight">A private <strong>Lore</strong> page in your Notion space holds six databases: <strong>People</strong>, <strong>Projects</strong>, <strong>Meetings</strong>, <strong>Decisions</strong>, <strong>Transcripts</strong> and <strong>Notes</strong>, plus a <strong>Context</strong> page and a <strong>Commitments</strong> page.</p>
+  <table class="guide">
+    <tr><th style="width:30%">In Obsidian</th><th>In Notion</th></tr>
+    <tr><td>Frontmatter</td><td>Database properties: relationship, status, team, dates</td></tr>
+    <tr><td>Wikilinks and backlinks</td><td>Two-way relations: set a project's lead and the person's page lists it under Leads</td></tr>
+    <tr><td>Dataview tables</td><td>Views on each page: a person's projects and meetings appear on their own</td></tr>
+    <tr><td>The Archive folder</td><td>An Archived checkbox. Nothing is ever deleted</td></tr>
+  </table>
+
+  <div class="section-head"><span class="sh-label">Moving house</span></div>
+  <p class="tight">Say <strong>"migrate to Notion"</strong> and Lore counts what you have, shows three pages as they'll look, and waits for your yes. It copies people first, then everything that links to them, and leaves the originals where they were until you remove them.</p>
+
+  <div class="callout arcane">
+    <h3>Who can see it</h3>
+    <p>Pages in your private Notion space are yours. On some Notion plans, workspace admins can still reach private content; keep that in mind for 1:1 notes.</p>
+  </div>
+
+  <div class="page-foot"><span class="pf-left"><span class="signet" style="width:16px;height:19px"></span> Lore &middot; the keeper's grimoire</span><span class="pf-right">Page 6 of 8</span></div>
+</div>
+
+<!-- ── Page 7: daily use ── -->
+<div class="page">
+  <div class="kicker">Incantations</div>
+  <h2 class="page-title">Spells for every day</h2>
+  <p class="dek">Plain words work. These are the ones keepers reach for most.</p>
+
+  <table class="guide">
+    <tr><th style="width:34%">When</th><th>Say</th></tr>
+    <tr><td>Morning</td><td class="say">"Morning sync" &middot; "Triage everything"</td></tr>
+    <tr><td>After a meeting</td><td class="say">"Process this transcript" &middot; "Sync my recorder from today"</td></tr>
+    <tr><td>Raw notes or a doc</td><td class="say">"I have some notes" &middot; "Ingest this document"</td></tr>
+    <tr><td>Before a 1:1</td><td class="say">"Prep for my 1:1 with [name]"</td></tr>
+    <tr><td>Before a team meeting</td><td class="say">"Prep for Friday's roundtable"</td></tr>
+    <tr><td>Promises in flight</td><td class="say">"What am I waiting on?" &middot; "Track this promise"</td></tr>
+    <tr><td>Relationships</td><td class="say">"Who am I overdue to see?"</td></tr>
+    <tr><td>A hard call</td><td class="say">"Help me think through [decision]" &middot; "Poke holes in this"</td></tr>
+    <tr><td>End of a session</td><td class="say">"Wrap up this session" &middot; "Write a handoff"</td></tr>
+    <tr><td>Friday</td><td class="say">"Run my weekly review" &middot; "Lint the vault"</td></tr>
+    <tr><td>Quarter's end</td><td class="say">"Unroll my scroll"</td></tr>
+    <tr><td>Housekeeping</td><td class="say">"Update Lore" &middot; "Check my connectors"</td></tr>
+  </table>
+
+  <div class="section-head"><span class="sh-label">Getting the most from recaps</span></div>
+  <p class="tight">Recaps count what happened in your Claude sessions as well as your messages and notes. Cowork sessions are read directly. For Claude Code sessions, run <code>node scripts/build-cc-session-digest.js --days 90</code> from Claude Code in your Lore folder now and then; Lore tells you when its view is out of date and always says which sessions a recap covered.</p>
+
+  <div class="section-head"><span class="sh-label">Teaching Lore</span></div>
+  <p class="tight">Correct anything it gets wrong, in plain words. Lore fixes the output and writes the lesson into the file that prevents a repeat, then tells you where. Style corrections become rules in <code>VOICE.md</code>; facts go to the right page.</p>
+
+  <div class="page-foot"><span class="pf-left"><span class="signet" style="width:16px;height:19px"></span> Lore &middot; the keeper's grimoire</span><span class="pf-right">Page 7 of 8</span></div>
+</div>
+
+<!-- ── Page 8: troubleshooting ── -->
+<div class="page page-closing">
+  <div class="kicker">Remedies</div>
+  <h2 class="page-title">When something looks off</h2>
+  <p class="dek">Most surprises have a one-line fix.</p>
+
+  <table class="guide">
+    <tr><th style="width:38%">You see</th><th>Try</th></tr>
+    <tr><td>The Quest Log says it can't reach its database</td><td>Open it on claude.ai while signed in, or reload it. It saves nothing until it reconnects.</td></tr>
+    <tr><td>Lore says it can't find your Quest Log</td><td>Say "find my quest log". If you never moved to the new tracker, say "run migrations".</td></tr>
+    <tr><td>The Herald skipped your email or chat</td><td>"Check my connectors". A connector that needs signing in again shows as needs reconnecting.</td></tr>
+    <tr><td>A source shows as "not swept yet"</td><td>Lore knows you use that tool but can't read it yet. Forward or paste what matters.</td></tr>
+    <tr><td>Times in a brief are an hour off</td><td>"My timezone is [zone]". Use the name, like America/Phoenix, not a region.</td></tr>
+    <tr><td>Lore can't reach your notes</td><td>The folder isn't connected to this session, or Notion is disconnected. Add it back in the project settings; Lore won't write notes anywhere else meanwhile.</td></tr>
+    <tr><td>A draft replies to something you already answered</td><td>Tell Lore. It checks the thread's last message before every draft and treats a miss as a lesson to fix.</td></tr>
+    <tr><td>An update was offered but you're busy</td><td>Say "later". Nothing changes until you say "update".</td></tr>
+  </table>
+
+  <div class="section-head"><span class="sh-label">Keeping this book current</span></div>
+  <p class="tight">Every Lore release that changes what you see or say updates this grimoire, starting with What's new. The newest copy is always at <code>docs/lore-grimoire.pdf</code> in your Lore folder.</p>
+
+  <div class="section-head"><span class="sh-label">Questions</span></div>
+  <p class="tight">Ideas, bugs, or help adopting Lore: reach out to Colton Marshall.</p>
+
+  <div class="closing">
+    <span class="signet"></span>
+    <div class="blessing">May your scroll stay short.</div>
+    <div class="made">Made by Lore</div>
+  </div>
+
+  <div class="page-foot"><span class="pf-left"><span class="signet" style="width:16px;height:19px"></span> Lore &middot; the keeper's grimoire</span><span class="pf-right">Page 8 of 8</span></div>
+</div>

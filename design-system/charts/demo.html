@@ -265,8 +265,8 @@ var months = ['Jan','Feb','Mar','Apr','May','Jun'];
 new Chart(document.getElementById('c1'), {
   type: 'bar',
   data: { labels: months, datasets: [
-    Object.assign({ label: 'Quotes', data: [186, 240, 205, 262, 231, 288] }, LoreCharts.seriesStyle(0, 'dotted')),
-    Object.assign({ label: 'Binds', data: [82, 104, 96, 128, 117, 141] }, LoreCharts.seriesStyle(1, 'hatched'))
+    Object.assign({ label: 'Signups', data: [186, 240, 205, 262, 231, 288] }, LoreCharts.seriesStyle(0, 'dotted')),
+    Object.assign({ label: 'Activations', data: [82, 104, 96, 128, 117, 141] }, LoreCharts.seriesStyle(1, 'hatched'))
   ]},
   options: { responsive: true, maintainAspectRatio: false }
 });

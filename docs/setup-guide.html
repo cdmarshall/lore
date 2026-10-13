@@ -125,7 +125,7 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
       <div class="mast-tag">Your magic scroll</div>
     </div>
   </div>
-  <p class="dek">A field guide for new keepers. Ten minutes to read, fifteen to set up.</p>
+  <p class="dek">A guide for new keepers. Ten minutes to read, fifteen to set up. Already set up? Your companion book is <em>The Keeper's Grimoire</em>.</p>
 
   <div class="section-head"><span class="sh-label">What is Lore</span></div>
   <p>Lore is a personal AI executive assistant that lives in a folder on your computer. Open that folder in the Claude desktop app (Cowork) and the agent inside becomes yours: it learns your role, your team, your stakeholders, and your priorities, then puts that knowledge to work every day.</p>
@@ -136,7 +136,7 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
     <div class="card-row">
       <div class="card arcane">
         <h3>The Quest Log</h3>
-        <p>A live action items tracker in your Cowork sidebar. New items Lore finds wait in a triage pile at the top for your one-click decision: do it now, schedule it, delegate it, or delete it. Nothing joins your list without you.</p>
+        <p>A live action items tracker on claude.ai, private to you. New items Lore finds wait in a triage pile at the top for your one-click decision: do it now, mark it done, schedule it, delegate it, or delete it. Nothing joins your list without you.</p>
       </div>
       <div class="card">
         <h3>The Herald</h3>
@@ -181,8 +181,8 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
     <div class="step-n">2</div>
     <div class="step-body">
       <h3>Get the Lore folder onto your machine</h3>
-      <p>From your org's shared Lore release folder (ask in the rollout channel for the link), download the latest package zip and the installer for your computer. Double-click the installer and it puts everything in the right place. Mac: right-click the installer and choose Open the first time; Windows may show a SmartScreen prompt, choose "Run anyway".</p>
-      <p>Prefer doing it yourself? Unzip the package to <code>~/src/lore</code> on Mac or <code>C:\Users\&lt;you&gt;\src\lore</code> on Windows. Either way: no git, no GitHub, no accounts, and updates arrive through the same folder with Lore applying them for you (see "Getting updates later" below).</p>
+      <p>From Lore's Releases page on GitHub (whoever shared Lore with you has the link), download the latest package zip and the installer for your computer. Double-click the installer and it puts everything in the right place. Mac: right-click the installer and choose Open the first time; Windows may show a SmartScreen prompt, choose "Run anyway".</p>
+      <p>Prefer doing it yourself? Unzip the package to <code>~/src/lore</code> on Mac or <code>C:\Users\&lt;you&gt;\src\lore</code> on Windows. Either way: no git, no command line, and updates come from the same Releases page with Lore applying them for you (see "Getting updates later" below).</p>
     </div>
   </div>
 
@@ -207,14 +207,14 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
     <ul>
       <li>A master profile of you and your work that Lore reads at the start of every session.</li>
       <li>A page for each teammate and stakeholder, ready to grow as meetings happen.</li>
-      <li>The quest log pinned in your sidebar, empty and waiting for its first entry.</li>
+      <li>The quest log, a private page on claude.ai, empty and waiting for its first entry.</li>
       <li>Your daily brief on a weekday schedule, if your channels are connected, and your first Herald delivered on the spot so you see it working.</li>
       <li>An assistant that already writes in your preferred tone.</li>
     </ul>
   </div>
 
   <div class="section-head"><span class="sh-label">Getting updates later</span></div>
-  <p class="tight">New versions of Lore ship regularly. Say <strong>"update Lore"</strong> anytime: the agent pulls the latest playbooks and refreshes The Quest Log, and your personal files (your profile, your team pages, your notes) are never touched. No re-downloading, no re-setup.</p>
+  <p class="tight">New versions of Lore ship regularly. Say <strong>"update Lore"</strong> anytime: Lore applies it, then walks you through any setup steps it needs. Your own files are never overwritten. What changed: <strong>The Keeper's Grimoire</strong>.</p>
 
   <div class="page-foot"><span class="pf-left"><span class="signet" style="width:16px;height:19px"></span> Lore &middot; setup guide</span><span class="pf-right">Page 2 of 8</span></div>
 </div>
@@ -238,9 +238,9 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
   </table>
 
   <div class="section-head"><span class="sh-label">The Quest Log, up close</span></div>
-  <p class="tight"><strong>New items arrive as proposals.</strong> When Lore pulls action items out of a transcript, they land in a triage pile at the top of the tracker, one card at a time. Each card takes one click: <strong>Do now</strong>, <strong>Schedule</strong>, <strong>Delegate</strong>, or <strong>Delete</strong>. That click is the decision; there is no second step.</p>
+  <p class="tight"><strong>New items arrive as proposals.</strong> When Lore pulls action items out of a transcript, they arrive in a triage pile at the top of the tracker, one card at a time. Each card takes one click: <strong>Do now</strong>, <strong>Already done</strong>, <strong>Schedule</strong>, <strong>Delegate</strong>, or <strong>Delete</strong>. That click is the decision; there is no second step.</p>
   <p class="tight"><strong>Add your own at the top.</strong> The add form sits above the list: subject, who it came from, when it's due, and optional notes. Due dates are ASAP, TBD, a real date, or your own words.</p>
-  <p><strong>The snapshot ritual.</strong> Lore can't see inside the tracker on its own. When you want it to know your current list (for prep, for dedup, for "what should I work on"), click <strong>Download snapshot</strong> in the tracker and drop the file into the folder's <code>inbox/</code>. One click, done.</p>
+  <p><strong>One list, two hands on it.</strong> You work in the tracker; Lore reads and writes the same list directly. There is nothing to export or sync, and changes Lore makes appear while you watch.</p>
 
   <div class="section-head"><span class="sh-label">Rituals that pay for themselves</span></div>
   <table class="guide">
@@ -269,17 +269,14 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
   <h2 class="page-title">Connect your tools</h2>
   <p class="dek">All optional. Lore is useful on day 1; connectors are what make it formidable.</p>
 
-  <div class="section-head"><span class="sh-label">Slack + Microsoft 365</span></div>
-  <p>Connect both and say <strong>"triage everything."</strong> Lore sweeps your inbox, your Slack DMs and mentions, and your Teams chats, then stages a drafted reply for everything that needs one, written in your voice. Slack drafts land in your own Drafts folder; email and Teams drafts are staged as paste-ready files. Every run also delivers the Herald, your designed daily brief (next page). You can put triage on a schedule, for example twice a day.</p>
+  <div class="section-head"><span class="sh-label">Lore asks, you answer</span></div>
+  <p>During onboarding Lore checks which connectors your Claude setup can already reach, then asks what you use for each job: email, team chat, calendar, meeting notes, work tracker, docs. Whatever is connected gets wired in; for anything that isn't, Lore tells you where to connect it (claude.ai, Settings, Connectors). Say <strong>"check my connectors"</strong> anytime after adding one.</p>
 
-  <div class="section-head"><span class="sh-label">Voice recorder sync</span></div>
-  <p>If you carry a voice recorder with an MCP connector, connect it and say <strong>"sync [recorder] from the last week."</strong> Lore fetches the recordings it hasn't processed and walks you through them one at a time. Reference setup: <a href="https://www.plaud.ai/">Plaud</a>.</p>
+  <div class="section-head"><span class="sh-label">Email and team chat</span></div>
+  <p>Connect them and say <strong>"triage everything."</strong> Lore sweeps your inbox and chats, ranks what needs you, and holds a drafted reply for each, written in your voice, as a native draft where the tool allows. Every run also delivers the Herald, your designed daily brief (next page).</p>
 
-  <div class="section-head"><span class="sh-label">Jira and Confluence</span></div>
-  <p class="tight">Connect them and Lore grounds its briefs and updates in live tickets instead of guesses, and can write tickets when you ask.</p>
-
-  <div class="section-head"><span class="sh-label">Metabase</span></div>
-  <p>If your team's numbers live in Metabase, connect the Metabase MCP and Lore can run your saved questions and pull live results into briefs, preps, and answers. Ask whoever runs your Metabase for the connector details.</p>
+  <div class="section-head"><span class="sh-label">Meetings, tickets, docs</span></div>
+  <p class="tight">A recorder or meeting-notes connector feeds transcripts straight in. A work tracker (Linear, Jira, Asana) and a docs tool (Notion, Confluence, Drive) let Lore ground briefs and drafts in the real tickets and pages behind a thread.</p>
 
   <div class="section-head" style="margin-top:10pt"><span class="sh-label">Tips from experienced keepers</span></div>
   <div class="card-grid">
@@ -335,8 +332,8 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
   <h2 class="page-title">The advanced shelf</h2>
   <p class="dek">None of this is required. Come back when you're ready for it.</p>
 
-  <div class="section-head"><span class="sh-label">Obsidian mode</span></div>
-  <p>Entirely optional, and your own call: Lore's default setup needs no vault app at all. If you already keep a linked-notes vault, Lore can keep its knowledge (people, meetings, decisions, projects) there instead, as linked notes. Each fact lives in exactly one place, backlinks show every meeting a person appears in, and the graph view turns your working life into a map you can explore. The vault app Lore currently knows how to talk to is Obsidian; setup takes 3 steps and lives in the README under <em>Obsidian integration</em>. Once it's running, say <strong>"lint the vault"</strong> for the weekly health check: Lore sweeps for broken links, stale notes, contradictions, and drift, then delivers a styled report of proposed fixes. It never rewrites your knowledge without your sign-off.</p>
+  <div class="section-head"><span class="sh-label">Notion or Obsidian</span></div>
+  <p>Lore keeps its knowledge (people, projects, meetings, decisions) in this folder by default. If your team lives in Notion, say <strong>"set up Notion"</strong> and it builds a private library there with two-way links; if you keep an Obsidian vault, it can use that instead, with wikilinks and backlinks. Either way each fact lives in one place and every page shows what links to it.</p>
 
   <div class="section-head"><span class="sh-label">Specialist sidekicks</span></div>
   <p>Lore plays well with sibling agents. Every action item carries two flags: <strong>Lore</strong> (Lore could do this itself) and <strong>Specialist</strong> (an executor agent could pick it up autonomously). Flag an item Specialist and a companion agent, our reference one is called Sigil, can do the work off-session and mark the item complete in your tracker. The wiring prompt is in the README under <em>Companion specialist agents</em>.</p>
@@ -353,7 +350,7 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
 &#9492;&#9472;&#9472; team/ stakeholders/ meetings/ decisions/   the memory</div>
 
   <div class="section-head"><span class="sh-label">Questions</span></div>
-  <p>Want help adopting Lore, or have an idea for it? Reach out to Colton Marshall.</p>
+  <p>Daily use, migrations after an update, and fixes for common snags are all in <strong>The Keeper's Grimoire</strong> (<code>docs/lore-grimoire.pdf</code>). Want help adopting Lore, or have an idea for it? Reach out to Colton Marshall.</p>
 
   <div class="closing">
     <span class="signet"></span>

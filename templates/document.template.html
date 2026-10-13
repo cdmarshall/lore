@@ -70,6 +70,13 @@
       design-system/charts/demo.html so the file needs no network), apply
       LoreCharts.applyTheme, dither-fill every series. Documents without
       charts stay JavaScript-free.
+
+    Figure (a screenshot or image; embed it as a data: URI so the file stays
+    self-contained, downscaled to ~1600px wide JPEG to keep size sane):
+      <figure class="figure"><img src="data:image/jpeg;base64,..." alt="What it shows">
+        <figcaption>Optional one-line caption.</figcaption></figure>
+    Screenshot placeholder (for one the user will add later): a callout
+    labeled "Screenshot: <subject>" whose body says what to capture.
 -->
 <!DOCTYPE html>
 <html>
@@ -98,7 +105,7 @@
     --dither-arcane-25: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAALElEQVR4AdyMsREAAATEsKBBdAbRGcSE/AK/gDQpchcLrxXAbD2p6ML843AAAAD//wG4TpUAAAAGSURBVAMAHr5AEVOt9y8AAAAASUVORK5CYII=');
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 16px; line-height: 1.55; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 16px; line-height: 1.55; overflow-wrap: break-word; }
   .signet { display: inline-block; background: var(--signet) no-repeat center / contain; image-rendering: pixelated; }
   /* Fluid. Prose stays at a readable measure, but the sheet is never pinned to a
      fixed pixel width, so stat rows and card grids get room instead of wrapping. */
@@ -132,6 +139,11 @@
   .card.arcane h3 { color: var(--arcane); }
   .card p { font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); margin: 0 0 6px; }
   .card p:last-child { margin-bottom: 0; }
+
+  /* Figure (screenshots and images) */
+  .figure { margin: 0 0 14px; break-inside: avoid; }
+  .figure img { display: block; width: 100%; height: auto; border: 2px solid var(--ink); box-shadow: var(--shadow-sprite); }
+  .figure figcaption { font-size: 13px; color: var(--ink-faint); margin-top: 6px; }
 
   /* Callouts */
   .callout { background: var(--card); border: 2px solid var(--ink); padding: 12px 16px 12px; margin: 0 0 14px; position: relative; }
