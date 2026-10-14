@@ -100,6 +100,14 @@ h1 { font-family: 'Jacquard 24', Georgia, serif; font-weight: 400; font-size: 40
  * The pixel font ('Jersey 15') applies only if the page embeds it (the
  * artifact and brief templates show how); otherwise it falls back to
  * monospace, which still reads on-theme.
+ *
+ * Brand packs: when scripts/apply-brand.py brands a page that uses this
+ * theme, it defines window.LORE_BRAND = { charts: {...} } before this script
+ * runs. Its keys override the defaults below: colors (same shape as COLORS,
+ * any subset), series (SERIES_ORDER), ink / inkSoft / inkFaint / paper /
+ * rule, font (family string), fontSize, variant (default seriesStyle variant,
+ * e.g. 'solid'; when set it overrides the variant each call asks for),
+ * radius (bar corner radius) and tension (line curve).
  */
 (function (global) {
   'use strict';
@@ -131,6 +139,17 @@ h1 { font-family: 'Jacquard 24', Georgia, serif; font-weight: 400; font-size: 40
 
   // Series pick up colors in this order when styled by index.
   var SERIES_ORDER = ['gold', 'arcane', 'info', 'success', 'warn', 'danger', 'ink'];
+
+  // Brand pack overrides (see header). Unbranded pages leave all of this alone.
+  var BRAND = (global.LORE_BRAND && global.LORE_BRAND.charts) || null;
+  var FONT = "'Jersey 15', 'Courier New', monospace", FONT_SIZE = 14, VARIANT = 'dotted';
+  if (BRAND) {
+    Object.keys(BRAND.colors || {}).forEach(function (k) { COLORS[k] = BRAND.colors[k]; });
+    if (BRAND.series) SERIES_ORDER = BRAND.series;
+    INK = BRAND.ink || INK; INK_SOFT = BRAND.inkSoft || INK_SOFT; INK_FAINT = BRAND.inkFaint || INK_FAINT;
+    PAPER = BRAND.paper || PAPER; RULE = BRAND.rule || RULE;
+    FONT = BRAND.font || FONT; FONT_SIZE = BRAND.fontSize || FONT_SIZE; VARIANT = BRAND.variant || VARIANT;
+  }
 
   function colorOf(nameOrIndex) {
     if (typeof nameOrIndex === 'number') {
@@ -187,7 +206,7 @@ h1 { font-family: 'Jacquard 24', Georgia, serif; font-weight: 400; font-size: 40
     var name = colorOf(typeof i === 'number' ? i : i);
     var c = COLORS[name];
     var fill;
-    switch (variant) {
+    switch ((BRAND && BRAND.variant) || variant || VARIANT) { // a brand's variant wins: brands don't dither
       case 'solid':   fill = c.main; break;
       case 'hatched': fill = hatchPattern(name); break;
       case 'dense':   fill = ditherPattern(name, 0.6); break;
@@ -207,8 +226,8 @@ h1 { font-family: 'Jacquard 24', Georgia, serif; font-weight: 400; font-size: 40
   // Global Chart.js defaults: pixel chrome, square everything, no easing.
   function applyTheme(Chart) {
     var d = Chart.defaults;
-    d.font.family = "'Jersey 15', 'Courier New', monospace";
-    d.font.size = 14;
+    d.font.family = FONT;
+    d.font.size = FONT_SIZE;
     d.font.weight = 400; // pixel faces ship one weight; never bold them
     d.color = INK_SOFT;
     d.borderColor = RULE;
@@ -216,9 +235,10 @@ h1 { font-family: 'Jacquard 24', Georgia, serif; font-weight: 400; font-size: 40
 
     d.elements.point.pointStyle = 'rect';
     d.elements.point.radius = 4;
-    d.elements.line.tension = 0;         // straight segments, no curves
+    d.elements.line.tension = (BRAND && BRAND.tension) || 0; // straight segments unless a brand curves them
     d.elements.line.borderWidth = 2;
     d.elements.bar.borderWidth = 1.5;
+    if (BRAND && BRAND.radius) d.elements.bar.borderRadius = BRAND.radius;
     d.elements.arc.borderColor = INK;
     d.elements.arc.borderWidth = 1.5;
 
@@ -229,7 +249,7 @@ h1 { font-family: 'Jacquard 24', Georgia, serif; font-weight: 400; font-size: 40
     d.plugins.tooltip.backgroundColor = INK;
     d.plugins.tooltip.titleColor = PAPER;
     d.plugins.tooltip.bodyColor = '#ece7db';
-    d.plugins.tooltip.cornerRadius = 0;   // square corners, always
+    d.plugins.tooltip.cornerRadius = (BRAND && BRAND.radius) || 0; // square unless a brand rounds them
     d.plugins.tooltip.padding = 10;
     d.plugins.tooltip.boxWidth = 10;
     d.plugins.tooltip.boxHeight = 10;

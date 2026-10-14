@@ -1,0 +1,39 @@
+{
+  "_comment": "Brand pack manifest. Copy to brand/brand.json (gitignored) and fill it in; workflows/brand.md walks through it. Keys starting with _ are notes. Delete a key to keep Lore's default for it.",
+  "enabled": true,
+  "name": "<Company or org name>",
+  "css": "brand.css",
+  "logo": {
+    "file": "logo.svg",
+    "alt": "<Exact logo wording, e.g. Acme Inc.>"
+  },
+  "titles": {
+    "_comment": "Optional. Rename Lore's surfaces in the brand's plain voice. Lore stays credited: keep 'by Lore' in a subtitle.",
+    "quest-log": { "title": "Action items", "subtitle": "by Lore" },
+    "herald": { "title": "Daily brief", "subtitle": "by Lore" }
+  },
+  "charts": {
+    "_comment": "Optional. Colors for charts drawn with design-system/charts/chart-theme.js. Each color: main, deep, soft.",
+    "colors": {
+      "primary": { "main": "#000000", "deep": "#000000", "soft": "#f2f2f2" }
+    },
+    "series": ["primary"],
+    "ink": "#222222",
+    "inkSoft": "#4a4a4a",
+    "inkFaint": "#767676",
+    "paper": "#ffffff",
+    "rule": "#e0e0e0",
+    "font": "'Brand UI', system-ui, sans-serif",
+    "fontSize": 12,
+    "variant": "solid",
+    "radius": 4,
+    "tension": 0.35
+  },
+  "sources": {
+    "_comment": "Where the brand came from, so a refresh knows where to look.",
+    "website": "<https://...>",
+    "guidelines": "<link or file in brand/sources/>",
+    "logo": "<link or file>",
+    "fonts": "<where the font files came from and their license>"
+  }
+}

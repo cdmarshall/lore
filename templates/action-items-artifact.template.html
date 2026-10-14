@@ -355,14 +355,16 @@ tr.row-pending-done > td { opacity: 0.55; transition: opacity 0.15s ease; }
 .delegate-other-input { width: 100%; font-family: var(--font-body); font-size: 13px; padding: 6px 10px; border: 2px solid var(--rule); background: var(--card); color: var(--ink); }
 .delegate-other-input:focus { outline: none; border-color: var(--gold); }
 </style>
+<!--lore:brand-style-->
 
 
 <div class="header">
   <div class="header-row">
+    <!--lore:brand-logo-->
     <span class="signet signet-lg" aria-hidden="true" title="Lore"></span>
     <div class="header-title-wrap">
-      <h1>The Quest Log</h1>
-      <div class="header-subtitle">by Lore &middot; your action items</div>
+      <h1 data-lore-title="quest-log">The Quest Log</h1>
+      <div class="header-subtitle" data-lore-subtitle="quest-log">by Lore &middot; your action items</div>
     </div>
     <div class="sync-wrap">
       <div class="sync-dot" id="sync-dot"></div>
@@ -1679,7 +1681,7 @@ async function init() {
     if (!dbNs) {
       setSync('error', 'Not connected');
       showToast('warn',
-        'This view can\'t reach the tracker\'s database, so nothing will load or save here. Open The Quest Log on claude.ai while signed in.',
+        'This view can\'t reach the tracker\'s database, so nothing will load or save here. Open ' + ((document.querySelector('[data-lore-title]') || {}).textContent || 'The Quest Log') + ' on claude.ai while signed in.',
         null, null);
       return;
     }

@@ -1,0 +1,118 @@
+/* ==========================================================================
+   Lore brand layer (committed; ships with every release)
+
+   scripts/apply-brand.py puts this file, then the install's brand/brand.css,
+   into every designed surface when a brand pack exists. This file maps the
+   pack's --brand-* tokens onto the tokens Lore's templates already use, and
+   swaps the pixel-fantasy treatments (dither strips, pixel faces, hard sprite
+   shadows, square corners) for a clean corporate base. A pack only sets
+   tokens and fonts; the mapping lives here so it improves with updates.
+
+   Kept from Lore on purpose: the sprite scroll signet and the "Made by Lore"
+   attribution. A brand changes how Lore's work looks, not who made it.
+
+   Token contract (every one optional; fallbacks are neutral):
+     Surfaces   --brand-bg  --brand-band  --brand-surface  --brand-tint  --brand-tint-line
+     Text       --brand-ink  --brand-ink-soft  --brand-ink-faint
+     Lines      --brand-rule  --brand-rule-soft  --brand-rule-strong
+     Primary    --brand-primary  --brand-primary-deep  --brand-primary-soft  --brand-primary-bright
+     Accent     --brand-accent  --brand-accent-bright  --brand-accent-soft
+                (takes Lore's "arcane" role: Lore chips, triage, Lore-ready)
+     Status     --brand-danger(-soft)  --brand-warn(-soft)  --brand-success(-soft)  --brand-info(-soft)
+     Type       --brand-font-display  --brand-font-ui  --brand-font-body
+                --brand-display-weight  --brand-body-weight  --brand-label-tracking
+     Shape      --brand-radius  --brand-shadow  --brand-shadow-sm
+     Logo       --brand-logo-height
+   ========================================================================== */
+
+:root {
+  --paper: var(--brand-bg, #ffffff);
+  --paper-band: var(--brand-band, #f5f5f5);
+  --card: var(--brand-surface, #ffffff);
+  --parchment: var(--brand-tint, var(--brand-band, #f5f5f5));
+  --parchment-shade: var(--brand-tint-line, var(--brand-rule, #e0e0e0));
+  --ink: var(--brand-ink, #222222);
+  --ink-soft: var(--brand-ink-soft, #4a4a4a);
+  --ink-faint: var(--brand-ink-faint, #767676);
+  --rule: var(--brand-rule, #e0e0e0);
+  --rule-soft: var(--brand-rule-soft, #eeeeee);
+  --gold: var(--brand-primary, #333333);
+  --gold-deep: var(--brand-primary-deep, var(--brand-primary, #222222));
+  --gold-soft: var(--brand-primary-soft, #f0f0f0);
+  --gold-bright: var(--brand-primary-bright, var(--brand-primary, #555555));
+  --arcane: var(--brand-accent, var(--brand-primary, #333333));
+  --arcane-bright: var(--brand-accent-bright, var(--brand-accent, #555555));
+  --arcane-soft: var(--brand-accent-soft, #f0f0f0);
+  --arcane-glow: var(--brand-accent-soft, #f0f0f0);
+  --danger: var(--brand-danger, #b3261e);   --danger-soft: var(--brand-danger-soft, #fbeae9);
+  --warn: var(--brand-warn, #a15c07);       --warn-soft: var(--brand-warn-soft, #fdf1e4);
+  --success: var(--brand-success, #2e7d4f); --success-soft: var(--brand-success-soft, #eaf5ee);
+  --info: var(--brand-info, #2f5a8a);       --info-soft: var(--brand-info-soft, #eaf0f7);
+  --shadow-sprite: var(--brand-shadow, 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05));
+  --shadow-sprite-sm: var(--brand-shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
+  --shadow-press: none;
+  --shadow-arcane: var(--brand-shadow, 0 1px 3px rgba(0,0,0,0.08));
+  --font-display: var(--brand-font-display, system-ui, -apple-system, "Segoe UI", sans-serif);
+  --font-pixel: var(--brand-font-ui, var(--brand-font-display, system-ui, -apple-system, "Segoe UI", sans-serif));
+  --font-ui: var(--font-pixel);
+  --serif: var(--brand-font-body, system-ui, -apple-system, "Segoe UI", sans-serif);
+  --font-body: var(--serif);
+  --dither-gold-12: none; --dither-gold-25: none; --dither-arcane-25: none;
+}
+
+body { font-weight: var(--brand-body-weight, 400); -webkit-font-smoothing: antialiased; }
+
+/* Display type: headlines and big numerals in the brand display face. */
+h1, .masthead-title, .masthead h1, .header h1, .section-head h2, .stat-n, .item-num {
+  font-weight: var(--brand-display-weight, 400);
+  letter-spacing: -0.01em;
+}
+.masthead h1, .masthead-title { line-height: 1.08; }
+
+/* Labels keep Lore's uppercase eyebrow treatment, set in the brand UI face. */
+.kicker, .meta, .masthead-meta, .sh-label, .count, .chip, .badge, .pill, th, .stat-l,
+.card h3, .callout h3, .wk-group h3, .kb-block h3, .foot, .footer, .header-subtitle,
+.sync-label, .qa-label, .pop-label, .delegate-pop-label, .triage-progress, .delegated-section-title {
+  letter-spacing: var(--brand-label-tracking, 0.08em);
+}
+
+/* No dither, no sprite strips: tonal bands become a thin brand rule or go away. */
+.callout::before, .triage-card::before { background-image: none; background-color: var(--gold); height: 3px; }
+.triage-card::before { background-color: var(--arcane); }
+.foot::after, .header::after, .footer::after { display: none; }
+
+/* Corners and edges. */
+.card, .callout, .item, .stat, .chip, .badge, .pill, .count, .talk, .draft-body, .figure img,
+table.doc, table, .delegated-table, .triage-card, .quick-add-box, .sync-wrap, .due-popover,
+.delegate-popover, .tip, .no-results, .toast-action, .age-pill, .flag-chip, .triage-hint,
+.delegate-to-chip, .delegated-count-badge, .chartbox {
+  border-radius: var(--brand-radius, 4px);
+}
+button, input, textarea, select, .qa-agent-toggle { border-radius: var(--brand-radius, 4px); }
+table.doc, table, .delegated-table { border-collapse: separate; border-spacing: 0; overflow: hidden; }
+.card, .callout, table.doc, .triage-card, .due-popover, .delegate-popover { border: 1px solid var(--rule); }
+.figure img { border: 1px solid var(--rule); }
+
+/* Pressed controls settle instead of the sprite "sit down" offset. */
+button:active, .header-btn:active, .qa-add-btn:active, .triage-btn:active { transform: none; }
+
+/* The brand logo (placed by apply-brand.py at the <!--lore:brand-logo--> marker). */
+.brand-logo { display: block; height: var(--brand-logo-height, 28px); width: auto; }
+.masthead { position: relative; }
+.masthead .brand-logo { position: absolute; top: 0; right: 0; }
+.header { position: relative; }
+.header h1 { white-space: nowrap; }
+.header-title-wrap { flex: 0 0 auto; margin-right: auto; }
+.header .brand-logo { position: absolute; right: 24px; bottom: 30px; }
+.brand-byline {
+  font-family: var(--font-pixel); font-size: 13px; text-transform: uppercase;
+  letter-spacing: var(--brand-label-tracking, 0.08em); color: var(--gold-deep); margin: -6px 0 14px;
+}
+.header .brand-byline { margin: 0; }
+
+/* Lore's signet stays: crisp sprite, quietly sized. */
+.signet { image-rendering: pixelated; }
+
+@media (max-width: 620px) {
+  .masthead .brand-logo, .header .brand-logo { position: static; margin: 0 0 12px; }
+}

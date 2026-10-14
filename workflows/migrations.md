@@ -71,6 +71,19 @@ Transcripts now stay in their source; the reference lives on the meeting page (`
 3. **Verify:** count meetings with a `Source ID` against Transcripts rows that had a meeting.
 4. **Ask** whether to move the Transcripts database to Notion's trash (restorable from there for 30 days) or leave it in place. Never trash it without a yes. On a yes, first drop the Meetings `Transcript` relation (`DROP COLUMN "Transcript"`) so meeting pages carry no dead link, then trash the data source. Either way, remove the Transcripts line from `context.md` → Vault Configuration so nothing writes to it again.
 
+### `2026-10-brand-layer`: offer your company's brand, and rescue a customized look (asks, optional)
+
+**Detect:** `brand/brand.json` does not exist.
+
+Lore can now dress its documents, The Herald, the action-items tracker and charts in the user's company or org brand, kept in a gitignored pack that updates never touch (`workflows/brand.md`).
+
+1. **Look for a hand-customized look first.** Some installs changed Lore's styling by editing committed files, which the next update overwrites. Compare them against the shipped release:
+   `python3 -c "import hashlib,json,pathlib;m=json.load(open('release-manifest.json'))['files'];print('\n'.join(f for f,h in m.items() if f.startswith(('design-system/','templates/')) and f.endswith(('.css','.html','.js')) and pathlib.Path(f).is_file() and hashlib.sha256(pathlib.Path(f).read_bytes()).hexdigest()!=h))"`
+   Any file it prints was edited locally. In a git install, `git diff --stat -- design-system templates` says the same.
+2. **Offer once, in one or two lines.** With customized files: "You've customized Lore's look in <files>. The next update would overwrite that. Want me to move it into a brand pack so it sticks? I'd also take your website, a logo link and your brand guidelines or design system, if you have them." Without: "Lore can now dress its documents, brief and tracker in your company's brand. Want to set it up? I'd need your website and, if you have them, a link to your logo and your brand guidelines or design system."
+3. **Yes:** run `workflows/brand.md` → Setup, using the customized files (and their diff against the release) as one of the sources. Only after the pack previews correctly, tell the user the customized files can go back to the release version at the next update; never revert them yourself.
+4. **No:** record the id as done with "declined". The user can say "set up my brand" anytime.
+
 ## Adding a migration (maintainers)
 
 Add a section here with a dated id, a detection check that reads only personal files or connector state, the steps, and whether it asks. Onboarding marks every id in this list done on a fresh install (`workflows/onboarding.md` → Phase 8, step 1a), so no extra wiring is needed. Add a row for it to The Keeper's Grimoire → "Your migrations" (`docs/grimoire.body.html`) and rebuild the guides (`CLAUDE.md` → Key behaviors → Guide upkeep). Never change or reuse an id that has shipped.

@@ -55,6 +55,10 @@ Lore's voice is contract-enforced by `VOICE.md` in the repo. Every artifact this
 
 No font binaries ship with the repo. Substitutions from Google Fonts (loaded via `tokens/fonts.css`): **Jacquard 24** (display) and **Jersey 15** (UI). Body serif is the system Georgia stack from the original brief template — no file needed. If the brand later licenses real pixel faces, replace the `@import` with `@font-face` rules.
 
+## Brand packs
+
+A user can restyle every surface in their company's brand with a brand pack (`brand/` at the repo root, gitignored; `workflows/brand.md`). `templates/brand/brand-layer.css` maps the pack's `--brand-*` tokens onto the tokens below and swaps dither, pixel faces and sprite shadows for a clean base; `scripts/apply-brand.py` injects it. The sprite signet and "Made by Lore" stay in every brand. Charts pick up a pack's colors through `window.LORE_BRAND` (see `charts/chart-theme.js`). When you add a token or a template, extend `brand-layer.css` so branded installs follow.
+
 ## Index
 
 - `styles.css` — global entry; imports everything in `tokens/`.

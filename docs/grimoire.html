@@ -205,9 +205,10 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
     <tr><td><strong>Recaps count your sessions</strong></td><td>Weekly reviews, 1:1 prep and Unrolled include what you did in Claude sessions, and say which sessions they could see.</td></tr>
     <tr><td><strong>Your timezone, on record</strong></td><td>Every time in a brief converts through the zone you gave Lore, never a guess.</td></tr>
     <tr><td><strong>Screenshots in documents</strong></td><td>Preps and reports can carry images inline.</td></tr>
-    <tr><td><strong>Preps open as a link</strong> <em>(next update)</em></td><td>1:1 preps, briefs and reports publish as a private claude.ai page, so you get a link to open, reopen and share. A copy still lands in <code>outbox/</code>.</td></tr>
+    <tr><td><strong>Your company's brand</strong> <em>(v1.2.0)</em></td><td>Say "set up my brand": documents, briefs, the tracker and charts take your company's look.</td></tr>
+    <tr><td><strong>Preps open as a link</strong> <em>(v1.1.3)</em></td><td>1:1 preps, briefs and reports publish as a private claude.ai page, so you get a link to open, reopen and share. A copy still lands in <code>outbox/</code>.</td></tr>
     <tr><td><strong>Front in triage</strong> <em>(v1.1.2)</em></td><td>The Herald sweeps Front: your email when Front carries it, and shared inboxes, with private reply drafts in Front. Each email is handled once, even if Outlook sees it too.</td></tr>
-    <tr><td><strong>Recordings stay in their app</strong> <em>(v1.1.1)</em></td><td>Lore no longer copies full transcripts into your notes. Each meeting note carries a link back to the recording and keeps your own notes and highlights word for word, so processing uses far fewer tokens. Notion libraries lose their Transcripts database (a migration).</td></tr>
+    <tr><td><strong>Recordings stay in their app</strong> <em>(v1.1.1)</em></td><td>Meeting notes link back to the recording instead of copying the transcript, and keep your own notes word for word. Notion libraries lose their Transcripts database (a migration).</td></tr>
   </table>
 
   <div class="callout arcane">
@@ -232,6 +233,7 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
     <tr><td><strong>Session history folder</strong></td><td>Creates the folder recaps read your Claude Code history from.</td><td>No</td></tr>
     <tr><td><strong>Retire old snapshot files</strong></td><td>Offers to move old snapshot files into <code>inbox/archive/</code>. Never deletes them.</td><td>Yes</td></tr>
     <tr><td><strong>Retire Notion Transcripts</strong></td><td>Notion libraries only. Moves each recording link onto its meeting page, then offers to put the old Transcripts database in Notion's trash.</td><td>Yes, before the trash</td></tr>
+    <tr><td><strong>Your company's brand</strong></td><td>One offer to put Lore's work in your brand, keeping any look you set by editing Lore's files.</td><td>Yes, once</td></tr>
     <tr><td><strong>Offer Notion</strong></td><td>If Notion is connected, one offer to move your knowledge base there. Say no and it won't ask again.</td><td>Yes, once</td></tr>
   </table>
 
@@ -242,7 +244,7 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
     <tr><td>Wait until later</td><td class="say">"Later" (it asks again next session)</td></tr>
     <tr><td>See what's done</td><td class="say">"Which migrations have run?"</td></tr>
   </table>
-  <p class="tight">The record lives in <code>inbox/.migrations</code>, one line per finished step. Each one checks before it acts, so running it twice changes nothing.</p>
+  <p class="tight">Finished steps are listed in <code>inbox/.migrations</code>; running one twice changes nothing.</p>
 
   <div class="callout">
     <h3>After the Quest Log moves</h3>
@@ -374,6 +376,7 @@ table.guide td.when { font-family: var(--font-pixel); font-size: 10.5pt; letter-
     <tr><td>Friday</td><td class="say">"Run my weekly review" &middot; "Lint the vault"</td></tr>
     <tr><td>Quarter's end</td><td class="say">"Unroll my scroll"</td></tr>
     <tr><td>Housekeeping</td><td class="say">"Update Lore" &middot; "Check my connectors"</td></tr>
+    <tr><td>Your company's look</td><td class="say">"Set up my brand" &middot; "Turn off my brand"</td></tr>
   </table>
 
   <div class="section-head"><span class="sh-label">Getting the most from recaps</span></div>

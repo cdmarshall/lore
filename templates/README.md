@@ -17,6 +17,10 @@ Canonical file templates used by Lore's onboarding workflow and ongoing operatio
 | `triage-config.template.md` | triage workflow | First-run scaffold for `triage-config.md` (operational config) |
 | `document.template.html` | 1:1 prep, roundtable prep, reports, talk tracks, any polished outward deliverable | The signed-document template: design-system-styled, self-contained HTML (embedded fonts + signet) with a masthead, a documented block library (sections, cards, callouts, tables, checklists, talk tracks), and the Made-by-Lore footer. Fill tokens and compose the body from its blocks; see the header comment. |
 | `action-items-artifact.template.html` | onboarding, template refreshes | The Quest Log page, in hosted-artifact shape (no doctype/html/head/body; the publish wrapper adds them). Published as-is with the `db`, `user` and `downloads` capabilities; items live in the artifact's database, not in the page, so there is no seed to substitute. Styled with the Lore design system (`design-system/` at the repo root), pixel fonts embedded as data URIs. Includes the triage pile (Do now / Already done / Schedule / Delegate / Delete), the add form, an undoable deferred complete, and snapshot export/restore. |
+| `brand/brand-layer.css` | `scripts/apply-brand.py` | The committed brand layer: maps a brand pack's `--brand-*` tokens onto every template's tokens and swaps the pixel treatments for a clean base. Users never edit it; their pack lives in `brand/`. |
+| `brand/brand.template.json`, `brand/brand.template.css` | `workflows/brand.md` | Starters for a user's brand pack (`brand/brand.json`, `brand/brand.css`). |
+
+Every HTML template carries `<!--lore:brand-style-->` and `<!--lore:brand-logo-->` markers and a `data-lore-title` attribute on its title. Leave them in place; `scripts/apply-brand.py` fills them when the user has a brand pack, and they stay inert comments when not.
 
 ## Conventions
 

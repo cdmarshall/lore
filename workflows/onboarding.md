@@ -255,6 +255,16 @@ If no, skip to Phase 8. If yes, continue with whichever connectors are present.
 
 ---
 
+## Phase 7.65, Your company's look (optional)
+
+Ask once, before the first Herald and the tracker exist, so they come out right:
+
+> "Want Lore's documents, daily brief and action-items tracker in your company's brand instead of Lore's parchment look? If so, send your company website and, if you have them, a link to the logo and your brand guidelines or design system. You can also do this later by saying 'set up my brand'."
+
+Yes: run `workflows/brand.md` → Setup (keep the preview short). No or later: skip. Either way, `2026-10-brand-layer` is marked done in Phase 8 with the rest.
+
+---
+
 ## Phase 7.7, Daily brief schedule
 
 Goal: every install leaves onboarding with at least 1 scheduled triage per weekday, so a designed brief shows up without being asked. Runs only if `context.md` → Connectors has an **email** or **team chat** tool with status `connected` and a triage adapter in `workflows/triage.md`; if none, skip with one line naming their tools ("Once you connect <their email tool> or <their chat tool>, say 'schedule my triage' and I'll set up your daily brief.").

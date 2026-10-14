@@ -18,6 +18,9 @@
     4. Never leave a {{TOKEN}} in the output. All copy follows VOICE.md.
        NO EM DASHES.
     5. Write to outbox/ (or the path the workflow specifies) as .html.
+    6. Brand it: python3 scripts/apply-brand.py <that file>. No brand pack in
+       brand/ means no change. Leave the <!--lore:brand-style--> and
+       <!--lore:brand-logo--> markers where they are; the script fills them.
 
   BLOCK LIBRARY (copy, fill, repeat as needed):
 
@@ -207,16 +210,18 @@
   .foot .made { display: flex; align-items: center; gap: 7px; }
   .foot .signet { width: 15px; height: 18px; }
 </style>
+<!--lore:brand-style-->
 </head>
 <body>
 <div class="sheet">
 
   <header class="masthead">
+    <!--lore:brand-logo-->
     <span class="signet" aria-hidden="true"></span>
     <!-- {{DOC_KICKER}}: the document type, e.g. "1:1 prep" / "Roundtable prep" / "Report". -->
     <div class="kicker">{{DOC_KICKER}}</div>
     <!-- {{DOC_TITLE}}: the subject, e.g. "Hannah" or "Q3 lead-source report". -->
-    <h1>{{DOC_TITLE}}</h1>
+    <h1 data-lore-title="document">{{DOC_TITLE}}</h1>
     <!-- {{DOC_META_LEFT}}: the long date. {{DOC_META_RIGHT}}: context (e.g. "Friday 10:00 / Teams"); drop its span if unused. -->
     <div class="meta"><span>{{DOC_META_LEFT}}</span><span>{{DOC_META_RIGHT}}</span></div>
   </header>

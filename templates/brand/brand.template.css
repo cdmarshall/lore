@@ -1,0 +1,41 @@
+/* Brand pack styles. Copy to brand/brand.css (gitignored) and fill in.
+   Set tokens only; templates/brand/brand-layer.css maps them onto every
+   Lore surface. url(...) paths are relative to brand/ and get inlined as
+   data URIs by scripts/apply-brand.py, so outputs stay self-contained.
+
+   Fonts: embed files you are licensed to use (open-licensed families from
+   npm @fontsource/<family> work well). For a licensed face you can't embed,
+   put local('<Font Name>') first so machines that have it installed use it,
+   then fall back to an embedded look-alike. */
+
+@font-face { font-family: 'Brand Display'; font-weight: 400; font-display: swap;
+  src: local('<Display Font>'), url(fonts/<display-400>.woff2) format('woff2'); }
+@font-face { font-family: 'Brand Body'; font-weight: 400; font-display: swap;
+  src: url(fonts/<body-400>.woff2) format('woff2'); }
+
+:root {
+  --brand-bg: #ffffff;
+  --brand-band: #f5f5f5;
+  --brand-surface: #ffffff;
+  --brand-tint: #f7f7f7;
+  --brand-tint-line: #e6e6e6;
+  --brand-ink: #222222;
+  --brand-ink-soft: #4a4a4a;
+  --brand-ink-faint: #767676;
+  --brand-rule: #e0e0e0;
+  --brand-rule-soft: #eeeeee;
+  --brand-primary: #000000;
+  --brand-primary-deep: #000000;
+  --brand-primary-soft: #f2f2f2;
+  --brand-accent: #000000;
+  --brand-accent-soft: #f2f2f2;
+  --brand-font-display: 'Brand Display', system-ui, sans-serif;
+  --brand-font-ui: 'Brand Display', system-ui, sans-serif;
+  --brand-font-body: 'Brand Body', system-ui, sans-serif;
+  --brand-display-weight: 400;
+  --brand-body-weight: 400;
+  --brand-radius: 4px;
+  --brand-logo-height: 28px;
+}
+
+/* Brand-specific touches go below, sparingly. */

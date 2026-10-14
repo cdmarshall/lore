@@ -119,14 +119,14 @@ Use `add` only when the item clearly needs no decision (the user asked for it di
 
 ## Creating the tracker (onboarding, or a missing tracker)
 
-1. Publish `templates/action-items-artifact.template.html` with the `Artifact` tool: `icon: "checklist"`, `description: "Lore's action-items tracker"`, and `capabilities: {"db": {"rules": [{"path": "", "read": "admin", "write": "admin"}]}, "user": {}, "downloads": true}`. The file must be in the session's working area: in a cloud Cowork session, stage it from the repo first. The template is already in hosted shape (no doctype or html/head/body).
+1. Brand a copy first: `python3 scripts/apply-brand.py templates/action-items-artifact.template.html -o outbox/action-items.artifact.html` (no brand pack: an identical copy). Publish that copy with the `Artifact` tool: `icon: "checklist"`, `description: "Lore's action-items tracker"`, and `capabilities: {"db": {"rules": [{"path": "", "read": "admin", "write": "admin"}]}, "user": {}, "downloads": true}`. The file must be in the session's working area: in a cloud Cowork session, stage it from the repo first. The template is already in hosted shape (no doctype or html/head/body).
 2. Record the returned URL and today's date in `context.md` → "Notes for Lore" → "Quest Log".
 3. Write `meta/settings` with `{ "teamMembers": [...] }` from `team/` (or the knowledge base's people with `relationship: direct-report`).
 4. One functional check: `ArtifactData` `list` on `items` (empty is expected), then tell the user the tracker is ready and that only they can see it until they share it.
 
 ## Updating the tracker's page
 
-After a template change (a Lore update, a theme change): publish the template again with `url` set to the Quest Log URL and **no** `capabilities` field, which keeps the stored declaration. Passing `{}` would clear it and break the page. Items are untouched by a republish; they live in the database, not the page.
+After a template change (a Lore update, a brand change from `workflows/brand.md`): make the branded copy as in "Creating the tracker" step 1, then publish it with `url` set to the Quest Log URL and **no** `capabilities` field, which keeps the stored declaration. Passing `{}` would clear it and break the page. Items are untouched by a republish; they live in the database, not the page.
 
 ## Restore-from-backup (opt-in only)
 

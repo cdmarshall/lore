@@ -122,6 +122,12 @@
 
 - **Timezone:** <IANA name, e.g. America/Phoenix>. Every rendered time converts through this zone; Lore never guesses it (`workflows/_conventions.md` → Timezone).
 
+### Brand
+
+> Set by `workflows/brand.md`. Leave empty to use Lore's own look.
+
+- **Brand pack:** <Company name>, set up <YYYY-MM-DD>, pack in `brand/` (gitignored)
+
 ### Quest Log
 
 > The hosted action-items tracker. Lore writes this during onboarding; it reads and writes the tracker's database directly.

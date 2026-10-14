@@ -49,6 +49,7 @@ lore/
 ├── update-channel.json  release channel: the GitHub repo whose Releases package installs check [committed]
 ├── release-manifest.json inventory of the current release's files        [committed]
 ├── design-system/       visual identity: tokens, components, dithers, sprite signet; all designed surfaces use it [committed]
+├── brand/               the user's company/org brand pack (brand.json, brand.css, logo, fonts); README committed, pack [GI]
 ├── STATE.md             session memory: facts, failures, resume point   [GI]
 ├── commitments.md       promise ledger (filesystem mode; vault has Commitments.md) [GI]
 ├── context.md           user role/team/priorities (READ FIRST)          [GI]
@@ -106,6 +107,7 @@ Read the matching file and follow it.
 | "update Lore" / "get the latest version" / "pull the latest updates" | `workflows/update.md` |
 | "run migrations" / "finish the update" / "migrate my setup" | `workflows/migrations.md` |
 | "what's new" / "open the grimoire" / "how do I use Lore" | `docs/lore-grimoire.pdf` (source `docs/grimoire.body.html`): answer from it and point the keeper at the page. |
+| "set up my brand" / "use my company's branding" / "refresh my brand" / "turn off my brand" | `workflows/brand.md` |
 | "check my connectors" / "what can you reach" / "I connected <tool>" / "I switched <role> to <tool>" | `workflows/connectors.md` |
 | "what am I waiting on" / "show my commitments" / "who owes me what" / "track this promise" | `workflows/commitments.md` |
 | "what's in my triage queue" / "what's pending review" | `workflows/action-items.md` → Action item triage |
@@ -156,6 +158,7 @@ Read the matching file and follow it.
 
 ## Creating outputs
 
+- **Brand every designed output (hard rule):** after filling any HTML template (document, Herald, tracker), run `python3 scripts/apply-brand.py <file>`; for an Artifact publish, make the copy with `--artifact <copy> --title "<title>"`. No pack in `brand/` means no change. A pack restyles Lore's work in the user's company brand but never removes the signet or "Made by Lore". `workflows/brand.md`.
 - **Every polished outward deliverable is a styled HTML document**, not a bare markdown file: 1:1 preps, meeting/roundtable preps, reports, scorecards, talk tracks. Build it from `templates/document.template.html` (fill the masthead tokens, compose the body from its block library) and write it to `outbox/` as `.html`, then publish it as a claude.ai artifact (Artifact tool) and give the user the link. Publishing is the default delivery, not opt-in. Markdown is for records and internals (vault notes, weekly-review entries, decision log, staged drafts) or when the user explicitly asks for it. The Herald and The Quest Log have their own templates; everything else uses this one.
 - Reports, exports, CSVs, scorecards → `outbox/`
 - Meeting summaries → `meetings/notes/YYYY-MM-DD-name.md` (`templates/meeting-note.template.md`)

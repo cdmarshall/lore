@@ -37,6 +37,9 @@
        against encoding issues; Colton's own drafted reply text can keep
        whatever punctuation he'd actually use (smart quotes are fine there
        per context.md's Email Writing Style).
+    7. Brand it: python3 scripts/apply-brand.py <the written file>. No brand
+       pack in brand/ means no change. Leave the <!--lore:brand-style--> and
+       <!--lore:brand-logo--> markers in place; the script fills them.
 
   Placeholder inventory is documented inline above each region.
 -->
@@ -401,11 +404,13 @@
     padding: 4px 0;
   }
 </style>
+<!--lore:brand-style-->
 
 <div class="sheet">
 
   <!-- MASTHEAD ============================================================ -->
   <header class="masthead">
+    <!--lore:brand-logo-->
     <div class="masthead-mark"><span class="signet" aria-hidden="true"></span></div>
     <!-- {{BRIEF_TITLE}}: full masthead title. The brief is The Herald.
          If triage-config.md records BOTH a morning and an afternoon brief
@@ -413,7 +418,7 @@
          Morning Herald" / "The Monday Afternoon Herald" (pick by which task
          fired; before/after noon local as the fallback). With one window
          or fewer, and for every on-demand run: "The Monday Herald". -->
-    <h1 class="masthead-title">{{BRIEF_TITLE}}</h1>
+    <h1 class="masthead-title" data-lore-title="herald">{{BRIEF_TITLE}}</h1>
     <div class="masthead-meta">
       <!-- {{DATE_LONG}}: long-form date, e.g. "July 6, 2026". Rendered small-caps. -->
       <span class="date">{{DATE_LONG}}</span>
