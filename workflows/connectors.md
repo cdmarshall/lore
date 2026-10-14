@@ -18,7 +18,7 @@ Ask about roles, never about vendors. The examples are only prompts for the user
 | **Meeting notes and transcripts** | "How do your meetings get recorded or transcribed, if at all?" | Transcript processing, action-item proposals | A voice recorder app (Plaud and others), Notion AI meeting notes, Zoom, Teams or Meet transcripts, none |
 | **Work tracker** | "Where does your team track work: tickets, issues, projects?" | Linked-issue context in triage drafts, recaps, specialist hand-offs | Linear, Jira, Asana, GitHub Issues |
 | **Docs and wiki** | "Where do specs, docs and team pages live?" | Linked-doc context in drafts, document ingest | Notion, Confluence, Google Drive, SharePoint |
-| **Service or shared inbox** | "Do you work a shared or customer-facing inbox?" | (Future) triage source | Front, Zendesk, Help Scout, Intercom |
+| **Service or shared inbox** | "Do you work a shared or customer-facing inbox?" | Triage source (Front today); a Front inbox that syncs the user's mailbox also serves the Email role | Front, Zendesk, Help Scout, Intercom |
 | **Knowledge base** (Lore's own memory) | "Where do you want me to keep notes about people, projects and decisions?" | Storage mode | This folder (default), an Obsidian vault, Notion |
 | **Anything else** | "Any other tool you live in that I should know about?" | Scoped lookups | CRM, analytics, design tools |
 

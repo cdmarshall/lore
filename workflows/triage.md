@@ -1,6 +1,6 @@
 # Unified Triage (Email + Slack + Teams)
 
-Multi-source, draft-and-hold triage. Each run sweeps Outlook email, Slack, and Microsoft Teams for items needing the user's attention, drafts responses grounded in the knowledge base, and never sends. The user reviews and hits send. The single triage entry point for the workspace: it replaces the older Mac Mail `email-triage.md` and sources email from the Microsoft 365 connector.
+Multi-source, draft-and-hold triage. Each run sweeps email (Outlook directly, or through Front), Front shared inboxes, Slack, and Microsoft Teams for items needing the user's attention, drafts responses grounded in the knowledge base, and never sends. The user reviews and hits send. The single triage entry point for the workspace: it replaces the older Mac Mail `email-triage.md` and sources email from the Microsoft 365 connector.
 
 Generic across users. User-specific data lives in `triage-config.md` (root, created on first run) and `context.md`. It defines its own email tier framework (below) and reads sender lists from `email-config.md` when present.
 
@@ -8,20 +8,21 @@ All output follows VOICE.md. Storage mode: see `_conventions.md` → Storage-mod
 
 ## Design principles
 
-- **Draft-and-hold.** Drafts only, never sends. Slack and email drafts are native: Slack lands in "Drafts & Sent", email lands in the Outlook Drafts folder via `outlook_create_reply_draft` / `outlook_create_reply_all_draft` / `outlook_create_draft`. Teams still stages as paste-ready files (its connector remains read-only for writes; revisit this once it gains a draft or send tool).
+- **Draft-and-hold.** Drafts only, never sends. Slack and email drafts are native: Slack lands in "Drafts & Sent", email lands in the Outlook Drafts folder via `outlook_create_reply_draft` / `outlook_create_reply_all_draft` / `outlook_create_draft`. Front drafts are native too: a private draft on the conversation via `create_draft`. Teams still stages as paste-ready files (its connector remains read-only for writes; revisit this once it gains a draft or send tool).
 - **Vault is the brain.** Every draft is grounded in vault entities plus `context.md` initiatives.
 - **Additive knowledge refresh only.** May append observations and log decisions after drafting; never overwrites (`_conventions.md` → Linking and deduplication). Every write is listed in the briefing.
 - **Incremental.** Each run looks only at activity since the last run, using per-source processed trackers and a last-run timestamp. Stale threads are skipped.
 
 ## Connector dependencies
 
-**Which sources run** comes from `context.md` → Tools & Integrations → Connectors (`workflows/connectors.md`): sweep the email and team-chat tools recorded there as `connected`, and use the recorded work-tracker and docs tools for link enrichment. A recorded tool with no adapter below (Gmail, Google Chat, Front, for now) is listed once in the briefing as "not swept yet" and skipped. Never sweep a connector the user didn't name for that role. If the Connectors table is missing (an older install), run the detection steps of `workflows/connectors.md` first.
+**Which sources run** comes from `context.md` → Tools & Integrations → Connectors (`workflows/connectors.md`): sweep the email and team-chat tools recorded there as `connected`, and use the recorded work-tracker and docs tools for link enrichment. A recorded tool with no adapter below (Gmail, Google Chat, for now) is listed once in the briefing as "not swept yet" and skipped. Never sweep a connector the user didn't name for that role. If the Connectors table is missing (an older install), run the detection steps of `workflows/connectors.md` first.
 
 Adapters available today, with tool names as logical names; resolve each by its suffix (the MCP prefix differs per install).
 
 | Source | Connector | Capability | Tools used |
 |--------|-----------|------------|------------|
 | Email | Microsoft 365 | Read + write (drafts) | `outlook_email_search`, `read_resource`, `outlook_create_reply_draft`, `outlook_create_reply_all_draft`, `outlook_create_draft`, `outlook_update_draft` |
+| Email via Front, and shared inboxes | Front | Read + write (drafts) | `search_conversations`, `read_conversation`, `read_message`, `create_draft`, `list_drafts` |
 | Teams | Microsoft 365 | Read-only | `chat_message_search`, `read_resource` |
 | Slack | Slack | Read + write (drafts) | `slack_search_users`, `slack_search_channels`, `slack_search_public_and_private`, `slack_read_channel`, `slack_read_thread`, `slack_read_user_profile`, `slack_send_message_draft` |
 | Jira / Confluence | Atlassian | Read-only | `getJiraIssue`, `searchJiraIssuesUsingJql`, `getConfluencePage`, `searchConfluenceUsingCql` |
@@ -47,7 +48,7 @@ Check whether `triage-config.md` exists at the workspace root.
 1. `context.md`: team, boss, key stakeholders, active initiatives, terminology corrections, and **Email Writing Style** (the voice all drafts match).
 2. `triage-config.md` (root): per-source scope. Slack project channels (name + ID), Teams key people, email tier overrides, the user's own Slack user ID, scope rules.
 3. `email-config.md` (root), if present: reuse its sender lists and tier framework for the email pass.
-4. Processed trackers in `inbox/`: `.slack-processed`, `.teams-processed`, `.email-processed` (append-only; one ID per line).
+4. Processed trackers in `inbox/`: `.slack-processed`, `.teams-processed`, `.email-processed`, `.front-processed` (append-only; one entry per line).
 5. `inbox/.triage-last-run`: ISO 8601 timestamp of the previous run. If absent, default the window to the last 24 hours and note it in the briefing.
 6. The vault under the configured subfolder (from `context.md` → "Vault Configuration"; default `Lore/`; substitute that value for any `Lore/<path>` references here).
 
@@ -112,6 +113,8 @@ Applied to each new email. Stop at the first matching rule. Anchored on `context
 
 ### 1. Email pass (Outlook, via MS365 connector)
 
+Skip this pass for any mailbox that step 1b owns (a Front personal inbox carries it; see "One source per email" in 1b).
+
 1. `outlook_email_search` with `afterDateTime = window_start`, `order = newest`, `folderName = Inbox`. Page through results.
 2. Drop any email whose `Message-ID` is already in `inbox/.email-processed`.
 3. For each new email, parse From, To, Cc, Subject, Date. Pull the body with `read_resource` on the returned URI when a draft is likely.
@@ -120,6 +123,28 @@ Applied to each new email. Stop at the first matching rule. Anchored on `context
    - If draft creation fails for any reason (rate limit, validation, connector error), fall back to staging the reply as a file in `outbox/drafts/email/` as before, and note the fallback in the briefing so the user knows to paste it manually.
 6. Capture the deep link for each item surfaced (for the HTML brief): **if a native draft was created in step 5, use the draft's own `webLink`**, but read it back from the Drafts folder, not from the create call. The `webLink` the `outlook_create_reply_draft` / `outlook_create_reply_all_draft` / `outlook_create_draft` response returns is built from an immutable-id form (`ItemID=AAkALgAAAAAAHYQDEapmEc2byACqAC...`) that does not resolve in this mailbox; three such links shipped in the 2026-10-02 brief before the verifier caught them. After creating the batch, run one `outlook_email_search` with `folderName = "Drafts"`, `order = "newest"`, match each draft by subject and recipients, and use the `webLink` from that result so "Open in Outlook" opens straight to the draft, not the original message. For items with no draft (Tier 2/3, FYI, or a fallback to a staged file): use the source message's `webLink`; if absent, build `https://outlook.office.com/mail/deeplink/read/<messageId>`. If neither can be constructed, leave the link empty and the brief shows the item without one. (Links only open from the brief if the anchor carries `target="_blank"`; the template handles this, see `templates/brief.template.html`.)
 7. Append processed Message-IDs to `inbox/.email-processed`.
+
+### 1b. Front pass (email through Front, and shared inboxes)
+
+Runs when `context.md` → Connectors records Front as `connected`, either for the **Service or shared inbox** role or as the way the **Email** role is read (the user's mailbox is synced into a Front personal inbox). Scope comes from `context.md` → Front scope and `triage-config.md` → Front: the personal inbox id and any shared inbox ids. Front writes are attributed to the user, so this pass only reads and drafts.
+
+**One source per email (dedup).** The same message can be visible in more than one place: the user's mailbox natively (step 1) and through a Front inbox that syncs it, or a shared inbox that also copies the user. Lore triages and drafts each email once.
+- **Front wins when it carries the mailbox.** If a Front personal inbox carries the user's address (its channel `address` matches the Email role), this pass owns that mailbox and step 1 skips it entirely, even when Microsoft 365 is connected: Front adds assignment, comments and shared drafts that Outlook lacks. `triage-config.md` → Email can override this with `Email client: Outlook`.
+- **Cross-source match.** Whenever two sources are both swept, drop the second sighting of the same message before drafting: match on the internet Message-ID when both sides expose it, otherwise on sender address + normalized subject + sent time within 2 minutes. Keep the Front copy; record the dropped one in its own tracker so it isn't reconsidered.
+- **One draft per thread.** Before creating any email draft, check the other source for an existing draft on the same thread (Front: `drafts` on `read_conversation`; Outlook: the Drafts folder). If one exists, don't create a second; list it under Needs You with a link to the existing draft.
+
+When Microsoft 365 is not connected, this pass owns the email sweep and the Email tier framework applies to it unchanged.
+
+1. For each inbox in scope, `search_conversations` with `filters.inboxId`, `filters.status = "open"`, and `filters.after` = the calendar day **before** `window_start` (the filter takes a date, not a time), `scope = "all_inboxes"` for shared inboxes. Page with `cursor`. Keep conversations whose `updatedAt` is after `window_start`.
+   - **Archived means handled.** Front archives a conversation when the user archives it (in Front, or in Outlook for a synced mailbox) and auto-archives it when the user replies. Skip `archived`, `trashed` and `spam` conversations; never reopen, archive, tag, assign, or comment on anything.
+2. Drop any conversation whose newest message id is already in `inbox/.front-processed` (one `<conversation id> <message id>` pair per line).
+3. `read_conversation` (limit 10) for each remaining one. The timeline is newest first; each entry's `kind` is `message_inbound` or `message_outbound`.
+   - **Already-answered check:** if the newest message entry is `message_outbound`, the user (or a teammate, in a shared inbox) already replied: no draft, FYI at most.
+   - If the first page lists `drafts`, a draft already exists on this conversation: do not add another; list it under Needs You as "draft already in Front."
+4. Classify: personal-inbox mail uses the Email tier framework (pull sender and recipients with `read_message` on the newest inbound message). Shared-inbox conversations are draftable only when assigned to the user (`assigneeId` = the user's teammate id) or when the newest inbound message names or @mentions them; unassigned shared-inbox traffic is summarized under FYI by inbox, never drafted.
+5. For each item that needs a reply, re-read the conversation immediately before the write (a newer message can arrive mid-run), then draft per step 4 and create a **native Front draft**: `create_draft` with `conversationId`, `bodyFormat = "plain"`, `shared = false` (a private draft only the user sees), and no `to` / `cc` / `bcc` so it replies to the original recipients. Never call `send_message`. If creation fails, stage the reply under `outbox/drafts/email/` and say so in the briefing.
+6. Deep link for the HTML brief: `https://app.frontapp.com/open/<conversation id>`. It opens the conversation with the draft attached.
+7. Append `<conversation id> <newest message id>` for every conversation looked at to `inbox/.front-processed`.
 
 ### 2. Slack pass
 
@@ -255,12 +280,15 @@ On any fail, revise once addressing the specific gaps the verifier named, then p
 ```markdown
 # Triage: YYYY-MM-DD HH:MM
 
-📜 *Window: <window_start> to <run_start>. Email: N new / D drafted. Slack: N new / D drafted. Teams: N new / D drafted.*
+📜 *Window: <window_start> to <run_start>. Email: N new / D drafted. Front shared: N new / D drafted. Slack: N new / D drafted. Teams: N new / D drafted.*
 
 ## Needs you (drafts ready)
 
 ### Email
-- **Sender**: "Subject" (HH:MM). What they need. *Native draft created in your Outlook Drafts folder.* [link] (Or, if native draft creation failed: *Draft staged: outbox/drafts/email/<file>.md*.)
+- **Sender**: "Subject" (HH:MM). What they need. *Native draft created in your Outlook Drafts folder.* [link] (Or, if native draft creation failed: *Draft staged: outbox/drafts/email/<file>.md*.) Through Front: *Private draft created on the Front conversation.* [link]
+
+### Front shared inboxes
+- **Inbox name / sender**: "Subject" (HH:MM). Assigned to you or names you. *Private draft created in Front.* [link]
 
 ### Slack
 - **Person** in #channel (HH:MM). What they need. *Native draft created in your Drafts & Sent.* [link]
@@ -315,7 +343,8 @@ Does NOT auto-push to the action items artifact. The briefing flags candidates; 
 1. Greet with the signet (📜). Explain unified triage is being set up for the first time.
 2. **Chat discovery (Slack):** if Slack is the recorded team-chat tool, confirm the Slack connector is present. Resolve the user's own Slack user ID. Use `slack_search_channels` to list channels the user is in. Propose a starter set of project channels by matching channel names against `context.md` Active Initiatives. Let the user confirm or edit.
 3. **Chat discovery (Teams):** if Teams is a recorded team-chat tool, confirm the MS365 connector is present. Propose key people to watch from `context.md` team and stakeholders. Note DMs and @mentions are drafted, group chats summarized only.
-4. **Email (Outlook):** if Outlook is the recorded email tool: if `email-config.md` exists, reuse it. If not, copy `templates/email-config.template.md` to `email-config.md` and populate it by sampling the inbox (`outlook_email_search`): classify senders into tiers using `context.md` as anchor, identify automated sources and distribution lists. The Email tier framework lives here, so no separate email workflow is needed.
+4. **Email (Outlook):** if Outlook is the recorded email tool: if `email-config.md` exists, reuse it. If not, copy `templates/email-config.template.md` to `email-config.md` and populate it by sampling the inbox (`outlook_email_search`): classify senders into tiers using `context.md` as anchor, identify automated sources and distribution lists. The Email tier framework lives here, so no separate email workflow is needed. If the mailbox is read through Front instead (Microsoft 365 not connected), sample it the same way with `search_conversations` on the personal inbox and `read_message`.
+4b. **Front:** if Front is connected, `list_inboxes` and confirm with the user which inboxes to watch: the personal inbox when it carries their mailbox, and any shared inboxes they work. Record the ids under `### Front` in `triage-config.md`. Initialize an empty `inbox/.front-processed`.
 5. Copy `templates/triage-config.template.md` to `triage-config.md` and populate it from the discovery above.
 6. Initialize empty `inbox/.slack-processed` and `inbox/.teams-processed` (reuse `inbox/.email-processed`). Write the current time to `inbox/.triage-last-run` so the first real run starts incremental.
 7. Offer a one-time backlog sweep.
@@ -325,7 +354,7 @@ Does NOT auto-push to the action items artifact. The briefing flags candidates; 
 
 Every install should end up with at least 1 scheduled triage per weekday so a brief lands without being asked. Onboarding runs this (Phase 7.7); it can also run anytime the user says "schedule my triage" or "put my brief on a schedule."
 
-1. Requires at least one messaging connector (Microsoft 365 or Slack) and a populated `triage-config.md` (run Fresh setup first if missing).
+1. Requires at least one messaging connector (Microsoft 365, Front, or Slack) and a populated `triage-config.md` (run Fresh setup first if missing).
 2. Ask the cadence (multiple choice): **Morning brief (recommended)** at 9:00, **Afternoon brief** at 15:00, or **Both**. Offer to adjust the times; use the user's local timezone.
 3. Create one scheduled task per chosen slot via `mcp__scheduled-tasks__create_scheduled_task`, weekdays only (cron `0 9 * * 1-5` / `0 15 * * 1-5`), named `triage-morning` / `triage-afternoon`, with exactly this prompt (fill the placeholder):
 
@@ -343,13 +372,15 @@ Every install should end up with at least 1 scheduled triage per weekday so a br
 - `outbox/drafts/teams/`: staged paste-ready drafts (Teams only; email and Slack create native drafts directly, see below). `outbox/drafts/email/` is now a fallback path only, used when native Outlook draft creation fails.
 - Native Outlook drafts in the user's Drafts folder.
 - Native Slack drafts in the user's "Drafts & Sent."
+- Private Front drafts on the conversations they answer.
 - Additive vault updates (observations, decisions), each listed in the briefing.
-- `inbox/.slack-processed`, `inbox/.teams-processed`, `inbox/.email-processed`, `inbox/.triage-last-run`: state tracking.
+- `inbox/.slack-processed`, `inbox/.teams-processed`, `inbox/.email-processed`, `inbox/.front-processed`, `inbox/.triage-last-run`: state tracking.
 - `triage-config.md` (root): created on first setup; edited by the user as scope evolves.
 
 ## A few non-obvious rules
 
 - **Never send.** Slack drafts use `slack_send_message_draft`, never `slack_send_message` or `slack_schedule_message`. Email drafts use `outlook_create_reply_draft` / `outlook_create_reply_all_draft` / `outlook_create_draft`, never `outlook_send_draft` or `outlook_send_mail`. Teams stays staged as files (its connector is still read-only for writes).
+- **Front: drafts only, no side effects.** Front writes carry the user's name. Use `create_draft` (private, `shared = false`) and nothing else: never `send_message`, `update_conversation_status`, `assign_conversation`, `tag_conversation`, `move_conversation` or `add_comment`.
 - **Never draft a reply to yourself.** If the most recent message in a thread, email conversation, or chat is already from the user, whether sent through a Lore draft or straight from the client, the item is answered. Check the actual last message in the thread before drafting, not just the message that matched the scan; a stale search result can point at a message the user has since replied to. See the Already-answered rule above and the per-pass checks in each source's procedure.
 - **Processed trackers are append-only.** Never rewrite or sort. To reprocess an item, the user removes its specific line (or asks Lore to).
 - **Link enrichment is best-effort.** Never block a draft waiting for a link; note the failure once and continue.

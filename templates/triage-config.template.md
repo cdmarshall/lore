@@ -49,11 +49,20 @@
 - Reuses `email-config.md` (sender tiers, automated sources, distribution lists).
 - **Email source for this workflow**: Microsoft 365 connector (`outlook_email_search`), Inbox folder.
 - Override tiers here only if they should differ from `email-config.md`.
+- **Email client** (only matters when the mailbox is reachable both natively and through Front): `Front` (default) or `Outlook`. Each email is triaged and drafted in one place only.
+
+## Front
+
+| Inbox | ID | Role |
+|-------|----|------|
+| <My Inbox> | <inb_xxx> | Personal inbox; carries my mailbox. When it does, Front is the email client and the Outlook pass skips that mailbox (triage step 1b) |
+| <Shared inbox> | <inb_xxx> | Shared: draft only what's assigned to me or names me; summarize the rest |
 
 ## Draft delivery
 
 - **Slack**: native drafts via `slack_send_message_draft` (land in Drafts & Sent). One per channel max.
-- **Email**: staged files in `outbox/drafts/email/` (connector is read-only).
+- **Email**: native Outlook drafts (Drafts folder); staged files in `outbox/drafts/email/` only if draft creation fails.
+- **Front**: private drafts on the conversation via `create_draft`; never sent, archived, tagged or assigned.
 - **Teams**: staged files in `outbox/drafts/teams/` (connector is read-only).
 
 ## State files
@@ -61,6 +70,7 @@
 - `inbox/.slack-processed`: Slack message `ts` values already triaged (append-only).
 - `inbox/.teams-processed`: Teams message IDs already triaged (append-only).
 - `inbox/.email-processed`: email Message-IDs already triaged (append-only).
+- `inbox/.front-processed`: Front `<conversation id> <message id>` pairs already triaged (append-only).
 - `inbox/.triage-last-run`: ISO 8601 timestamp of the last run.
 
 ## Knowledge base
