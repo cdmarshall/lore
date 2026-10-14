@@ -156,7 +156,7 @@ Read the matching file and follow it.
 
 ## Creating outputs
 
-- **Every polished outward deliverable is a styled HTML document**, not a bare markdown file: 1:1 preps, meeting/roundtable preps, reports, scorecards, talk tracks. Build it from `templates/document.template.html` (fill the masthead tokens, compose the body from its block library) and write it to `outbox/` as `.html`. Markdown is for records and internals (vault notes, weekly-review entries, decision log, staged drafts) or when the user explicitly asks for it. The Herald and The Quest Log have their own templates; everything else uses this one.
+- **Every polished outward deliverable is a styled HTML document**, not a bare markdown file: 1:1 preps, meeting/roundtable preps, reports, scorecards, talk tracks. Build it from `templates/document.template.html` (fill the masthead tokens, compose the body from its block library) and write it to `outbox/` as `.html`, then publish it as a claude.ai artifact (Artifact tool) and give the user the link. Publishing is the default delivery, not opt-in. Markdown is for records and internals (vault notes, weekly-review entries, decision log, staged drafts) or when the user explicitly asks for it. The Herald and The Quest Log have their own templates; everything else uses this one.
 - Reports, exports, CSVs, scorecards → `outbox/`
 - Meeting summaries → `meetings/notes/YYYY-MM-DD-name.md` (`templates/meeting-note.template.md`)
 - Team/stakeholder profiles → edit or create in `team/` or `stakeholders/` (`templates/team-member.template.md`, `templates/stakeholder.template.md`)
