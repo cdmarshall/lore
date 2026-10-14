@@ -60,6 +60,17 @@ Nothing reads these any more. Offer to move them to `inbox/archive/` (create it 
 
 Offer once, in one line: "Notion can now hold your knowledge base (people, projects, meetings, decisions) with two-way links. Want me to move it there?" Yes → `workflows/notion-kb.md` → Migrating into Notion. No → record the id as done with "declined" so it isn't offered again; the user can still say "migrate to Notion" anytime.
 
+### `2026-10-meeting-source-refs`: retire the Notion Transcripts database (asks)
+
+**Detect:** `context.md` → Vault Configuration says `Backend: notion` and still lists a **Transcripts** data source.
+
+Transcripts now stay in their source; the reference lives on the meeting page (`_conventions.md` → Source references, not copies).
+
+1. **Add properties** to the Meetings data source if missing: `ADD COLUMN "Source" SELECT('recorder':blue, 'notion-ai':purple, 'zoom':green, 'teams':orange, 'meet':yellow, 'file':gray, 'other':default); ADD COLUMN "Source ID" RICH_TEXT; ADD COLUMN "Source URL" URL`.
+2. **Copy the references:** for every Transcripts row with a `Meeting` relation, set `Source` and `Source ID` on that meeting page (skip a meeting that already has them). If the transcript page body holds the user's own notes or highlights (not transcript text), add them to the meeting page under `## Your notes`. List any rows with no meeting for the user.
+3. **Verify:** count meetings with a `Source ID` against Transcripts rows that had a meeting.
+4. **Ask** whether to move the Transcripts database to Notion's trash (restorable from there for 30 days) or leave it in place. Never trash it without a yes. On a yes, first drop the Meetings `Transcript` relation (`DROP COLUMN "Transcript"`) so meeting pages carry no dead link, then trash the data source. Either way, remove the Transcripts line from `context.md` → Vault Configuration so nothing writes to it again.
+
 ## Adding a migration (maintainers)
 
 Add a section here with a dated id, a detection check that reads only personal files or connector state, the steps, and whether it asks. Onboarding marks every id in this list done on a fresh install (`workflows/onboarding.md` → Phase 8, step 1a), so no extra wiring is needed. Add a row for it to The Keeper's Grimoire → "Your migrations" (`docs/grimoire.body.html`) and rebuild the guides (`CLAUDE.md` → Key behaviors → Guide upkeep). Never change or reuse an id that has shipped.

@@ -10,7 +10,7 @@ Storage-mode branching: `_conventions.md` → Storage-mode branching. This workf
 
 - **Filesystem mode**: a `Source:` line at the top of the meeting note in `meetings/notes/`.
 - **Obsidian mode**: `source`, `source_id`, `source_url` frontmatter on the meeting note. No note in `Transcripts/`.
-- **Notion mode**: a properties-only page in the **Transcripts** database (`Source` = recorder, `Source ID`, `Date`, `Meeting` relation, `Processed`), with no transcript body. The page body holds only the user's own notes and highlights, if any.
+- **Notion mode**: `Source` = `recorder`, `Source ID` (and `Source URL` when there is one) properties on the meeting page.
 
 Tracking dotfiles stay in the workspace repo in every mode (append-only semantics: `CLAUDE.md` → Key behaviors, "Plaud sync tracking"). Step 6e hands off to `workflows/process-transcript.md`, which has its own Obsidian-mode branch.
 
@@ -112,7 +112,7 @@ Catches a recording that was already processed by another route (a transcript th
 
 **Obsidian mode**: query meeting notes for `source_id = "<recording id>"` (dataview first, Grep fallback per `_conventions.md` → Vault access tooling), then list same-date notes in `Meetings/`. Older installs may also hold a copied transcript in `Transcripts/`; grep it for the first 100 characters of the fetched transcript.
 
-**Notion mode**: SQL on the Transcripts database for `"Source ID" = ?`, then the Meetings database for the same date.
+**Notion mode**: SQL on the Meetings database for `"Source ID" = ?`, then for the same date.
 
 If a match is found, ask:
 > "This recording looks already processed as `[note]`. Skip it and move on, or process it anyway?"
@@ -132,10 +132,10 @@ Date: the recording's date in the user's timezone (YYYY-MM-DD; Plaud timestamps 
 Do not save the transcript or the audio. The meeting note built from Plaud's note (6a) is the only summary Lore writes; everything else is a pointer back to the recording:
 
 - **Reference:** Plaud file ID, recording date and start time (user's timezone), and duration, all from `list_files`. Plaud has no stable per-recording link, so the file ID is the reference. Don't call `get_file` for this: it returns the whole transcript plus signed links that expire within hours.
-- **The user's own words, verbatim:** any note tab the user wrote themselves and every highlight from `mark_memo` (with its timestamp and the line spoken there). These exist nowhere else in a form Lore controls, and they are short. They go in the meeting note under `## Your notes`; in Notion mode also on the Transcripts page body.
+- **The user's own words, verbatim:** any note tab the user wrote themselves and every highlight from `mark_memo` (with its timestamp and the line spoken there). These exist nowhere else in a form Lore controls, and they are short. They go in the meeting note under `## Your notes`.
 - **Filesystem mode**: first line of the meeting note: `Source: Plaud recording <id>, <date> <start time>, <duration>`.
 - **Obsidian mode**: meeting note frontmatter `source: plaud`, `source_id: <id>`, `source_url: <link, if any>`.
-- **Notion mode**: create the Transcripts page with properties only (`Name` = meeting name, `Source` = `recorder`, `Source ID` = id, `Date`, `Processed` = no). Link it to the meeting page through the `Meeting` relation after the meeting page exists, and set `Processed` once the transcript is done.
+- **Notion mode**: set `Source` = `recorder` and `Source ID` = id on the meeting page when it is created. No separate transcript page.
 
 ### 6e. Process the transcript
 

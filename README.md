@@ -76,7 +76,7 @@ By the end, Lore will have generated:
 - `stakeholders/[firstname-lastname].md`, one file per stakeholder.
 - The Quest Log, a hosted claude.ai artifact (empty, ready to use, private to you). This is the canonical action items tracker; its URL is saved in `context.md` and no local file is created for it.
 - A Connectors table in `context.md` recording which tool you use for each job and whether it's connected.
-- If you chose Notion, a private Lore page in your Notion space with People, Projects, Meetings, Decisions, Transcripts and Notes databases.
+- If you chose Notion, a private Lore page in your Notion space with People, Projects, Meetings, Decisions and Notes databases.
 
 ### 4. Start using it
 
@@ -152,7 +152,7 @@ The plain-markdown briefing still lands in `outbox/triage/` as a grep-able fallb
 
 ## Notion as your knowledge base
 
-If your team already lives in Notion, Lore can keep its knowledge base there instead of in this folder: say **"set up Notion"** (or pick Notion during onboarding). Lore creates a private **Lore** page in your Notion space with six databases (People, Projects, Meetings, Decisions, Transcripts, Notes) plus Context and Commitments pages. Everything Obsidian gives you has a Notion equivalent:
+If your team already lives in Notion, Lore can keep its knowledge base there instead of in this folder: say **"set up Notion"** (or pick Notion during onboarding). Lore creates a private **Lore** page in your Notion space with five databases (People, Projects, Meetings, Decisions, Notes) plus Context and Commitments pages. Everything Obsidian gives you has a Notion equivalent:
 
 - **Frontmatter** becomes database properties (relationship, status, team, dates, tags).
 - **Wikilinks and backlinks** become two-way relations: set a project's lead and the person's page lists the projects they lead; add attendees to a meeting and each person shows that meeting. Body references are page mentions, which Notion backlinks too.

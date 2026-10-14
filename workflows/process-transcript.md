@@ -82,7 +82,7 @@ Branch on storage mode (`_conventions.md` → Storage-mode branching). Targets b
 | Artifact | Filesystem | Obsidian |
 |----------|-----------|----------|
 | Meeting note | `meetings/notes/{date}-{meeting-name}.md` | `Lore/Meetings/<YYYY-MM-DD> <kind> <subject>.md` |
-| Source reference | `Source:` first line of the meeting note | `source` / `source_id` / `source_url` frontmatter on the meeting note (Notion: properties-only Transcripts page) |
+| Source reference | `Source:` first line of the meeting note | `source` / `source_id` / `source_url` frontmatter on the meeting note (Notion: `Source` / `Source ID` / `Source URL` properties on the meeting page) |
 | Observations | `team/*.md`, `stakeholders/*.md` | person's vault note via Edit |
 | Decisions | `decisions/log.md` | one note per decision, `Lore/Decisions/` |
 

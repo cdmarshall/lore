@@ -2,7 +2,7 @@
 
 All output follows VOICE.md.
 
-Notion mode keeps Lore's entity data (people, projects, meetings, decisions, transcripts, notes, context, commitments) in the user's Notion workspace instead of repo folders or an Obsidian vault. It is the third storage mode beside Filesystem and Obsidian (`_conventions.md` → Storage-mode branching). Workflows, templates, scripts and operational dotfiles stay in the repo; action items stay in The Quest Log in every mode.
+Notion mode keeps Lore's entity data (people, projects, meetings, decisions, notes, context, commitments) in the user's Notion workspace instead of repo folders or an Obsidian vault. It is the third storage mode beside Filesystem and Obsidian (`_conventions.md` → Storage-mode branching). Workflows, templates, scripts and operational dotfiles stay in the repo; action items stay in The Quest Log in every mode.
 
 > **Trigger phrases**: "use Notion for my knowledge base", "set up Notion", "migrate to Notion", "move my notes to Notion".
 
@@ -12,7 +12,8 @@ Every workflow's **Obsidian-mode branch applies in Notion mode**, translated thr
 
 | Obsidian | Notion |
 |---|---|
-| Note in `People/`, `Projects/`, `Meetings/`, `Decisions/`, `Transcripts/` | A page in the **People**, **Projects**, **Meetings**, **Decisions**, **Transcripts** database |
+| Note in `People/`, `Projects/`, `Meetings/`, `Decisions/` | A page in the **People**, **Projects**, **Meetings**, **Decisions** database |
+| Meeting note `source` / `source_id` / `source_url` frontmatter | `Source`, `Source ID`, `Source URL` properties on the meeting page. There is no Transcripts database: transcripts stay in their source (`_conventions.md` → Source references, not copies) |
 | `Inbox/`, `Daily/`, `Weekly/`, `Strategy/` notes | A page in **Notes** with `Kind` = inbox, daily, weekly, strategy (or reference) |
 | Note title | Page title (`Name`). Same naming rules: full name for people, `YYYY-MM-DD <kind> <subject>` for meetings |
 | Frontmatter field | Database property (schema below). Lowercase snake_case keys become Title Case properties: `job_title` → `Job title`, `last_1on1` → `Last 1:1` |
@@ -29,7 +30,7 @@ Every workflow's **Obsidian-mode branch applies in Notion mode**, translated thr
 | `Context.md` at vault root | The **Context** page under the Lore root |
 | `Commitments.md` | The **Commitments** page |
 | `Index.md` | The Lore root page plus database views. There is nothing to keep in sync: databases are the index |
-| `.processed` / `.plaud-processed` | Still the repo dotfiles. The **Transcripts** page also records `Source ID` and `Processed`, so reprocessing is checkable from Notion alone. It is a properties-only reference: the transcript stays in its source (`_conventions.md` → Source references, not copies) |
+| `.processed` / `.plaud-processed` | Still the repo dotfiles. The meeting page's `Source ID` also makes reprocessing checkable from Notion alone |
 | Edit tool, surgical | `notion-update-page` with `update_content` (smallest exact `old_str`) or `insert_content`; never `replace_content` on an entity page |
 
 ## Structure
@@ -42,7 +43,6 @@ One private top-level page named **Lore** (the user's Private section, never a t
 | Projects | database | One page per project or initiative |
 | Meetings | database | One page per meeting |
 | Decisions | database | One page per logged decision |
-| Transcripts | database | Source references (recorder ID, Notion AI notes link), linked to their meeting; no transcript text |
 | Notes | database | Inbox, daily, weekly, strategy, reference |
 | Context | page | The knowledge-base copy of `context.md` |
 | Commitments | page | The commitments ledger |
@@ -57,11 +57,9 @@ then `ADD COLUMN "Manager" RELATION('<people ds>', DUAL 'Reports' 'reports')`.
 
 **Projects**: `"Name" TITLE, "Status" SELECT('active':green, 'blocked':red, 'backlog':gray, 'done':blue), "Lead" RELATION('<people ds>', DUAL 'Leads'), "Stakeholders" RELATION('<people ds>', DUAL 'Stakeholder on'), "Start date" DATE, "Phase" RICH_TEXT, "Tracker" URL, "Tags" MULTI_SELECT(), "Archived" CHECKBOX, "Created" CREATED_TIME, "Updated" LAST_EDITED_TIME`; then `ADD COLUMN "Blocked by" RELATION('<projects ds>', DUAL 'Blocks' 'blocks')`.
 
-**Meetings**: `"Name" TITLE, "Kind" SELECT('1on1':blue, 'staff':green, 'roundtable':purple, 'decision':orange, 'external':yellow), "Date" DATE, "Attendees" RELATION('<people ds>', DUAL 'Meetings'), "Related projects" RELATION('<projects ds>', DUAL 'Meetings'), "Tags" MULTI_SELECT(), "Archived" CHECKBOX, "Created" CREATED_TIME, "Updated" LAST_EDITED_TIME`.
+**Meetings**: `"Name" TITLE, "Kind" SELECT('1on1':blue, 'staff':green, 'roundtable':purple, 'decision':orange, 'external':yellow), "Date" DATE, "Attendees" RELATION('<people ds>', DUAL 'Meetings'), "Related projects" RELATION('<projects ds>', DUAL 'Meetings'), "Source" SELECT('recorder':blue, 'notion-ai':purple, 'zoom':green, 'teams':orange, 'meet':yellow, 'file':gray, 'other':default), "Source ID" RICH_TEXT, "Source URL" URL, "Tags" MULTI_SELECT(), "Archived" CHECKBOX, "Created" CREATED_TIME, "Updated" LAST_EDITED_TIME`.
 
 **Decisions**: `"Name" TITLE, "Date" DATE, "Status" SELECT('active':green, 'superseded':gray, 'proposed':yellow), "Owner" RELATION('<people ds>', DUAL 'Decisions owned'), "Projects" RELATION('<projects ds>', DUAL 'Decisions'), "Meeting" RELATION('<meetings ds>', DUAL 'Decisions'), "Tags" MULTI_SELECT(), "Archived" CHECKBOX, "Created" CREATED_TIME, "Updated" LAST_EDITED_TIME`; then `ADD COLUMN "Supersedes" RELATION('<decisions ds>', DUAL 'Superseded by' 'superseded_by')`.
-
-**Transcripts**: `"Name" TITLE, "Date" DATE, "Source" SELECT('recorder':blue, 'notion-ai':purple, 'zoom':green, 'teams':orange, 'meet':yellow, 'file':gray, 'other':default), "Source ID" RICH_TEXT, "Meeting" RELATION('<meetings ds>', DUAL 'Transcript'), "Processed" CHECKBOX, "Created" CREATED_TIME`.
 
 **Notes**: `"Name" TITLE, "Kind" SELECT('inbox':red, 'daily':blue, 'weekly':purple, 'strategy':green, 'reference':gray), "Date" DATE, "People" RELATION('<people ds>', DUAL 'Notes'), "Projects" RELATION('<projects ds>', DUAL 'Notes'), "Tags" MULTI_SELECT('inbox/unprocessed':red, 'inbox/needs-review':orange, 'playbook':blue, 'strategy':green), "Archived" CHECKBOX, "Created" CREATED_TIME, "Updated" LAST_EDITED_TIME`.
 
@@ -73,9 +71,8 @@ Same section structure as the Obsidian notes, written in Notion Markdown (`notio
 
 - **Person:** no H1, no overview table (properties carry identity). `## Observations` with `### YYYY-MM-DD - <short context>` entries, newest first; insert new entries directly under the heading. Other sections per `templates/team-member.template.md` / `stakeholder.template.md`, minus the Active Projects block (the layout shows it).
 - **Project:** `## Current Phase` with dated lines, newest first, then the rest of `templates/project.template.md`. Closing a project sets `Status` = done and appends a dated closing line, same as Obsidian.
-- **Meeting:** summary per `templates/meeting-note.template.md`; people and projects as page mentions *and* in the `Attendees` / `Related projects` relations. The relation is what powers backlinks and queries; the mention is for reading.
+- **Meeting:** summary per `templates/meeting-note.template.md`; people and projects as page mentions *and* in the `Attendees` / `Related projects` relations. The relation is what powers backlinks and queries; the mention is for reading. The `Source` properties point back to the recording; the user's own notes and highlights go under `## Your notes`.
 - **Decision:** context, options considered, rationale (`templates/decision-log-entry.template.md`).
-- **Transcript:** no body text from the transcript. Properties carry the reference; the body holds only the user's own notes and highlights, if any.
 
 ## Configuration (written to `context.md`)
 
@@ -88,7 +85,6 @@ Same section structure as the Obsidian notes, written in Notion Markdown (`notio
 - **Projects**: collection://<id>
 - **Meetings**: collection://<id>
 - **Decisions**: collection://<id>
-- **Transcripts**: collection://<id>
 - **Notes**: collection://<id>
 - **Context page**: <URL>
 - **Commitments page**: <URL>
@@ -103,7 +99,7 @@ Workflows read the data source ids from here; never search for a database by nam
 | **Find an entity by name** | SQL on its data source: `SELECT url, "Name" FROM "collection://<id>" WHERE lower("Name") = lower(?)`. Then check `Aka` for people. Zero rows: try `notion-search` with `page_url` = root before concluding it doesn't exist. |
 | **Create** | Find first (one page per entity). Then `notion-create-pages` with `parent: {data_source_id}`, properties per the schema (dates as `date:<Prop>:start`, relations as page URL arrays, checkboxes `__YES__`), body per the section structure. |
 | **Update a property** | `notion-update-page` `update_properties`. For relation properties, pass the full intended list (the call replaces it): fetch first and merge. |
-| **Append an observation / dated line** | Fetch the page, then `update_content` replacing the heading line (`## Observations`) with the heading plus the new entry, so the newest entry sits on top. |
+| **Append an observation / dated line** | Fetch the page, then `update_content` replacing the heading line (`## Observations`) with the heading plus the new entry, so the newest entry sits on top. Every person or project named in the entry (and in any other body text Lore writes) is a page mention, never plain text; resolve the page URL first, and leave a name plain only if no page exists. |
 | **Link two entities** | Set the relation property on one side; the other side updates itself. |
 | **What is X connected to** | Fetch X and read its relation properties, or query the related database `WHERE "<Relation>" LIKE '%<X page id>%'`. |
 | **Query (Dataview equivalent)** | `notion-query-data-sources` SQL. Exclude archived rows: `AND ("Archived" IS NULL OR "Archived" = '__NO__')`. |
@@ -117,9 +113,9 @@ Workflows read the data source ids from here; never search for a database by nam
 ## Setup (onboarding Phase 7.5, or "set up Notion")
 
 1. **Confirm the connector** per `workflows/connectors.md` (one `notion-get-self`). Record the workspace name.
-2. **Look for an existing Lore root first:** `notion-search` for "Lore" and check the results for a top-level private page with the six databases. If it exists (a previous install, or one built ahead of time), reuse it: fetch it, read each database's `collection://` id, and skip to step 5. Never create a second root.
+2. **Look for an existing Lore root first:** `notion-search` for "Lore" and check the results for a top-level private page with the five databases (installs from before 2026-10-14 also have a Transcripts database; `workflows/migrations.md` → `2026-10-meeting-source-refs` retires it). If it exists (a previous install, or one built ahead of time), reuse it: fetch it, read each database's `collection://` id, and skip to step 5. Never create a second root.
 3. **Create the root** with `notion-create-pages` and `creation_mode: "draft"` (a private top-level page), title "Lore", icon 📜, a one-paragraph callout saying what it is.
-4. **Create the databases in order** (People, Projects, Meetings, Decisions, Transcripts, Notes) under the root with the DDL above, then the self-relations, then the page layouts, then the Context and Commitments pages. Each create returns the data source id the next one needs.
+4. **Create the databases in order** (People, Projects, Meetings, Decisions, Notes) under the root with the DDL above, then the self-relations, then the page layouts, then the Context and Commitments pages. Each create returns the data source id the next one needs.
 5. **Write the configuration** to `context.md` → Notes for Lore → Vault Configuration, and fill the Context page from `context.md`.
 6. **Seed people and projects** gathered in onboarding (Phases 3 to 5) as pages, with relations (`Manager`, `Lead`, `Stakeholders`).
 7. **Tell the user** in two lines: where it lives (private to them; workspace admins on some plans can still reach private pages), and that they can edit anything there.
@@ -128,8 +124,8 @@ Workflows read the data source ids from here; never search for a database by nam
 
 From Filesystem or Obsidian mode, previewed and reversible:
 
-1. Inventory the source: people, projects, meetings, decisions, transcripts, notes. Report counts.
+1. Inventory the source: people, projects, meetings, decisions, notes. Report counts. Copied transcripts from older installs are not migrated; their meetings keep a source reference.
 2. Show a preview of three representative entities as they will look in Notion (properties and first body lines). Wait for a yes.
-3. Create in dependency order: People (without relations), Projects, Meetings, Decisions, Transcripts, Notes; then a second pass sets every relation (`Manager`, `Lead`, `Stakeholders`, `Attendees`, ...) by resolving names to page URLs, and rewrites body wikilinks as page mentions.
+3. Create in dependency order: People (without relations), Projects, Meetings, Decisions, Notes; then a second pass sets every relation (`Manager`, `Lead`, `Stakeholders`, `Attendees`, ...) by resolving names to page URLs, and rewrites body wikilinks as page mentions.
 4. Unresolvable wikilinks stay as plain text in brackets and are listed in the report.
 5. Verify counts per database against the source, spot-check three pages, then switch `context.md` → Vault Configuration to `Backend: notion`. Leave the source files in place; the user removes them when satisfied.
