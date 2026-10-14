@@ -54,10 +54,41 @@ STYLE_RE = re.compile(r'<style id="lore-brand">.*?</style>\s*', re.S)
 SCRIPT_RE = re.compile(r'<script id="lore-brand-data">.*?</script>\s*', re.S)
 LOGO_RE = re.compile(r'<img class="brand-logo"[^>]*>')
 BYLINE_RE = re.compile(r'<div class="brand-byline"[^>]*>.*?</div>')
+TOKEN_RE = re.compile(r"<!--.*?-->|<(style|script)\b[^>]*>.*?</\1\s*>", re.S)
+LOGO_FALLBACK_PX = 28  # used only if the brand stylesheet never loads
+
 
 MIME = {".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf", ".otf": "font/otf",
         ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
         ".webp": "image/webp", ".gif": "image/gif"}
+
+
+def scan(doc):
+    """Comments and <style>/<script> blocks in document order, the way a browser
+    reads them: a "<script>" mentioned inside a comment opens nothing, and a
+    marker quoted inside a comment or a stylesheet is not a marker."""
+    return [(("raw" if m.group(1) else "comment"), m.span(), m.group(0)) for m in TOKEN_RE.finditer(doc)]
+
+
+def mark_spans(doc, mark):
+    return [span for kind, span, text in scan(doc) if kind == "comment" and text == mark]
+
+
+def has_mark(doc, mark):
+    return bool(mark_spans(doc, mark))
+
+
+def fill_mark(doc, mark, repl, count=0):
+    spans = mark_spans(doc, mark)
+    if count:
+        spans = spans[:count]
+    for a, b in reversed(spans):
+        doc = doc[:a] + repl + doc[b:]
+    return doc
+
+
+def in_comment(doc, pos):
+    return any(kind == "comment" and a <= pos < b for kind, (a, b), _ in scan(doc))
 
 
 def load_pack():
@@ -105,7 +136,8 @@ def build_logo(cfg):
     if not p.is_file():
         sys.exit(f"apply-brand: logo file brand/{f} is missing")
     alt = html.escape(logo.get("alt", cfg.get("name", "")), quote=True)
-    return f'<img class="brand-logo" src="{data_uri(p)}" alt="{alt}">'
+    return (f'<img class="brand-logo" src="{data_uri(p)}" alt="{alt}" '
+            f'height="{LOGO_FALLBACK_PX}">')
 
 
 def retitle(doc, cfg):
@@ -136,12 +168,12 @@ def retitle(doc, cfg):
 
 def apply(doc, cfg):
     # Undo a previous run so the result is the same however many times it runs.
-    doc = STYLE_RE.sub(STYLE_MARK + "\n", doc, count=1) if STYLE_MARK not in doc else STYLE_RE.sub("", doc)
+    doc = STYLE_RE.sub(STYLE_MARK + "\n", doc, count=1) if not has_mark(doc, STYLE_MARK) else STYLE_RE.sub("", doc)
     doc = SCRIPT_RE.sub("", doc)
-    doc = LOGO_RE.sub(LOGO_MARK, doc) if LOGO_MARK not in doc else LOGO_RE.sub("", doc)
+    doc = LOGO_RE.sub(LOGO_MARK, doc) if not has_mark(doc, LOGO_MARK) else LOGO_RE.sub("", doc)
     doc = BYLINE_RE.sub("", doc)
 
-    if STYLE_MARK not in doc:
+    if not has_mark(doc, STYLE_MARK):
         # Older outputs without the marker: put the brand style after the last </style>.
         i = doc.rfind("</style>")
         if i < 0:
@@ -152,9 +184,20 @@ def apply(doc, cfg):
     charts = cfg.get("charts")
     if charts and "LoreCharts" in doc:
         extra += '<script id="lore-brand-data">window.LORE_BRAND = %s;</script>\n' % json.dumps({"charts": charts})
-    doc = doc.replace(STYLE_MARK, extra.rstrip("\n"), 1)
-    doc = doc.replace(LOGO_MARK, build_logo(cfg) or LOGO_MARK)
-    return retitle(doc, cfg)
+    doc = fill_mark(doc, STYLE_MARK, extra.rstrip("\n"), count=1)
+    logo = build_logo(cfg)
+    if logo:
+        doc = fill_mark(doc, LOGO_MARK, logo)
+    doc = retitle(doc, cfg)
+
+    # Verify: the brand stylesheet must be live, not commented out.
+    i = doc.find('<style id="lore-brand">')
+    if i < 0 or in_comment(doc, i):
+        sys.exit("apply-brand: brand stylesheet did not land outside a comment; output not written")
+    for kind, _, text in scan(doc):
+        if kind == "raw" and '<img class="brand-logo"' in text:
+            sys.exit("apply-brand: a brand logo landed inside a <style> or <script> block; output not written")
+    return doc
 
 
 def artifact_copy(doc, title=None):

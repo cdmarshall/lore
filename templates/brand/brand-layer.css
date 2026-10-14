@@ -96,7 +96,7 @@ table.doc, table, .delegated-table { border-collapse: separate; border-spacing: 
 /* Pressed controls settle instead of the sprite "sit down" offset. */
 button:active, .header-btn:active, .qa-add-btn:active, .triage-btn:active { transform: none; }
 
-/* The brand logo (placed by apply-brand.py at the <!--lore:brand-logo--> marker). */
+/* The brand logo (placed by apply-brand.py at the lore:brand-logo marker comment). */
 .brand-logo { display: block; height: var(--brand-logo-height, 28px); width: auto; }
 .masthead { position: relative; }
 .masthead .brand-logo { position: absolute; top: 0; right: 0; }

@@ -123,3 +123,6 @@ node_modules/
 
 # Cowork's own output folder (Heralds and other files saved from the app)
 /Claude outputs/
+
+# Files waiting for the keeper to delete by hand (Lore cannot delete in a connected folder)
+/_to_delete/
