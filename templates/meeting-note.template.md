@@ -1,5 +1,7 @@
 # [YYYY-MM-DD] - [Meeting Name]
 
+Source: [Plaud recording <id> / Notion AI notes <link> / file in meetings/transcripts/], [date start time], [duration]
+
 ## Attendees
 
 - You
@@ -27,6 +29,12 @@
 - [ ] [Person]: [Action], [Due date or TBD]
 
 ## Follow-ups Needed
+
+-
+
+## Your notes
+
+> Your own notes and flagged highlights from the source, verbatim. Omit the section when there are none.
 
 -
 

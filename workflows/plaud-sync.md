@@ -1,15 +1,18 @@
 # Plaud Sync
 
-Pull recordings from Plaud for a specified time period, diff against already-processed transcripts, let the user select which to process, and run each through the standard transcript workflow sequentially.
+Pull recordings from Plaud for a specified time period, diff against already-processed recordings, let the user select which to process, and run each through the standard transcript workflow sequentially.
+
+**Reference the recording, never copy it.** Plaud keeps the full transcript and audio. Lore reads the transcript to extract what matters, then stores only the meeting note (built from Plaud's own note), the user's own notes and highlights verbatim, and a reference back to the recording (Plaud file ID plus link). Retyping a transcript into the knowledge base spends output tokens on a copy that already exists. Full rule: `_conventions.md` → Source references, not copies.
 
 ## Storage Mode
 
-Storage-mode branching: `_conventions.md` → Storage-mode branching. This workflow is migrated (`CLAUDE.md` → Workflow routing). Modes differ only in where the raw transcript saves and where the duplicate-content check runs:
+Storage-mode branching: `_conventions.md` → Storage-mode branching. This workflow is migrated (`CLAUDE.md` → Workflow routing). No mode saves the transcript itself; modes differ only in where the source reference lives:
 
-- **Filesystem mode**: transcripts to `meetings/transcripts/`; duplicate check `grep`s the same folder.
-- **Obsidian mode**: transcripts to `Transcripts/` in the vault via Write; duplicate check runs a vault search (dataview/vault MCP tools first, falling back to Grep per `_conventions.md` → Vault access tooling). Subfolder override: `_conventions.md` → Path resolution.
+- **Filesystem mode**: a `Source:` line at the top of the meeting note in `meetings/notes/`.
+- **Obsidian mode**: `source`, `source_id`, `source_url` frontmatter on the meeting note. No note in `Transcripts/`.
+- **Notion mode**: a properties-only page in the **Transcripts** database (`Source` = recorder, `Source ID`, `Date`, `Meeting` relation, `Processed`), with no transcript body. The page body holds only the user's own notes and highlights, if any.
 
-Tracking dotfiles stay in the workspace repo in both modes (append-only semantics: `CLAUDE.md` → Key behaviors, "Plaud sync tracking"). Step 6d hands off to `workflows/process-transcript.md`, which has its own Obsidian-mode branch.
+Tracking dotfiles stay in the workspace repo in every mode (append-only semantics: `CLAUDE.md` → Key behaviors, "Plaud sync tracking"). Step 6e hands off to `workflows/process-transcript.md`, which has its own Obsidian-mode branch.
 
 ## Invocation
 
@@ -93,41 +96,46 @@ For each selected recording, in order:
 
 ### 6a. Fetch the transcript and Plaud note
 
-Call in parallel: `get_transcript` (timestamped transcript, speaker labels) and `get_note` (Plaud's AI summary and action items), both with the recording's `id`. Resolve both by suffix per Step 2.
+Call in parallel: `get_transcript` (timestamped transcript, speaker labels), `get_note` (every note tab: Plaud's AI summary and action items, any template tab, and any note the user wrote), and `get_transcript` with `block: "mark_memo"` (the moments the user flagged with the device's highlight button; empty when none), all with the recording's `id`. Resolve them by suffix per Step 2. The transcript is working input for extraction only; it is never written anywhere.
 
 `get_transcript` paginates; pass `limit` (max 500) and follow `next_cursor` until it is null. **A transcript over roughly 40 minutes will overflow the inline token cap** and spill to a temp file under `/var/folders/…`, which the native Read tool can reach but the shell sandbox cannot. Either page with `limit: 200` to stay inline, or read the overflow file with Read. A single 500 on either call is usually transient: retry once with identical params before treating the recording as unrecoverable. If `get_note` still fails, fall back to generating the summary from the transcript (`process-transcript.md` section 5).
 
 Plaud's note is the primary source for the meeting note body: use it directly, don't re-summarize. Lore's job is wikilinks, frontmatter/tags, and terminology corrections from `context.md`. Scan the raw transcript for participant identification, observations, action items in delta-ops format, and decisions.
 
-**Very long recordings (multi-hour offsites, all-day sessions).** A 4 to 7 hour recording runs to 250 to 350 KB of transcript and a Plaud note of 90 to 130K characters, which no single context should copy by hand. Delegating the raw-transcript copy and a structured extraction to one subagent per recording is the sanctioned exception to "same context, not subagents": subagents write only their own `Transcripts/` file and an extraction file in the working folder, and the parent does every shared write (meeting notes, person notes, projects, decisions, tracker). Two traps seen on a three-day offsite: Plaud's speaker labels on long multi-speaker recordings are routinely wrong (the user labelled as someone else, two voices merged into one), and one recording came back with no diarization at all ("Unknown Speaker" throughout). Have the extraction resolve speakers from content and put a speaker note at the top of the meeting note.
+**Very long recordings (multi-hour offsites, all-day sessions).** A 4 to 7 hour recording runs to 250 to 350 KB of transcript and a Plaud note of 90 to 130K characters, which no single context should copy by hand. Delegating a structured extraction to one subagent per recording is the sanctioned exception to "same context, not subagents": subagents write only an extraction file in the working folder, and the parent does every shared write (meeting notes, source references, person notes, projects, decisions, tracker). Two traps seen on a three-day offsite: Plaud's speaker labels on long multi-speaker recordings are routinely wrong (the user labelled as someone else, two voices merged into one), and one recording came back with no diarization at all ("Unknown Speaker" throughout). Have the extraction resolve speakers from content and put a speaker note at the top of the meeting note.
 
-### 6b. Content-based duplicate check
+### 6b. Duplicate check
 
-Take the first 500 characters of the fetched transcript and search existing transcripts for that string. Catches transcripts the user pasted in directly from the Plaud website, which never got a `.plaud-processed` / `.processed` entry.
+Catches a recording that was already processed by another route (a transcript the user pasted in from the Plaud website, or one processed before `.plaud-processed` existed). Look for an existing meeting note on the same date whose source reference carries this recording's ID, or whose title names the same meeting:
 
-**Filesystem mode**: `grep -rl "<first 500 chars, escaped for shell>" meetings/transcripts/`
+**Filesystem mode**: `grep -rl "<recording id>" meetings/notes/`, then `ls meetings/notes/YYYY-MM-DD-*` for a same-date, same-subject note.
 
-**Obsidian mode**: search for the first 100 characters via the vault search or dataview MCP tools, filter results to `Transcripts/` client-side, falling back to Grep per `_conventions.md` → Vault access tooling. Also run the filesystem grep as a fallback for transcripts saved before the Obsidian migration.
+**Obsidian mode**: query meeting notes for `source_id = "<recording id>"` (dataview first, Grep fallback per `_conventions.md` → Vault access tooling), then list same-date notes in `Meetings/`. Older installs may also hold a copied transcript in `Transcripts/`; grep it for the first 100 characters of the fetched transcript.
+
+**Notion mode**: SQL on the Transcripts database for `"Source ID" = ?`, then the Meetings database for the same date.
 
 If a match is found, ask:
-> "This transcript appears to already exist as `[filename]`. Skip it and move on, or process it anyway?"
+> "This recording looks already processed as `[note]`. Skip it and move on, or process it anyway?"
 
 Skip: mark the recording in `.plaud-processed` and move to the next item. Process anyway: continue.
 
 ### 6c. Derive the meeting name and date
 
-Date: the recording's date field (YYYY-MM-DD). Name: the recording's `name` field, cleaned up if needed (e.g. remove auto-generated prefixes like "Plaud - "). Compose the transcript filename:
-- **Filesystem mode**: `meetings/transcripts/YYYY-MM-DD - [Meeting Name].md`
-- **Obsidian mode**: `Lore/Transcripts/YYYY-MM-DD <kind> <Meeting Name>.md` (`<kind>` if inferable, otherwise omit; subfolder substitution per `_conventions.md` → Path resolution)
+Date: the recording's date in the user's timezone (YYYY-MM-DD; Plaud timestamps are UTC). Name: the recording's `name` field, cleaned up if needed (e.g. remove auto-generated prefixes like "Plaud - "). The meeting note's name per mode:
+- **Filesystem mode**: `meetings/notes/YYYY-MM-DD-[meeting-name].md`
+- **Obsidian / Notion mode**: `YYYY-MM-DD <kind> <Meeting Name>` (`<kind>` if inferable, otherwise omit; Obsidian subfolder substitution per `_conventions.md` → Path resolution)
 
-**Sanity-check the Plaud title against the transcript before committing it to a filename.** Plaud's `name` is auto-generated and regularly names the wrong person: it latches onto whoever dominates the forward-looking half of the meeting rather than the actual subject. One recording titled as a strategy session for the next day's candidate was in fact the debrief for the previous candidate. Before saving, read enough of the transcript to confirm the title's named people and topic match its actual subject; when they don't, rewrite the name. When a meeting covers two people or two topics, name both explicitly (e.g. `2026-08-25 working Candidate A Debrief and Candidate B Interview Prep`) rather than letting one crowd out the other. The derived name goes on both the transcript and the meeting note, so a bad title propagates twice.
+**Sanity-check the Plaud title against the transcript before committing it to a filename.** Plaud's `name` is auto-generated and regularly names the wrong person: it latches onto whoever dominates the forward-looking half of the meeting rather than the actual subject. One recording titled as a strategy session for the next day's candidate was in fact the debrief for the previous candidate. Before saving, read enough of the transcript to confirm the title's named people and topic match its actual subject; when they don't, rewrite the name. When a meeting covers two people or two topics, name both explicitly (e.g. `2026-08-25 working Candidate A Debrief and Candidate B Interview Prep`) rather than letting one crowd out the other. The derived name goes on the meeting note and the source reference, so a bad title propagates twice.
 
-### 6d. Save the raw transcript
+### 6d. Record the source reference (never copy the transcript)
 
-Before processing, save the raw transcript content (canonical raw archive in both modes).
+Do not save the transcript or the audio. The meeting note built from Plaud's note (6a) is the only summary Lore writes; everything else is a pointer back to the recording:
 
-- **Filesystem mode**: write to the filename from 6c using the file tools.
-- **Obsidian mode**: Write the note at `Transcripts/<derived filename>.md`. Frontmatter: `type: transcript`, `source: plaud`, `plaud_id: <recording id>`, `date: YYYY-MM-DD`. Body is the raw transcript, original timestamps and speaker labels.
+- **Reference:** Plaud file ID, recording date and start time (user's timezone), and duration, all from `list_files`. Plaud has no stable per-recording link, so the file ID is the reference. Don't call `get_file` for this: it returns the whole transcript plus signed links that expire within hours.
+- **The user's own words, verbatim:** any note tab the user wrote themselves and every highlight from `mark_memo` (with its timestamp and the line spoken there). These exist nowhere else in a form Lore controls, and they are short. They go in the meeting note under `## Your notes`; in Notion mode also on the Transcripts page body.
+- **Filesystem mode**: first line of the meeting note: `Source: Plaud recording <id>, <date> <start time>, <duration>`.
+- **Obsidian mode**: meeting note frontmatter `source: plaud`, `source_id: <id>`, `source_url: <link, if any>`.
+- **Notion mode**: create the Transcripts page with properties only (`Name` = meeting name, `Source` = `recorder`, `Source ID` = id, `Date`, `Processed` = no). Link it to the meeting page through the `Meeting` relation after the meeting page exists, and set `Processed` once the transcript is done.
 
 ### 6e. Process the transcript
 
@@ -137,7 +145,7 @@ Follow every step in `workflows/process-transcript.md` exactly as for any single
 
 Immediately after completing a transcript, do both:
 1. Append the recording's Plaud `id` to `meetings/transcripts/.plaud-processed` (create the file if it doesn't exist).
-2. Append the saved transcript filename to `meetings/transcripts/.processed`: vault-relative path in Obsidian mode (e.g., `Lore/Transcripts/2026-05-28 1on1 Jane Doe.md`, with the user's subfolder substituted per `_conventions.md` → Path resolution), workspace-relative in filesystem mode (e.g., `meetings/transcripts/2026-05-28 - 1on1 Jane Doe.md`).
+2. Append the meeting note's location to `meetings/transcripts/.processed`: vault-relative path in Obsidian mode (e.g., `Lore/Meetings/2026-05-28 1on1 Jane Doe.md`, with the user's subfolder substituted per `_conventions.md` → Path resolution), workspace-relative in filesystem mode (e.g., `meetings/notes/2026-05-28-1on1-jane-doe.md`), the meeting page name in Notion mode.
 
 So an interrupted batch won't re-process already-completed transcripts.
 

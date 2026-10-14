@@ -29,7 +29,7 @@ Every workflow's **Obsidian-mode branch applies in Notion mode**, translated thr
 | `Context.md` at vault root | The **Context** page under the Lore root |
 | `Commitments.md` | The **Commitments** page |
 | `Index.md` | The Lore root page plus database views. There is nothing to keep in sync: databases are the index |
-| `.processed` / `.plaud-processed` | Still the repo dotfiles. The **Transcripts** page also records `Source ID` and `Processed`, so reprocessing is checkable from Notion alone |
+| `.processed` / `.plaud-processed` | Still the repo dotfiles. The **Transcripts** page also records `Source ID` and `Processed`, so reprocessing is checkable from Notion alone. It is a properties-only reference: the transcript stays in its source (`_conventions.md` → Source references, not copies) |
 | Edit tool, surgical | `notion-update-page` with `update_content` (smallest exact `old_str`) or `insert_content`; never `replace_content` on an entity page |
 
 ## Structure
@@ -42,7 +42,7 @@ One private top-level page named **Lore** (the user's Private section, never a t
 | Projects | database | One page per project or initiative |
 | Meetings | database | One page per meeting |
 | Decisions | database | One page per logged decision |
-| Transcripts | database | Raw transcripts, linked to their meeting |
+| Transcripts | database | Source references (recorder ID, Notion AI notes link), linked to their meeting; no transcript text |
 | Notes | database | Inbox, daily, weekly, strategy, reference |
 | Context | page | The knowledge-base copy of `context.md` |
 | Commitments | page | The commitments ledger |
@@ -75,6 +75,7 @@ Same section structure as the Obsidian notes, written in Notion Markdown (`notio
 - **Project:** `## Current Phase` with dated lines, newest first, then the rest of `templates/project.template.md`. Closing a project sets `Status` = done and appends a dated closing line, same as Obsidian.
 - **Meeting:** summary per `templates/meeting-note.template.md`; people and projects as page mentions *and* in the `Attendees` / `Related projects` relations. The relation is what powers backlinks and queries; the mention is for reading.
 - **Decision:** context, options considered, rationale (`templates/decision-log-entry.template.md`).
+- **Transcript:** no body text from the transcript. Properties carry the reference; the body holds only the user's own notes and highlights, if any.
 
 ## Configuration (written to `context.md`)
 

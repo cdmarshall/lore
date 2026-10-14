@@ -192,7 +192,7 @@ Lore operates from a dedicated `Lore/` subfolder inside your vault so it doesn't
 └── Lore/
     ├── People/         One note per person (direct reports, peers, stakeholders)
     ├── Meetings/       One note per meeting; wikilinks to People and Projects
-    ├── Transcripts/    Raw transcripts (Plaud, pasted, etc.)
+    ├── Transcripts/    Transcripts you drop in yourself (Lore links recordings, never copies them)
     ├── Decisions/      One note per decision; wikilinks to People and Projects
     ├── Projects/       One note per project or initiative
     ├── Inbox/          Notes pending processing; tagged #inbox/unprocessed
@@ -298,7 +298,7 @@ lore/
 │
 ├── meetings/
 │   ├── notes/          ← Structured meeting summaries.
-│   ├── transcripts/    ← Raw transcripts (drop them here for processing).
+│   ├── transcripts/    ← Transcripts you drop in for processing. Synced recordings stay in their app; Lore links them.
 │   └── templates/      ← Pre-meeting prep templates (1:1, decision meeting, etc.).
 │
 ├── decisions/log.md    ← Decision log.

@@ -25,7 +25,7 @@ Personal entity data lives under a dedicated subfolder inside the user's vault. 
 <vault-root>/
 ├── People/        one note per person (direct reports, peers, stakeholders)
 ├── Meetings/      one note per meeting; wikilinks to People
-├── Transcripts/   raw transcripts; .processed / .plaud-processed live in the repo, not here
+├── Transcripts/   transcripts the user dropped in themselves (Lore never copies recordings here; see Source references); .processed / .plaud-processed live in the repo
 ├── Decisions/     one note per decision; wikilinks to People and Projects
 ├── Projects/      one note per project/initiative
 ├── Inbox/         notes pending processing; tag #inbox/unprocessed
@@ -130,6 +130,9 @@ kind: 1on1 | staff | roundtable | decision | external
 date: YYYY-MM-DD
 attendees: ["[[Name1]]", "[[Name2]]"]
 related_projects: ["[[Project]]"]
+source: plaud | notion-ai | teams | zoom | meet | file | other   # optional, see Source references
+source_id: <recording or page id>                                # optional
+source_url: <stable link>                                        # optional, never a signed URL
 ```
 
 **Decision:**
@@ -175,6 +178,17 @@ Before writing any file in a gitignored folder (`team/`, `stakeholders/`, `proje
 2. `bash ls <parent folder>` (catch name variations and near-matches).
 
 If either shows the file exists (or something close), stop and Read it first, then append or update. Never overwrite. Never use `Glob` on gitignored folders: it silently returns nothing (git-filtered), which has caused an existing file to be overwritten. If any listing returns empty or only `.gitkeep`, assume a git-filtered result and re-check with `bash ls` before concluding the folder is empty. Hard rule, no exceptions.
+
+## Source references, not copies (hard rule)
+
+Meeting sources (Plaud and other recorders, Notion AI meeting notes, Teams/Zoom/Meet transcripts) already keep the full transcript. Lore reads a transcript to extract what matters and never writes a copy of it into the repo, the vault, or Notion: retyping it spends output tokens on data that already exists.
+
+- **Store:** the meeting note (built from the source's own summary when there is one, per `process-transcript.md`), the extracted observations, decisions and action items, and a **source reference**: source type, source ID, a link if the source has a stable one, date and start time in the user's timezone, duration.
+- **Copy verbatim only the user's own words:** notes they typed into the source, highlights they flagged (Plaud `mark_memo`), comments. Short, and nowhere else Lore controls. They go under `## Your notes` in the meeting note.
+- **Where the reference lives:** filesystem mode, a `Source:` first line in the meeting note; Obsidian mode, `source` / `source_id` / `source_url` frontmatter on the meeting note; Notion mode, a properties-only page in the Transcripts database (`Source`, `Source ID`, `Date`, `Meeting`, `Processed`), body empty except the user's own notes. Notion AI meeting notes: `Source` = `notion-ai`, `Source ID` = the meeting-notes page URL; link it, never duplicate it.
+- **Never store** expiring links (signed audio URLs).
+- **Exceptions:** a transcript the user drops into `meetings/transcripts/` (or the vault's `Transcripts/`) is already stored; process it in place, don't copy it. A transcript pasted into chat with no other home: ask once whether to keep a copy before writing one.
+- **Older installs** may hold full transcripts saved before this rule. Leave them; don't backfill or delete without the user asking.
 
 ## Decision-log discipline
 

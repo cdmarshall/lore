@@ -2,6 +2,8 @@
 
 Extract insights from meeting transcripts (especially Plaud AI exports) and update relevant files. All output follows VOICE.md.
 
+The transcript is input, not output: Lore never writes a copy of it. It stores the meeting note, the extracted items, the user's own notes verbatim, and a reference back to the source (`_conventions.md` → Source references, not copies).
+
 ## Input
 
 Invoke with one of:
@@ -80,7 +82,7 @@ Branch on storage mode (`_conventions.md` → Storage-mode branching). Targets b
 | Artifact | Filesystem | Obsidian |
 |----------|-----------|----------|
 | Meeting note | `meetings/notes/{date}-{meeting-name}.md` | `Lore/Meetings/<YYYY-MM-DD> <kind> <subject>.md` |
-| Raw transcript | `meetings/transcripts/{date}-{meeting-name}.md` | `Lore/Transcripts/<YYYY-MM-DD> <kind> <subject>.md` |
+| Source reference | `Source:` first line of the meeting note | `source` / `source_id` / `source_url` frontmatter on the meeting note (Notion: properties-only Transcripts page) |
 | Observations | `team/*.md`, `stakeholders/*.md` | person's vault note via Edit |
 | Decisions | `decisions/log.md` | one note per decision, `Lore/Decisions/` |
 
@@ -106,10 +108,11 @@ Obsidian path resolution and the `Lore/` subfolder override: `_conventions.md` �
 
 **Meeting note (both modes):**
 - **Plaud note available** (fetched via `mcp__plaud__get_note` during plaud-sync): use its body as primary content. Apply terminology corrections; in Obsidian mode also resolve all participant/project names to `[[Name]]`. Save from `templates/meeting-note.template.md`. Do not regenerate a summary the Plaud note already covers.
-- **No Plaud note** (manual drop or fetch failed): generate the summary from the transcript.
+- **Other sources with their own summary** (Notion AI meeting notes, Teams/Zoom recaps): same treatment as a Plaud note; link the source page, don't duplicate it.
+- **No source summary** (manual drop or fetch failed): generate the summary from the transcript.
 - The body summarizes the meeting; it does not restate any attendee's role, team, or history (Obsidian: wikilink instead, per `_conventions.md` → Linking and deduplication).
 
-**Raw transcript:** save to the mode's transcript path, keeping original timestamps and speaker labels.
+**Source reference, not a copy:** record the source per `_conventions.md` → Source references, not copies. Never write the transcript into the meeting note, a `Transcripts/` note, or a Notion page. The user's own notes and flagged highlights go verbatim under `## Your notes`. A transcript the user dropped into `meetings/transcripts/` stays where it is; one pasted into chat with no other home: ask once whether to keep a copy.
 
 #### Section 5, Obsidian-specific details
 
@@ -157,9 +160,9 @@ Procedure: read the tracker, assemble `propose` ops, write them as an ArtifactDa
 - [Attendee 2]
 
 ### Files Updated
-(Filesystem paths shown; in Obsidian mode substitute `Lore/Meetings/`, `Lore/Transcripts/`, `Lore/People/`, `Lore/Decisions/`.)
+(Filesystem paths shown; in Obsidian mode substitute `Lore/Meetings/`, `Lore/People/`, `Lore/Decisions/`.)
 - meetings/notes/{date}-{meeting-name}.md - Meeting summary created
-- meetings/transcripts/{date}-{meeting-name}.md - Raw transcript saved
+- Source reference recorded (no transcript copy)
 - team/{person}.md - Added observations
 - stakeholders/{person}.md - Added observations
 - The Quest Log - Proposed [N] item(s) to your "To Triage" pile
@@ -194,7 +197,7 @@ How should I track these?
 
 ---
 
-Transcript processed and archived.
+Transcript processed; source referenced, not copied.
 ```
 
 ## Tips
