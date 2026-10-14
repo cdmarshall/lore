@@ -8,7 +8,7 @@
   ".gitmodules": "cebb71c6b9967359ca29cb33e1ae344c86026b0255db9b46519b054898daa2f5",
   "CLAUDE.md": "17f9a1fd4b857f30cbff21f1422fc3768545bc27c4fdf3be0a4b27af6c165d50",
   "README.md": "1358029341494b4c6e28b9b01e59ea19a71e4d6f6205184a410c4685c7dcefae",
-  "VERSION": "5dae0c0a5ed3cdaa78704e25bb38d72c31018311e933283d06ed4f93360bfc6c",
+  "VERSION": "6cf4e084b47f33c9b02ef79279d157833868f8f70514169a768be353ee328fea",
   "VOICE.md": "743f948be9c576233a31adefc5be433926853f8c735ca1a928be9117eb143fa4",
   "archive/action-item-triage-standalone/action-item-triage.template.html": "953d3349a814b22c7fb0ea64a47649de265c093e63953e76f0e482b94a797ddb",
   "archive/action-item-triage-standalone/build-action-item-triage.js": "5bf3ffae9165256f5a4e5eaa9021f75d817464acae8cb700dece7d6899f05d61",
@@ -174,5 +174,5 @@
   "workflows/update.md": "cb5b1e160f332b6fff1534900a6c241a74570807b3fd9042ff46686759e6f535",
   "workflows/vault-lint.md": "8bc66d8314ab33746ae269d3e4846da09f607769069c3c2eb124ff531b44c1a0"
  },
- "version": "1.1.3"
+ "version": "1.2.1"
 }
