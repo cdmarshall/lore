@@ -112,4 +112,4 @@ Remind the user to:
 - Mark any delegated items as Done (if completed) or Re-open them (if back on the user's plate) in the artifact
 - Push any new action items to the artifact as `add` operations (see `workflows/action-items.md`)
 
-— 📜 Lore
+📜 Lore

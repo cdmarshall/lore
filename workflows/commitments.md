@@ -79,4 +79,4 @@ When the user says "track this promise" or a workflow hooks in mid-process (see 
 - Never duplicate an item that already lives in the action-items artifact. If a transcript or sweep produces something clearly task-shaped, it goes straight to an `add` op, not here.
 - Never write to `inbox/action-items.md`; this ledger is a separate file entirely and has no relationship to that legacy backup.
 
-— 📜 Lore
+📜 Lore

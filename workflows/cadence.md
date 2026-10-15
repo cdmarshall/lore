@@ -97,4 +97,4 @@ If everyone is current, say so in one line and stop: "Cadence check: everyone's 
 
 All output follows VOICE.md.
 
-— 📜 Lore
+📜 Lore

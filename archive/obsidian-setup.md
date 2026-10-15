@@ -39,9 +39,9 @@ Use AskUserQuestion-style multiple choice:
 > "What should I call Lore's subfolder inside your vault?"
 
 Present these options:
-1. **`Lore/` (Recommended)** — the default; works for most users.
-2. **`Lore - <YourOrg>/`** — useful if you plan to run separate Lore instances per org or context (e.g., `Lore - Acme/`, `Lore - Personal/`). Pick this if you want room to add more later.
-3. **Other** — let the user type a custom name.
+1. **`Lore/` (Recommended):** the default; works for most users.
+2. **`Lore - <YourOrg>/`:** useful if you plan to run separate Lore instances per org or context (e.g., `Lore - Acme/`, `Lore - Personal/`). Pick this if you want room to add more later.
+3. **Other:** let the user type a custom name.
 
 Record the chosen name; you'll use it throughout the rest of the workflow.
 
@@ -93,7 +93,7 @@ Count what's in each. Report back to the user with the counts:
 > Which would you like to migrate?"
 
 Use AskUserQuestion with `multiSelect: true`. Options:
-1. **People** (team + stakeholders → `<vault subfolder>/People/`) — Recommended; everything else benefits from people being in place
+1. **People** (team + stakeholders → `<vault subfolder>/People/`). Recommended: everything else benefits from people being in place
 2. **Projects** (project files → `<vault subfolder>/Projects/`)
 3. **Decisions** (split `decisions/log.md` into one note per decision under `<vault subfolder>/Decisions/`)
 4. **Strategy** (vision/roadmap docs only → `<vault subfolder>/Strategy/`)
@@ -234,4 +234,4 @@ Then suggest next steps based on what was migrated:
 
 Finally, remind them they can edit `context.md` directly to change the subfolder name later if they ever need to.
 
-— 📜 Lore
+📜 Lore

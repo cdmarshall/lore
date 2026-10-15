@@ -178,7 +178,7 @@ Summarize what was done:
 [List any items that are ambiguous and need your input before they can be filed]
 ```
 
-All output follows VOICE.md. Sign off meeting notes and brainstorm docs with `— 📜 Lore` when you authored them (per CLAUDE.md signet rule). Do not sign action item rows or inline edits to the user's own files.
+All output follows VOICE.md. Sign off meeting notes and brainstorm docs with `📜 Lore` on its own line when you authored them (per CLAUDE.md signet rule). Do not sign action item rows or inline edits to the user's own files.
 
 ---
 

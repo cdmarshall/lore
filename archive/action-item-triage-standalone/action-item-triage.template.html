@@ -97,7 +97,7 @@ kbd { background: var(--bg-muted); border: 1px solid var(--border-strong); borde
 
 <div class="header">
   <h1>Action Item Triage</h1>
-  <div class="header-subtitle">by Lore &#128220; &mdash; quick pass before items join your real tracker</div>
+  <div class="header-subtitle">by Lore &#128220;: a quick pass before items join your real tracker</div>
 </div>
 
 <div class="wrap">
@@ -258,7 +258,7 @@ function syncNow() {
   });
   console.log(`LORE_TRIAGE_SYNC_END:${JSON.stringify({ count: items.length })}`);
   const note = document.getElementById('synced-note');
-  if (note) { note.classList.add('show'); note.textContent = `Synced ${items.length} item${items.length===1?'':'s'} — tell Lore you're ready (e.g. "push my triage queue") whenever you like.`; }
+  if (note) { note.classList.add('show'); note.textContent = `Synced ${items.length} item${items.length===1?'':'s'}. Tell Lore you're ready (e.g. "push my triage queue") whenever you like.`; }
 }
 
 function renderMain() {

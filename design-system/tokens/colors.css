@@ -1,11 +1,11 @@
 :root{
-/* Base — parchment & ink (lifted from templates/brief.template.html in repo) */
+/* Base: parchment & ink (lifted from templates/brief.template.html in repo) */
 --paper:#faf9f6; --paper-band:#f3f0e8; --parchment:#f6efdc; --parchment-shade:#dfcb99;
 --ink:#26221c; --ink-soft:#514a3e; --ink-faint:#8c8577;
 --rule:#e3ddce; --rule-soft:#ece7db;
-/* Gold — the signet metal */
+/* Gold: the signet metal */
 --gold:#a9862f; --gold-deep:#856a22; --gold-soft:#f4edd8; --gold-bright:#d4b158;
-/* Arcane — the magic accent (new; harmonized with the brief's slack chip #6b4f8e) */
+/* Arcane: the magic accent (new; harmonized with the brief's slack chip #6b4f8e) */
 --arcane:#6b4f8e; --arcane-bright:#7f63b8; --arcane-soft:#efe7f4; --arcane-glow:#c9b8ea;
 /* Semantic status (from the action-items artifact's badge family, re-tuned to the ink palette) */
 --danger:#a4432f; --danger-soft:#f4e2dc;

@@ -95,7 +95,7 @@ Write `outbox/sweeper/YYYY-MM-DD-HHMM.md`. Two-step existence check first. Follo
 ## Counts
 - Slack: N seen, W written. Teams: N seen, W written. Email: N seen, W written.
 
-— 📜 Lore
+📜 Lore
 ```
 
 The vault never mutates silently: writes under "Written," judgment calls under "Proposed," gaps under "Skipped." An empty run still produces this file with zero counts.

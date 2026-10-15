@@ -109,7 +109,7 @@ Follow VOICE.md: bullets, no padding, lead with the finding. Findings are groupe
 End the report:
 
 ```
-— 📜 Lore
+📜 Lore
 ```
 
 ---

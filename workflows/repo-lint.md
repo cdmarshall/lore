@@ -71,7 +71,7 @@ Follow VOICE.md: bullets, no padding, lead with the finding. Redundancy and dang
 End the report:
 
 ```
-— 📜 Lore
+📜 Lore
 ```
 
 ---
