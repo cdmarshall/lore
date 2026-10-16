@@ -205,7 +205,12 @@ def artifact_copy(doc, title=None):
     head = re.search(r"<head[^>]*>(.*?)</head>", doc, re.S)
     body = re.search(r"<body[^>]*>(.*)</body>", doc, re.S)
     if not head or not body:
-        return doc  # already in hosted shape (the action-items template is)
+        # Head-less pages (the Herald template is a bare doctype + charset meta, then
+        # styles and markup): drop those two lines and add the title, keep the rest.
+        doc = re.sub(r"\A\s*<!DOCTYPE[^>]*>\s*(<meta\s+charset=[^>]*>\s*)?", "", doc, flags=re.I)
+        if title and not re.search(r"<title>", doc):
+            doc = f"<title>{html.escape(title)}</title>\n" + doc
+        return doc
     keep = re.findall(r"<style\b[^>]*>.*?</style>|<script\b[^>]*>.*?</script>", head.group(1), re.S)
     t = title or (re.search(r"<title>(.*?)</title>", head.group(1), re.S) or [None, ""])[1]
     return f"<title>{html.escape(t) if title else t}</title>\n" + "\n".join(keep) + "\n" + body.group(1).strip() + "\n"
