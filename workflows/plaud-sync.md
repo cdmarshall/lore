@@ -127,6 +127,8 @@ Date: the recording's date in the user's timezone (YYYY-MM-DD; Plaud timestamps 
 
 **Sanity-check the Plaud title against the transcript before committing it to a filename.** Plaud's `name` is auto-generated and regularly names the wrong person: it latches onto whoever dominates the forward-looking half of the meeting rather than the actual subject. One recording titled as a strategy session for the next day's candidate was in fact the debrief for the previous candidate. Before saving, read enough of the transcript to confirm the title's named people and topic match its actual subject; when they don't, rewrite the name. When a meeting covers two people or two topics, name both explicitly (e.g. `2026-08-25 working Candidate A Debrief and Candidate B Interview Prep`) rather than letting one crowd out the other. The derived name goes on the meeting note and the source reference, so a bad title propagates twice.
 
+**Merged recordings.** The user sometimes merges two Plaud recordings of one call (a dropped connection or app restart splits it). The merged file keeps one ID, and Plaud's note then describes "two sessions". Before calling that note wrong, check for a mid-call restart or reconnect in the transcript and a `created_at` well after `start_at`; if it is a merge, say so in the speaker note and treat it as one meeting.
+
 ### 6d. Record the source reference (never copy the transcript)
 
 Do not save the transcript or the audio. The meeting note built from Plaud's note (6a) is the only summary Lore writes; everything else is a pointer back to the recording:
