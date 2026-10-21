@@ -409,7 +409,7 @@ If you want a different tone or a different workflow, just edit the file. Lore r
 
 ### Your company's brand
 
-Want the documents, The Herald, the action-items tracker and charts in your company's look instead of Lore's parchment? Say **"set up my brand"** and give Lore your website and, if you have them, a logo link and your brand guidelines or design system. Lore builds a **brand pack** in `brand/` (colors, fonts, logo; gitignored, so updates never touch it) and `scripts/apply-brand.py` applies it to every output. Lore's scroll signet and "Made by Lore" stay. Don't restyle by editing `design-system/` or `templates/` directly: an update overwrites those. Details: `workflows/brand.md`.
+Want the documents, The Herald, the action-items tracker, charts and slide decks in your company's look instead of Lore's parchment? Say **"set up my brand"** and give Lore your website and, if you have them, a logo link and your brand guidelines or design system. Lore builds a **brand pack** in `brand/` (colors, fonts, logo; gitignored, so updates never touch it) and `scripts/apply-brand.py` applies it to every output; decks pick it up through `workflows/slides.md`. Lore's scroll signet and "Made by Lore" stay. Don't restyle by editing `design-system/` or `templates/` directly: an update overwrites those. Details: `workflows/brand.md`.
 
 ---
 

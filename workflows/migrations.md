@@ -84,6 +84,16 @@ Lore can now dress its documents, The Herald, the action-items tracker and chart
 3. **Yes:** run `workflows/brand.md` → Setup, using the customized files (and their diff against the release) as one of the sources. Only after the pack previews correctly, tell the user the customized files can go back to the release version at the next update; never revert them yourself.
 4. **No:** record the id as done with "declined". The user can say "set up my brand" anytime.
 
+### `2026-10-brand-slides`: slide decks in your brand (asks, optional)
+
+**Detect:** `brand/brand.json` exists with `enabled` not false, and `context.md` → Notes for Lore → Brand has no **Design system:** URL.
+
+Decks now pick their look per `workflows/slides.md`: the brand comes first, Lore's parchment never. They already read the pack directly, so nothing breaks without this. The migration offers the native path.
+
+1. **Offer once:** "Lore now builds your slide decks in your brand. Want me to turn your brand pack into a design system that decks pick up natively? It takes a few minutes; nothing else changes."
+2. **Yes:** `workflows/brand.md` → Setup → 6. Turn it on → item 3, "Brand design system". Add the **Design system:** line to `context.md` → Brand if the section predates it.
+3. **No:** record the id as done with "declined". The user can say "build my brand design system" anytime.
+
 ## Adding a migration (maintainers)
 
 Add a section here with a dated id, a detection check that reads only personal files or connector state, the steps, and whether it asks. Onboarding marks every id in this list done on a fresh install (`workflows/onboarding.md` → Phase 8, step 1a), so no extra wiring is needed. Add a row for it to The Keeper's Grimoire → "Your migrations" (`docs/grimoire.body.html`) and rebuild the guides (`CLAUDE.md` → Key behaviors → Guide upkeep). Never change or reuse an id that has shipped.

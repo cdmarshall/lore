@@ -2,7 +2,7 @@
 
 All output follows VOICE.md. NO EM DASHES.
 
-Lore ships in its own design system (`design-system/`: parchment, pixel faces, the scroll signet). A **brand pack** restyles every designed surface for the user's company or org: the signed document (1:1 preps, roundtable preps, reports, Unrolled), The Herald, the action-items tracker, and charts. The mechanism is committed; the pack itself is instance data in `brand/` and is gitignored, so it never ships in a release and an update never overwrites it.
+Lore ships in its own design system (`design-system/`: parchment, pixel faces, the scroll signet). A **brand pack** restyles every designed surface for the user's company or org: the signed document (1:1 preps, roundtable preps, reports, Unrolled), The Herald, the action-items tracker, charts, and slide decks (`workflows/slides.md`). The mechanism is committed; the pack itself is instance data in `brand/` and is gitignored, so it never ships in a release and an update never overwrites it.
 
 > **Trigger phrases**: "set up my brand", "use my company's branding", "brand my artifacts", "refresh my brand", "turn off my brand". Also offered by the `2026-10-brand-layer` migration (`workflows/migrations.md`) and onboarding Phase 7.65.
 
@@ -61,14 +61,15 @@ From the starters in `templates/brand/`:
 
 1. **The tracker:** republish it per `workflows/action-items.md` → "Updating the tracker's page" (branded copy, no `capabilities` field). Items are untouched.
 2. **Record it** in `context.md` → Notes for Lore → Brand: name, date set up, and "pack in `brand/`".
-3. From now on every surface brands itself through the rule above. Existing files in `outbox/` keep their old look unless the user asks to re-brand them (run the script on each).
+3. **Brand design system** (for decks; offer it, a few minutes of work): create an artifact from the **Design System** type (Artifact tool, `list` with scope `types` for its `type_url`), titled with the brand's name, and fill it per that type's SKILL.md from the pack: the palette with each color's role from `brand.css`, the type families and weights from `brand/fonts/` (embedded look-alikes only, never licensed files), radius and shadows, the logo with its alt text and rules from `brand/sources/README.md`, and chart colors from `brand.json`. Record its URL in `context.md` → Brand → **Design system:**. Decks then install it natively (`workflows/slides.md`). Declined: decks still wear the brand, read straight from the pack.
+4. From now on every surface brands itself through the rule above. Existing files in `outbox/` keep their old look unless the user asks to re-brand them (run the script on each).
 
 ## Refresh, change, turn off
 
-- **Refresh** ("refresh my brand", new guidelines): re-read the sources in `brand/sources/README.md`, update the pack, preview, republish the tracker.
-- **Turn off:** set `"enabled": false` in `brand/brand.json`, republish the tracker from the unbranded template. Nothing is deleted.
+- **Refresh** ("refresh my brand", new guidelines): re-read the sources in `brand/sources/README.md`, update the pack, preview, republish the tracker, and update the brand design system if one is recorded, so decks follow.
+- **Turn off:** set `"enabled": false` in `brand/brand.json`, republish the tracker from the unbranded template. Decks fall back to the standard Slides look; the brand design system artifact stays but Lore stops naming it. Nothing is deleted.
 - **Corrections** ("the orange is wrong", "use the other logo"): fix the pack, not a single output, and note the decision in `brand/sources/README.md` (CLAUDE.md → Correction capture).
 
 ## Verification
 
-Before saying it's done: `--check` passes; a branded document, Herald and tracker render with the brand faces, the logo, the signet, and "Made by Lore"; running the script twice gives the same file; `git status` shows nothing under `brand/` except `brand/README.md`.
+Before saying it's done: `--check` passes; if a brand design system was built, its URL is in `context.md` and it opens; a branded document, Herald and tracker render with the brand faces, the logo, the signet, and "Made by Lore"; running the script twice gives the same file; `git status` shows nothing under `brand/` except `brand/README.md`.

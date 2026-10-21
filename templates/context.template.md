@@ -127,6 +127,7 @@
 > Set by `workflows/brand.md`. Leave empty to use Lore's own look.
 
 - **Brand pack:** <Company name>, set up <YYYY-MM-DD>, pack in `brand/` (gitignored)
+- **Design system:** <claude.ai artifact URL of the brand design system decks use; empty means decks read the pack directly> (`workflows/slides.md`)
 
 ### Quest Log
 
