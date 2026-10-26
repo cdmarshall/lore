@@ -126,3 +126,8 @@ node_modules/
 
 # Files waiting for the keeper to delete by hand (Lore cannot delete in a connected folder)
 /_to_delete/
+
+# Everything Lore writes to inbox/ is personal or scratch (state files, temp
+# files, drops). Only the documents/ drop folder placeholder is tracked.
+/inbox/*
+!/inbox/documents/

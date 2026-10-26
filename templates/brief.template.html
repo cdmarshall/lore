@@ -386,6 +386,8 @@
     text-transform: uppercase;
   }
   .foot .foot-line { margin-bottom: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .foot a.made { color: inherit; text-decoration: none; }
+  .foot a.made:hover { text-decoration: underline; }
   .foot .signet { width: 15px; height: 18px; }
   .foot code {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -568,7 +570,7 @@
   <footer class="foot">
     <!-- {{ITEMS_SWEPT}}: total count of items swept across sources.
          {{WINDOW}}: the sweep window, e.g. "since yesterday 3:00 PM" or an ISO range. -->
-    <div class="foot-line"><span>{{ITEMS_SWEPT}} items swept &middot; {{WINDOW}} &middot; Made by Lore</span><span class="signet" aria-hidden="true"></span></div>
+    <div class="foot-line"><span>{{ITEMS_SWEPT}} items swept &middot; {{WINDOW}} &middot; <a class="made" href="https://github.com/cdmarshall/lore" target="_blank" rel="noopener">Made by Lore</a></span><span class="signet" aria-hidden="true"></span></div>
     <!-- {{MARKDOWN_FALLBACK_PATH}}: repo path to the grep-able markdown briefing,
          e.g. "outbox/triage/triage-2026-07-06.md". -->
     <div class="foot-line fallback">Plain-text fallback: <code>{{MARKDOWN_FALLBACK_PATH}}</code></div>
