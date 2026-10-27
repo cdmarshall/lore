@@ -22,7 +22,7 @@ Leave this empty on first setup; the workflow's auto-detect will fill it in. If 
 
 ## Mail Mount Root
 
-Where auto-detect starts scanning when `## Mail Folder Path` is empty or stale. For Mac Mail, this is `~/Library/Mail/`. Must be a folder you've mounted in Cowork.
+Where auto-detect starts scanning when `## Mail Folder Path` is empty or stale. For Mac Mail, this is `~/Library/Mail/`. Must be a folder connected to your Lore session (a Cowork folder, or a directory added in Claude Code with `/add-dir`).
 
 ```
 ~/Library/Mail/

@@ -23,7 +23,7 @@ The old tracker lived in a Cowork-local artifact (id `the-quest-log`) backed by 
 
 1. **Get the old items.** In order of preference:
    - `inbox/action-items.snapshot.md`, if present and the user confirms it is current.
-   - Otherwise ask the user to open the old Quest Log in the Cowork sidebar, click **Download snapshot**, and save the file into `inbox/`. If the old tracker no longer opens, or the user has nothing worth keeping, start empty.
+   - Otherwise ask the user to open the old Quest Log in the Cowork sidebar, click **Download snapshot**, and save the file into `inbox/`. The old tracker only exists in Cowork's sidebar, so a user working in Claude Code switches to Cowork for this one step. If the old tracker no longer opens, or the user has nothing worth keeping, start empty.
 2. **Create the new tracker** per `workflows/action-items.md` → "Creating the tracker", and record its URL and date in `context.md`.
 3. **Import:** `ArtifactData` `list` of the new tracker (`out_dir`), then `node scripts/quest-log-ops.js --docs <out_dir> --import-snapshot <snapshot file> --out <dir>`, then one `ArtifactData` `batch` per `writes-N.json`. Every row keeps its historical dates; rows already present are skipped.
 4. **Verify:** list again, compare counts per status with the script's report, and spot-check two items with the user.

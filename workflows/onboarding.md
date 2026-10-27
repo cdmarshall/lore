@@ -1,6 +1,6 @@
 # Onboarding
 
-The first-run interview. Runs when `context.md` does not exist at the workspace root. Interview the user, generate their personal files (`context.md`, `team/*.md`, `stakeholders/*.md`) from `templates/`, and create the live action items artifact in their Cowork sidebar.
+The first-run interview. Runs when `context.md` does not exist at the workspace root. Interview the user, generate their personal files (`context.md`, `team/*.md`, `stakeholders/*.md`) from `templates/`, and create the live action items artifact (The Quest Log, a hosted claude.ai page).
 
 All output follows VOICE.md. Session-start trigger: CLAUDE.md → Session start (if `context.md` is missing, greet and run this before anything else; handle no other requests until complete). Storage mode: `_conventions.md` → Storage-mode branching. Existence checks before writing gitignored paths: `_conventions.md` → Two-step existence check.
 
@@ -121,7 +121,7 @@ Lore makes no assumption about the user's stack. Run `workflows/connectors.md` i
 
 1. **Detect first, quietly:** inventory the connectors this session can reach and confirm each with one read-only call.
 2. **Ask role by role,** leading with what you found: "I can already reach Slack and Linear from here. What do you use for email?" Roles: email, team chat, calendar, meeting notes and transcripts, work tracker, docs and wiki, service or shared inbox, anything else. Skip what doesn't apply. Where the knowledge base lives is asked in Phase 7.5.
-3. **Wire up what's connected** (scope: addresses, channels, project keys, spaces); for anything not connected, show the connect card or say where to connect it (claude.ai → Settings → Connectors, or the connectors menu in Cowork). Never block on a missing connector.
+3. **Wire up what's connected** (scope: addresses, channels, project keys, spaces); for anything not connected, show the connect card or say where to connect it (claude.ai → Settings → Connectors, the connectors menu in Cowork, or `/mcp` in Claude Code). Never block on a missing connector.
 
 **Output:**
 - The **Connectors** table and per-tool scope in `context.md` → **Tools & Integrations**.
@@ -273,7 +273,7 @@ Goal: every install leaves onboarding with at least 1 scheduled triage per weekd
 2. **Ask the cadence** (multiple choice):
    > "When do you want your daily brief? 1. **Morning (recommended)**, 9:00 on weekdays. 2. **Afternoon**, 3:00 PM on weekdays. 3. **Both**."
    Offer to adjust the times.
-3. **Create the scheduled task(s)** exactly per `workflows/triage.md` → Scheduling: one Cowork scheduled task per chosen slot, using the canonical prompt from that section verbatim (it deliberately points at the workflow file rather than summarizing it).
+3. **Create the scheduled task(s)** exactly per `workflows/triage.md` → Scheduling: one scheduled task per chosen slot (whichever scheduling tool this harness has), using the canonical prompt from that section verbatim (it deliberately points at the workflow file rather than summarizing it).
 4. Confirm what was scheduled and when the first brief lands.
 
 If task creation fails (scheduling tool unavailable), don't block onboarding; note it and tell the user to say "schedule my triage" later.

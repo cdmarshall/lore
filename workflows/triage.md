@@ -356,13 +356,13 @@ Every install should end up with at least 1 scheduled triage per weekday so a br
 
 1. Requires at least one messaging connector (Microsoft 365, Front, or Slack) and a populated `triage-config.md` (run Fresh setup first if missing).
 2. Ask the cadence (multiple choice): **Morning brief (recommended)** at 9:00, **Afternoon brief** at 15:00, or **Both**. Offer to adjust the times; use the user's local timezone.
-3. Create one scheduled task per chosen slot via `mcp__scheduled-tasks__create_scheduled_task`, weekdays only (cron `0 9 * * 1-5` / `0 15 * * 1-5`), named `triage-morning` / `triage-afternoon`, with exactly this prompt (fill the placeholder):
+3. Create one scheduled task per chosen slot with the session's scheduled-task tool (Cowork on the desktop: `mcp__scheduled-tasks__create_scheduled_task`; a cloud session or Claude Code: whatever scheduling tool it lists, per `CLAUDE.md` → Harness-neutral by default), weekdays only (cron `0 9 * * 1-5` / `0 15 * * 1-5`), named `triage-morning` / `triage-afternoon`, with exactly this prompt (fill the placeholder):
 
    > Run Lore's unified triage (scheduled run). Working folder: the Lore workspace at `<absolute path to this repo>`. Read CLAUDE.md and run its session-start checks first, then execute workflows/triage.md end to end for the window since `inbox/.triage-last-run`. That workflow file is the complete spec and this prompt is only a pointer to it, not a summary: do not skip or abbreviate steps it requires, including the designed HTML brief (The Herald) written to outbox/briefs/ on every run and the independent verifier pass before delivery. Draft-and-hold, never send anything on the user's behalf.
 
    The wording matters: a past incident (2026-07-22, see STATE.md) showed that a schedule prompt which summarizes steps gets treated as permission to skip the ones it doesn't mention.
 4. Record the chosen cadence in `triage-config.md` (e.g. `Brief windows scheduled: morning + afternoon`). The brief's masthead title depends on it: with both windows scheduled, briefs are titled "The <Weekday> Morning Herald" / "The <Weekday> Afternoon Herald"; with one, just "The <Weekday> Herald". Keep this line in sync whenever the schedule changes. (These must match step 7.2 exactly. They said "Brief" until 2026-09-22, which contradicted 7.2 and made the 2026-09-21 verifier flag a correct masthead as a CLAUDE.md violation.)
-5. Confirm to the user what was scheduled and when the first brief will land. Mention "triage everything" works on demand anytime, and that they can say "change my brief schedule" later (edit via `mcp__scheduled-tasks__update_scheduled_task`, then update the config line).
+5. Confirm to the user what was scheduled and when the first brief will land. Mention "triage everything" works on demand anytime, and that they can say "change my brief schedule" later (edit with the same scheduling tool's update call, then update the config line). A scheduled run must be able to reach the Lore folder; if the only scheduler available runs somewhere that can't, say so and offer on-demand "triage everything" instead.
 
 ## Outputs
 

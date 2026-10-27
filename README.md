@@ -10,7 +10,7 @@
 
 **Your second brain, your magic scroll.** Lore is a personal AI executive assistant that lives in a folder of markdown files: a mage-scribe that turns Claude (or any agent that reads a CLAUDE.md and a folder of workflow files) into a long-running, context-aware partner for managing your role, your team, your stakeholders, and your work.
 
-**Lore is not a standalone application.** It's a Claude Cowork project, a set of configuration and instruction files (`CLAUDE.md`, workflow markdown, templates) that direct Claude, a tool your org has already approved, to behave as a persistent assistant. There's no separate executable, no server, and no account beyond the Claude access you already have. Everything runs inside Claude Cowork or Claude Code, and every file in the folder is plain markdown you can read and edit yourself.
+**Lore is not a standalone application.** It's a folder of configuration and instruction files (`CLAUDE.md`, workflow markdown, templates) that direct Claude, a tool your org has already approved, to behave as a persistent assistant. It runs in either of Claude's agent harnesses, **Claude Cowork** or **Claude Code**, both available in the Claude desktop app. Both work, and the choice is yours. There's no separate executable, no server, and no account beyond the Claude access you already have, and every file in the folder is plain markdown you can read and edit yourself.
 
 Lore stays out of your way until you need it, remembers what matters across sessions, and adapts to how you like to work. Like any good scroll, it grows more valuable with every entry.
 
@@ -48,11 +48,16 @@ git submodule update --init
 
 The submodule step pulls `external/skills/` ([mattpocock/skills](https://github.com/mattpocock/skills)), an upstream skills library that some workflows wrap. To pull upstream updates later, run `./scripts/update-external-skills.sh`. (Package installs skip the submodule; the workflows that wrap it degrade gracefully.)
 
-### 2. Open the folder in your AI agent
+### 2. Open the folder in Claude
 
-Lore is designed to work with agents that read a top-level `CLAUDE.md` and treat the folder as a persistent workspace. The reference setup is **Cowork** (the desktop app that ships Claude as a workspace agent) or **Claude Code** running in this directory.
+Lore is designed to work with agents that read a top-level `CLAUDE.md` and treat the folder as a persistent workspace. It is built and tested in two harnesses, and both are first-class. Pick whichever fits how you work:
 
-Other configurations work too, Lore is just markdown files. Any agent that can read and edit files in the folder can run it.
+- **Claude Cowork**, in the Claude desktop app. Choose the `lore` folder as your workspace (or add it to a project).
+- **Claude Code**, also in the Claude desktop app. Choose the `lore` folder as the session's folder. It reads `CLAUDE.md` the same way, and it is where you run the session digest that lets recaps count your Claude Code work ("sync my Claude Code sessions"). Claude Code also runs in a terminal or IDE (run `claude` inside the `lore` folder), but we recommend the desktop app: it shows the claude.ai pages Lore publishes (The Quest Log, The Herald, preps) right beside the chat.
+
+The workflows, files, and Quest Log are the same in both, and you can switch between them, or use both, at any time. Sign in with the same Claude account and the connectors you add on claude.ai come with you.
+
+Other configurations work too: Lore is just markdown files. Any agent that can read and edit files in the folder can run it.
 
 ### 3. Run onboarding
 
@@ -230,7 +235,7 @@ Everything above works with plain file access, but Lore can't *execute* a Datavi
 
 1. In Obsidian: **Settings → Community plugins → Browse**, search for **Semantic Notes Vault MCP**, Install and Enable.
 2. In the plugin's settings tab, copy the API key.
-3. Connect Claude Code / Cowork:
+3. Connect it to Claude (the command is for Claude Code; in Cowork, add it as a custom connector with the same URL and header):
 
 ```bash
 claude mcp add --transport http obsidian-vault http://localhost:3001/mcp --header "Authorization: Bearer YOUR_API_KEY"
@@ -481,7 +486,7 @@ The example uses the name **Sigil**; substitute your specialist's name if it dif
 > ```
 > Never write to `inbox/action-items.md`. Check the key first: if a document with the same `subject + from` exists in any status, don't add it again.
 >
-> **Don't try to be Lore.** If the user asks for things outside your specialist scope (process a meeting transcript, prep for a 1:1, write a stakeholder talk track, do a weekly review), tell them: *"That's a Lore task, open Cowork and work in your Lore folder."* Lore items are flagged `Lore: Y`, which is also a hint that the work belongs over there even if you could in principle do it.
+> **Don't try to be Lore.** If the user asks for things outside your specialist scope (process a meeting transcript, prep for a 1:1, write a stakeholder talk track, do a weekly review), tell them: *"That's a Lore task, open your Lore folder in Cowork or Claude Code and ask there."* Lore items are flagged `Lore: Y`, which is also a hint that the work belongs over there even if you could in principle do it.
 
 #### Persistent addition to your specialist's `CLAUDE.md`
 
@@ -527,7 +532,7 @@ You only act on `Specialist: Y` items. When the user asks "what should I work on
 ```
 Check the key first; an item with the same `subject + from` in any status means it is already tracked.
 
-**Scope boundary.** Lore handles general executive-assistant work (transcripts, 1:1 prep, talk tracks, weekly reviews, stakeholder management). When users ask you for those, redirect them to Lore: *"That's a Lore task, open Cowork and work in your Lore folder."*
+**Scope boundary.** Lore handles general executive-assistant work (transcripts, 1:1 prep, talk tracks, weekly reviews, stakeholder management). When users ask you for those, redirect them to Lore: *"That's a Lore task, open your Lore folder in Cowork or Claude Code and ask there."*
 
 ### If Lore is not present
 
