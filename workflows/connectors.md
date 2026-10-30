@@ -57,7 +57,7 @@ Only what the workflows need; names alone are fine when ids are unknown.
 - **Team chat:** the user's own id; the channels that matter (triage setup proposes these from channel names).
 - **Work tracker:** team or project keys (e.g. `ENG`, `OPS`) so issue references like `ENG-142` are recognized and lookups stay in scope.
 - **Docs and wiki:** the spaces, teamspaces or drives that hold work docs.
-- **Meeting notes:** where transcripts end up (a recorder app, a Notion database, a folder) and roughly how often.
+- **Meeting notes:** where transcripts end up (a recorder app, Notion AI meeting notes, a folder) and roughly how often. Plaud syncs through `workflows/plaud-sync.md` and Notion AI meeting notes through `workflows/notion-meetings-sync.md`; Notion needs no extra scoping, since its meeting-notes query covers meetings the user attended or created. Any other tool: the user drops or pastes transcripts.
 - **Knowledge base:** this folder, Obsidian, or Notion; onboarding Phase 7.5 sets up whichever they pick (Notion: `workflows/notion-kb.md` → Setup).
 
 ### 4. Write it down

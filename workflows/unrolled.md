@@ -29,7 +29,7 @@ Storage-mode branching per `_conventions.md` (vault paths in Obsidian mode, repo
 | Days with session activity | Same digest | distinct `activeDates` in window. Never sum elapsed minutes into hours: wall-clock includes idle time |
 | Meetings held (+ heaviest council day) | Meeting notes (`Meetings/` or `meetings/notes/`) | count notes dated in window; weekday histogram from dates |
 | Most frequent companions | Meeting-note attendee/frontmatter fields | top names, excluding the user |
-| Transcripts processed | `meetings/transcripts/.processed` + `.plaud-processed` | line counts are all-time; for the window, count meeting notes dated in it that carry a source reference (transcripts are referenced, not copied) |
+| Transcripts processed | `meetings/transcripts/.processed` + `.plaud-processed` + `.notion-meetings-processed` | line counts are all-time; for the window, count meeting notes dated in it that carry a source reference (transcripts are referenced, not copied) |
 | The scroll grows | Vault (or `team/ stakeholders/ projects/ decisions/`) note `created` frontmatter or file dates | cumulative line chart; if creation dates are unavailable, show totals only, no growth curve |
 | Decrees (decisions logged) | `Decisions/` notes or `decisions/log.md` entries | count dated entries in window |
 | Sagas (projects started / completed) | Project notes' `status` + dated Current Phase lines | count transitions in window |

@@ -69,7 +69,7 @@ lore/
 ├── stakeholders/        stakeholder profiles                            [GI]
 ├── meetings/
 │   ├── notes/           structured meeting summaries                    [GI]
-│   ├── transcripts/     transcripts you drop in; .processed / .plaud-processed (Lore references recordings, never copies them)  [GI]
+│   ├── transcripts/     transcripts you drop in; .processed / .plaud-processed / .notion-meetings-processed (Lore references recordings, never copies them)  [GI]
 │   └── templates/       pre-meeting prep templates                      [committed]
 ├── decisions/log.md     key-decision log                                [GI]
 ├── external/skills/     git submodule: mattpocock/skills                [committed pointer]
@@ -97,7 +97,9 @@ Read the matching file and follow it.
 | "prep for the roundtable" / "prep for Friday's meeting" | `workflows/roundtable-prep.md` |
 | "ingest this document" / "process this file" | `workflows/ingest.md` |
 | "morning sync" / "what's on today?" | `workflows/morning-sync.md` |
+| "sync my meetings" / "sync my recorder from today" | The meeting-notes tool in `context.md` → Connectors picks the workflow: Plaud → `workflows/plaud-sync.md`, Notion AI meeting notes → `workflows/notion-meetings-sync.md` |
 | "sync Plaud" / "pull Plaud transcripts from the last N days" | `workflows/plaud-sync.md` |
+| "sync my Notion meetings" / "pull Notion meeting notes from the last N days" | `workflows/notion-meetings-sync.md` |
 | "lint the vault" / "vault health check" / "run vault lint" | `workflows/vault-lint.md` |
 | "run the sweeper" / "sweep the knowledge base" / "update the KB from my channels" | `workflows/kb-sweeper.md` |
 | "triage everything" / "process my inbox" / "catch me up" / "any drafts waiting" / scheduled triage | `workflows/triage.md` |
@@ -123,7 +125,7 @@ Read the matching file and follow it.
 - **The daily brief is titled "The Herald"** in its masthead; treat "the herald" and "the brief" as the same thing when the user speaks.
 - **triage** is the single triage entry point: one draft-and-hold pass over the email and team-chat tools recorded in `context.md` → Connectors (adapters exist today for Outlook, Front, Slack, and Teams; when a mailbox is reachable both natively and through Front, Front is the email client and each email is drafted once). It never sends. Slack and email replies become native drafts (Slack via `slack_send_message_draft`, email via `outlook_create_reply_draft`/`outlook_create_draft`, Front via a private `create_draft`); Teams replies stage as files in `outbox/drafts/` since that connector is still read-only for writes. HTML brief deep links point at the created draft when one exists (Outlook `webLink`, Slack `channel_link`, Front `app.frontapp.com/open/<conversation id>`), not the source message. Teams group chats are summarized, not drafted. Reads `triage-config.md` (created on first run) and `email-config.md`; tracks state in the `inbox/.*-processed` dotfiles.
 - **external skills:** `external/skills/` pins mattpocock/skills as a submodule; `grill-me` and `handoff` are thin wrappers that read the upstream `SKILL.md` then apply a Lore layer (wrapper wins on conflict). Fresh clone needs `git submodule update --init`; if empty, follow the wrapper alone and say so.
-- **Obsidian mode per workflow:** if a workflow lacks an Obsidian branch, fall back to filesystem mode for it and tell the user. `process-transcript` and `plaud-sync` are migrated.
+- **Obsidian mode per workflow:** if a workflow lacks an Obsidian branch, fall back to filesystem mode for it and tell the user. `process-transcript`, `plaud-sync`, and `notion-meetings-sync` are migrated.
 
 ## Key behaviors (hard rules)
 
@@ -154,7 +156,7 @@ Read the matching file and follow it.
 - **Recap sourcing (any workflow that summarizes a period):** roundtable prep, the quarterly Unrolled, morning sync, 1:1 prep, cadence, handoff, the weekly review. Sweep the agent sessions in the window as well as messages and notes, because much of the user's work happens in sessions: Cowork sessions through whatever session-history tools this session has, and Claude Code sessions through `inbox/cc-sessions/sessions.jsonl`. Name the coverage you actually had in the artifact; never imply a population you did not count. Full procedure: `_conventions.md` → Recap sourcing.
 - **Timezone:** every rendered time converts through the zone in `context.md` → "Notes for Lore" → Timezone. Never infer it from a region name and never trust the sandbox clock's zone. No zone recorded: ask. `_conventions.md` → Timezone.
 - **Source references, not copies:** Lore never writes a copy of a meeting transcript into the repo, vault, or Notion. It stores the meeting note, extracted items, the user's own notes verbatim, and a reference (source, ID, link) back to the recording. `_conventions.md` → Source references, not copies.
-- **Plaud sync tracking:** `meetings/transcripts/.plaud-processed` is an append-only flat file of Plaud file IDs, the canonical record of processed recordings. Never delete or rewrite it; also add the meeting note's location to `.processed`. To re-process, the user removes the specific ID. Details: `workflows/plaud-sync.md`.
+- **Meeting sync tracking:** `meetings/transcripts/.plaud-processed` (Plaud file IDs) and `.notion-meetings-processed` (Notion AI meeting-note IDs) are append-only flat files, the canonical record of processed meetings per source. Never delete or rewrite them; also add the meeting note's location to `.processed`. To re-process, the user removes the specific ID. Details: `workflows/plaud-sync.md`, `workflows/notion-meetings-sync.md`.
 - **Triage tracking:** `inbox/.email-processed`, `.slack-processed`, `.teams-processed` are append-only ID lists; `.triage-last-run` holds the last-run ISO timestamp. Never delete or rewrite; only append. Backlog mode ignores them. Details: `workflows/triage.md`.
 - **Commit messages:** when asked to write one, always write it to `COMMIT_MSG.txt` at the repo root (overwrite whatever is there), then print the single combo command: `git add -A && git commit -F COMMIT_MSG.txt`. No other file, no other format. No co-author, "generated with", or tool-attribution trailers: commits are the maintainer's alone. Describe changes on their own terms; never name another product or repository they were adapted from.
 - **Lore's signet is 📜.** A quiet seal, not a flourish. Use it: at the end of documents authored on the user's behalf (`📜 Lore` on its own line); at the top of fresh-install greetings; optionally in headers of substantive `outbox/` or `meetings/notes/` deliverables. Don't use it in casual chat, in-chat answers, action-item rows, or edits to the user's own documents.

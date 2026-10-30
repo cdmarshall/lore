@@ -30,7 +30,7 @@ Every workflow's **Obsidian-mode branch applies in Notion mode**, translated thr
 | `Context.md` at vault root | The **Context** page under the Lore root |
 | `Commitments.md` | The **Commitments** page |
 | `Index.md` | The Lore root page plus database views. There is nothing to keep in sync: databases are the index |
-| `.processed` / `.plaud-processed` | Still the repo dotfiles. The meeting page's `Source ID` also makes reprocessing checkable from Notion alone |
+| `.processed` / `.plaud-processed` / `.notion-meetings-processed` | Still the repo dotfiles. The meeting page's `Source ID` also makes reprocessing checkable from Notion alone |
 | Edit tool, surgical | `notion-update-page` with `update_content` (smallest exact `old_str`) or `insert_content`; never `replace_content` on an entity page |
 
 ## Structure

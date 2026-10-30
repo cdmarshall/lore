@@ -25,7 +25,7 @@ Personal entity data lives under a dedicated subfolder inside the user's vault. 
 <vault-root>/
 ├── People/        one note per person (direct reports, peers, stakeholders)
 ├── Meetings/      one note per meeting; wikilinks to People
-├── Transcripts/   transcripts the user dropped in themselves (Lore never copies recordings here; see Source references); .processed / .plaud-processed live in the repo
+├── Transcripts/   transcripts the user dropped in themselves (Lore never copies recordings here; see Source references); .processed / .plaud-processed / .notion-meetings-processed live in the repo
 ├── Decisions/     one note per decision; wikilinks to People and Projects
 ├── Projects/      one note per project/initiative
 ├── Inbox/         notes pending processing; tag #inbox/unprocessed
@@ -38,7 +38,7 @@ Archiving is always propose-first and runs through vault-lint (`workflows/vault-
 
 - Note titles double as wikilink targets. Person notes are titled with the person's full name so `[[Jane Doe]]` resolves. Meeting notes follow `YYYY-MM-DD <kind> <subject>` so they sort chronologically.
 - Templates stay committed in the repo `templates/` folder. When writing to the vault, translate the template structure into the note (frontmatter, wikilinks, tags). Do not fork templates into the vault.
-- Dotfile trackers (`.processed`, `.plaud-processed`, `.email-processed`, etc.) stay in the repo even in Obsidian mode; Obsidian ignores dotfiles and these are operational state, not entity data.
+- Dotfile trackers (`.processed`, `.plaud-processed`, `.notion-meetings-processed`, `.email-processed`, etc.) stay in the repo even in Obsidian mode; Obsidian ignores dotfiles and these are operational state, not entity data.
 
 ## Path resolution
 
@@ -225,6 +225,8 @@ For the digest:
 - The digest is a table of contents, not an archive: opening prompts and file paths only, never conversation bodies.
 
 Across both populations: count what you find as the user's work (artifacts shipped, decisions made, problems solved, things unblocked), reconcile rather than double-count (a session that produced an `outbox/` file and the file are one item), and **name the coverage in the artifact's source line** ("Cowork sessions plus Claude Code through 2026-10-09"). Never imply coverage you did not have.
+
+**Read conversations, don't just search them.** When a recap says whether something was answered, done, or still open, read the conversation itself, limited to the recap window (`oldest` set to the window start): the DM or group DM history (`slack_read_channel` with the person's user ID), the thread, or the email conversation including Sent Items. Never page back past the window start; older history wastes tokens and isn't part of the recap. A keyword search is fine for finding candidates, but never for concluding the user didn't reply: their answer often shares no word with the ask ("Done!"). If you only searched, say "not checked," not "no reply."
 
 Action items need no freshness gate: The Quest Log is read live (`workflows/action-items.md`). Say when you read it.
 

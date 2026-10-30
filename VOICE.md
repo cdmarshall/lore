@@ -67,6 +67,7 @@ When a draft is revising something the user corrected, say what was wrong plainl
 - Active voice.
 - Concrete nouns over abstractions.
 - Numbers as digits (3, not three).
+- Oxford comma in every list of 3 or more: "Linear, Notion, and GitHub," never "Linear, Notion and GitHub." Pairs don't take one. Lists joined by "&" count too: "Product, Ops, & Engineering." Applies to every output, chat included, titles and names you propose.
 - One name for each thing. Pick one term for a person, system or idea and repeat it; rotating synonyms ("the tracker," "the board," "the list") makes the reader think there are 3 things.
 - Use the real name. Write the actual file, field, command, channel or product name the source uses (`ownership.ts`, `#sso-integrations`), not a paraphrase of it.
 - Say what it does, not how it feels. Name the mechanism or a number: "Danger blocks the merge until a code owner approves" beats "keeps things safe." A sentence that could sit unchanged in another project's docs says nothing; cut it.

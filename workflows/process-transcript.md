@@ -1,6 +1,6 @@
 # Process Meeting Transcript
 
-Extract insights from meeting transcripts (especially Plaud AI exports) and update relevant files. All output follows VOICE.md.
+Extract insights from meeting transcripts (Plaud recordings, Notion AI meeting notes, or any file or paste) and update relevant files. All output follows VOICE.md.
 
 The transcript is input, not output: Lore never writes a copy of it. It stores the meeting note, the extracted items, the user's own notes verbatim, and a reference back to the source (`_conventions.md` â†’ Source references, not copies).
 
@@ -108,7 +108,7 @@ Obsidian path resolution and the `Lore/` subfolder override: `_conventions.md` â
 
 **Meeting note (both modes):**
 - **Plaud note available** (fetched via `mcp__plaud__get_note` during plaud-sync): use its body as primary content. Apply terminology corrections; in Obsidian mode also resolve all participant/project names to `[[Name]]`. Save from `templates/meeting-note.template.md`. Do not regenerate a summary the Plaud note already covers.
-- **Other sources with their own summary** (Notion AI meeting notes, Teams/Zoom recaps): same treatment as a Plaud note; link the source page, don't duplicate it.
+- **Other sources with their own summary** (Notion AI meeting notes fetched during `notion-meetings-sync`, Teams/Zoom recaps): same treatment as a Plaud note; link the source page, don't duplicate it.
 - **No source summary** (manual drop or fetch failed): generate the summary from the transcript.
 - The body summarizes the meeting; it does not restate any attendee's role, team, or history (Obsidian: wikilink instead, per `_conventions.md` â†’ Linking and deduplication).
 
@@ -126,7 +126,7 @@ Obsidian path resolution and the `Lore/` subfolder override: `_conventions.md` â
 
 **Meeting note frontmatter** per `_conventions.md` â†’ Frontmatter schemas (Meeting); tag `#meeting/<kind>`.
 
-**Tracking files:** `.processed` and `.plaud-processed` stay in the repo (not the vault); append as in filesystem mode.
+**Tracking files:** `.processed`, `.plaud-processed`, and `.notion-meetings-processed` stay in the repo (not the vault); append as in filesystem mode.
 
 #### Section 5, Both Modes: user's action items
 

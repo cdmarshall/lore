@@ -22,6 +22,7 @@ Read in parallel:
 - `team/[name].md`, their profile, active projects, recent observations, commitments
 - Open Waiting on / Promised entries involving this person from the commitments ledger (`workflows/commitments.md`)
 - Agent sessions since the last 1:1 that touch this person or their projects, per `_conventions.md` → Recap sourcing. This is how you catch a promise the user already delivered on in a session and would otherwise walk in still owing.
+- Team chat since the last 1:1, when the team-chat tool is connected. **Read every DM with this person since the last 1:1**, not the whole history (in Slack, `slack_read_channel` with their user ID as the channel and `oldest` set to the last 1:1 date), plus any group DMs you both belong to over the same window, rather than keyword-searching them. Then search their channel messages since the last 1:1. Never call a request unanswered on a search alone: the user's reply often shares no keyword with the ask ("Done!"), so only reading the conversation shows whether they answered. A 2026-10-28 prep wrongly flagged a GitHub access request as open when the user had answered it two minutes later.
 
 For action items involving this person (sourced from them, delegated to them, etc.), query The Quest Log with ArtifactData (`workflows/action-items.md` → Reading current state): `active` items whose `from` names them and `delegated` items whose `delegatedTo` does. Use them for sections 4 and 5. If the tracker can't be reached, build the prep from `team/[name].md` and say plainly that action items are missing.
 
