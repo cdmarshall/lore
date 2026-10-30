@@ -37,13 +37,13 @@ Parse the request into `date_from` and `date_to` (YYYY-MM-DD, inclusive, in the 
 
 ## Step 2, List meeting notes from Notion
 
-**Resolve the tools by suffix.** The Notion server prefix is install-specific and usually an opaque UUID, and the tools are often deferred. Find `notion-query-meeting-notes`, `notion-fetch`, and `notion-get-users` with a suffix search (`ToolSearch`). A failed `select:` on a guessed prefix is not evidence Notion is disconnected. If tool availability isn't known yet this session, call `notion-get-tool-access` once: meeting-notes querying depends on the workspace's Notion plan, and the access map says whether it's available.
+**Resolve the tools by suffix.** The Notion server prefix is install-specific and usually an opaque UUID, and the tools are often deferred. Find `notion-query-meeting-notes`, `notion-fetch`, and `notion-get-users` with a suffix search (`ToolSearch`). A failed `select:` on a guessed prefix is not evidence Notion is disconnected. If tool availability isn't known yet this session, call `notion-get-tool-access` once: meeting-notes querying depends on the workspace's Notion plan, and the access map says whether it's available. Its key there is `query_meeting_notes` (underscores, no `notion-` prefix); a narrowed call with any other spelling silently leaves it out, so ask for the full map or that exact key.
 
 Call `notion-query-meeting-notes` with one date filter on `created_time` (`date_is_within`, exact `daterange` from `date_from` to `date_to`). Widen each end by one day and filter in memory after converting `Created time` (UTC) to the user's timezone, so a late-evening meeting doesn't fall on the wrong side. Do not add a current-user filter: results already cover meetings the user attended or created.
 
 The query returns at most 50 rows. If it returns 50, split the range in half and query each half until each returns fewer.
 
-Each row carries `Title`, `Created time`, `Attendees` (`user://` ids), and `url`. The **meeting-note ID** is the 32-character hex id at the end of `url`, without dashes. Lowercase it.
+Each row carries `Title`, `Created time`, `Attendees` (`user://` ids), and `url`. The **meeting-note ID** is the 32-character hex id at the end of `url`'s path, without dashes or any query string (`notion-fetch` echoes it back with `?pvs=204`). Lowercase it. A meeting note is often a block inside a page of the same name rather than a page of its own; fetch and reference it by its own `url` either way.
 
 If nothing remains, say "No Notion meeting notes found for [date range]." and stop.
 
@@ -77,7 +77,7 @@ Wait for the selection. Parse "all", lists, ranges, single numbers, and "none"/"
 
 ## Step 5, Process each meeting in turn
 
-Read `workflows/process-transcript.md` now (once) and hold it for the whole loop. For each selected meeting, in order:
+Read `workflows/process-transcript.md` now (once) and hold it for the whole loop. Read each meeting with its own extraction helper, several in parallel, and do every shared write in the main conversation (`_conventions.md` → Meeting extraction helpers): 5a through 5d are what the helper reads and drafts, 5e onward is the main conversation's work. For each selected meeting, in order:
 
 ### 5a. Fetch
 
@@ -87,7 +87,9 @@ Resolve the `Attendees` ids to names with `notion-get-users`. That list covers o
 
 Notion's AI summary is the primary source for the meeting note body: use it directly, don't re-summarize (`process-transcript.md` section 5, "Other sources with their own summary"). Scan the transcript for participants, observations, action items, and decisions.
 
-**Speakers.** Notion transcripts can carry generic speaker labels or none. Resolve who said what from content and the attendee list. When it stays uncertain, put a one-line speaker note at the top of the meeting note instead of guessing.
+Notion's summary ends every bullet with `[^...]` citations to blocks on a separate transcript page; drop them, and don't fetch that page, since the transcript already comes back inline.
+
+**Speakers.** Notion transcripts usually carry no speaker labels and no timestamps: one plain paragraph per utterance. Resolve who said what from content and the attendee list. Notion's summary can name the wrong person when two people share a first name, so check its names against the transcript. When it stays uncertain, put a one-line speaker note at the top of the meeting note instead of guessing. With no timestamps, give the duration as an estimate from transcript length or the note's last edit time, and say it is approximate.
 
 ### 5b. Duplicate check
 
@@ -141,7 +143,7 @@ Notion meetings sync complete. Processed [N] meeting(s):
 
 ## Notes
 
-- **Same context, not subagents**, as in `plaud-sync.md`, including its exception for very long meetings (an all-day session): one extraction subagent per meeting, parent does every shared write.
+- **Helpers read, the main conversation writes:** one extraction helper per meeting, started in parallel with the session's own subagent tool (never a scripted multi-agent workflow unless the user asks), and every shared write done in the main conversation. Full rule: `_conventions.md` → Meeting extraction helpers.
 - **`.notion-meetings-processed` is append-only:** `CLAUDE.md` → Key behaviors, "Meeting sync tracking". To reprocess, the user removes that ID.
 - **Terminology corrections apply** (`_conventions.md` → Terminology and glossary). Notion's transcription mangles names too; the user's corrections table covers it.
 - **Mode is decided once per session** and held for the batch.

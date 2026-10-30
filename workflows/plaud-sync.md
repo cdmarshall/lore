@@ -102,7 +102,9 @@ Call in parallel: `get_transcript` (timestamped transcript, speaker labels), `ge
 
 Plaud's note is the primary source for the meeting note body: use it directly, don't re-summarize. Lore's job is wikilinks, frontmatter/tags, and terminology corrections from `context.md`. Scan the raw transcript for participant identification, observations, action items in delta-ops format, and decisions.
 
-**Very long recordings (multi-hour offsites, all-day sessions).** A 4 to 7 hour recording runs to 250 to 350 KB of transcript and a Plaud note of 90 to 130K characters, which no single context should copy by hand. Delegating a structured extraction to one subagent per recording is the sanctioned exception to "same context, not subagents": subagents write only an extraction file in the working folder, and the parent does every shared write (meeting notes, source references, person notes, projects, decisions, tracker). Two traps seen on a three-day offsite: Plaud's speaker labels on long multi-speaker recordings are routinely wrong (the user labelled as someone else, two voices merged into one), and one recording came back with no diarization at all ("Unknown Speaker" throughout). Have the extraction resolve speakers from content and put a speaker note at the top of the meeting note.
+**Extraction helpers.** Read each recording with its own extraction helper, several in parallel, and do every shared write in the main conversation: `_conventions.md` → Meeting extraction helpers. Steps 6a through 6d describe what the helper reads and drafts; 6e onward is the main conversation's work.
+
+**Very long recordings (multi-hour offsites, all-day sessions).** A 4 to 7 hour recording runs to 250 to 350 KB of transcript and a Plaud note of 90 to 130K characters, so its helper should page the transcript and draft section by section. Two traps seen on a three-day offsite: Plaud's speaker labels on long multi-speaker recordings are routinely wrong (the user labelled as someone else, two voices merged into one), and one recording came back with no diarization at all ("Unknown Speaker" throughout). Have the extraction resolve speakers from content and put a speaker note at the top of the meeting note.
 
 ### 6b. Duplicate check
 
@@ -176,7 +178,7 @@ Plaud sync complete. Processed [N] transcript(s):
 
 ## Notes
 
-- **Same context, not subagents.** Preserves awareness of people and projects across the batch, avoids write contention on shared files, lets the user interject between transcripts.
+- **Helpers read, the main conversation writes** (`_conventions.md` → Meeting extraction helpers). One writer preserves awareness of people and projects across the batch, avoids write contention on shared files, and lets the user interject between transcripts.
 - **`.plaud-processed` append-only:** `CLAUDE.md` → Key behaviors, "Plaud sync tracking".
 - **Terminology corrections apply**, per `_conventions.md` → Terminology and glossary.
 - **Mode is decided once per session, held for the whole batch.** Do not flip mid-batch.
