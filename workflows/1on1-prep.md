@@ -68,6 +68,8 @@ Scan `team/[name].md` Observations section for any recent patterns worth address
 - Concerns or blockers that have lingered
 - Positive signals worth acknowledging
 
+If `context.md` records a Talent framework, frame these signals in its terms (`_conventions.md` → Talent framework): evidence by the parts it defines, never a rating the user hasn't given.
+
 ### 7. Generate Prep Brief
 
 **Deliverable: a styled HTML document** built from `templates/document.template.html` (kicker "1:1 prep", title = the person's name, meta = date + meeting time/channel if known), written to `outbox/YYYY-MM-DD-<name>-1on1-prep.html`, then **published as a claude.ai artifact with the Artifact tool by default**. Make the publish copy with `python3 scripts/apply-brand.py outbox/<file>.html --artifact outbox/<file>.artifact.html --title "<Name> 1:1 Prep"`: it applies the user's brand pack (if any) and strips the doctype/html/head/body wrapper so the user gets a link to open in the app. The artifact is the primary output; the outbox file is the local record. Never deliver only the local file. Compose the body from the template's block library; the markdown structure below defines the content and section order, not the final format. Map: Active Projects and open items → `table.doc`; observations and growth notes → cards (use an `arcane` card for things Lore noticed rather than was told); the single most important thing → `callout`; suggested wording → `talk`; agenda → `checklist`. Only produce a bare markdown file instead if the user explicitly asks for markdown.

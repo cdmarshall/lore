@@ -122,6 +122,14 @@
 
 - **Timezone:** <IANA name, e.g. America/Phoenix>. Every rendered time converts through this zone; Lore never guesses it (`workflows/_conventions.md` → Timezone).
 
+### Talent framework
+
+> Optional. The framework you use to assess and coach your direct reports (often your company's own). Lore uses it for reviews, calibrations, and 1:1 prep feedback (`workflows/_conventions.md` → Talent framework). Leave this empty and talent reviews say so and use dated evidence only; say "use the starter framework" to adopt Lore's opt-in starter (`playbooks/starter-talent-framework.md`).
+
+- **Framework:** <name>, from <who, date>. Note: <link to the knowledge-base note that summarizes it>
+- **Its parts:** <the dimensions, scale or categories, and distinctions it defines>
+- **Known gaps:** <cases it doesn't cover>
+
 ### Brand
 
 > Set by `workflows/brand.md`. Leave empty to use Lore's own look.

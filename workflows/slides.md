@@ -39,6 +39,6 @@ Read `brand/brand.css`, `brand/brand.json` and `brand/sources/README.md` (logo r
 
 ## 3. Build and deliver
 
-Follow the Slides type's SKILL.md for everything else. VOICE.md governs every word on the slides and in speaker notes. No signet and no "Made by Lore" on slides: the user presents the deck as their own.
+Follow the Slides type's SKILL.md for everything else. When a design system is installed, its README's shape rules apply on every slide, at slide scale: the 1920 canvas shows at roughly a third of its size, so multiply its radius tokens by 3 (an 8px card radius becomes 24px), or soft corners read as square. Name only faces the deck installs (its `faces` entries), then Arial, then the generic: a family the deck doesn't declare (a licensed face with no file, such as Nexa, or `system-ui`) makes the Slides format fall back to a generic system font, so use the system's embedded stand-in instead. Its bullet style (for example copper squares) is built as rows of a small painted square `<div>` beside a `<p>`, since list items can't carry styled markers. VOICE.md governs every word on the slides and in speaker notes. No signet and no "Made by Lore" on slides: the user presents the deck as their own.
 
 Deliver the deck's link. A correction to the look ("the orange is off", "use the white logo") is fixed in the pack or the brand design system, not only in this deck, and noted in `brand/sources/README.md` (CLAUDE.md → Correction capture).

@@ -102,6 +102,7 @@
 
 # --- Machine-local agent settings ---
 .claude/settings.local.json
+.claude/launch.json
 
 # --- Generated artifacts (HTML widgets created by the agent) ---
 /workflows/*.html

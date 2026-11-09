@@ -118,6 +118,7 @@ Read the matching file and follow it.
 | "what's in my triage queue" / "what's pending review" | `workflows/action-items.md` → Action item triage |
 | "schedule my triage" / "change my brief schedule" / "put my brief on a schedule" | `workflows/triage.md` → Scheduling |
 | "cadence check" / "who am I overdue to see" / "relationship check" | `workflows/cadence.md` |
+| "review [name]'s performance" / "prep [name]'s annual review" / "calibrate my team" / "talent review" / "use the starter framework" | `workflows/talent-review.md` (adopting the starter: step 1) |
 | "unroll my scroll" / "Lore unrolled" / "my recap" / "my wrapped" | `workflows/unrolled.md` |
 | "sync my Claude Code sessions" / "refresh the session digest" | No workflow file. `node scripts/build-cc-session-digest.js --days N`, **run from Claude Code, not Cowork** (Cowork cannot read `~/.claude`). Writes `inbox/cc-sessions/sessions.jsonl`. See `_conventions.md` → Recap sourcing. |
 
