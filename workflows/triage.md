@@ -1,6 +1,6 @@
 # Unified Triage (Email + Slack + Teams)
 
-Multi-source, draft-and-hold triage. Each run sweeps email (Outlook directly, or through Front), Front shared inboxes, Slack, and Microsoft Teams for items needing the user's attention, drafts responses grounded in the knowledge base, and never sends. The user reviews and hits send. The single triage entry point for the workspace: it replaces the older Mac Mail `email-triage.md` and sources email from the Microsoft 365 connector.
+Multi-source, draft-and-hold triage. Each run sweeps email (Outlook directly, or through Front), Front shared inboxes, Front conversations the user is tagged in (the Subscribed view), Slack, and Microsoft Teams for items needing the user's attention, drafts responses grounded in the knowledge base, and never sends. The user reviews and hits send. The single triage entry point for the workspace: it replaces the older Mac Mail `email-triage.md` and sources email from the Microsoft 365 connector.
 
 Generic across users. User-specific data lives in `triage-config.md` (root, created on first run) and `context.md`. It defines its own email tier framework (below) and reads sender lists from `email-config.md` when present.
 
@@ -146,6 +146,23 @@ When Microsoft 365 is not connected, this pass owns the email sweep and the Emai
 6. Deep link for the HTML brief: `https://app.frontapp.com/open/<conversation id>`. It opens the conversation with the draft attached.
 7. Append `<conversation id> <newest message id>` for every conversation looked at to `inbox/.front-processed`.
 
+### 1c. Front subscribed pass (threads you're tagged in)
+
+Runs whenever Front is connected. Teammates pull the user into conversations in *their* inboxes by @mentioning them in an internal comment: invoice and payment approvals, access requests, "is this relevant to us?" questions. Those conversations sit in no inbox the user watches, so step 1b never sees them; they show only in Front's **Subscribed** view. Teammates often comment and archive in the same click, so the conversation looks `archived` even though the ask is still open.
+
+1. `search_conversations` with `query = "is:subscribed"`, `scope = "my_workspace"`, and `filters.after` = the calendar day before `window_start`. Do **not** filter on status: here `archived` reflects the inbox owner's view, not whether the user has handled it. Page with `cursor`. Keep conversations whose `updatedAt` is after `window_start`, and drop any that step 1b already looked at this run.
+2. `read_conversation` (limit 15) for each. Find the newest **ask**: a `comment` whose `text` contains `@<user's alias>` (alias from `get_my_identity`, recorded in `context.md` → Front scope), or an inbound message addressed to the user. Then look for the user's own activity after it (a `comment` or `message_outbound` whose author id is the user's teammate id).
+   - **User acted after the ask:** handled. Skip it.
+   - **Someone else resolved it** (another approver answered, or the asker posted "Okay to pay" / "never mind"): FYI at most, one line.
+   - **Open ask:** goes in the brief. Pull the substance from the comment and the newest inbound message: vendor and invoice number for approvals, the actual question otherwise.
+   - **No mention of the user in the new activity:** skip, unless it changes a decision the user is part of; then one FYI line.
+3. Classify open asks as **Approvals** (invoice, payment, access, sign-off) or **Questions**. Approvals that recur monthly from the same vendor are expected; flag only an amount or vendor that looks new.
+4. **No drafts in this pass.** A reply here is an internal comment, and Front posts comments immediately, so there is nothing safe to hold. In the brief, give a one-line suggested comment the user can paste (approvals: "Approved, thanks @<asker>"). Never call `add_comment`, `send_message`, or change status, assignment, or tags.
+5. Deep link: `https://app.frontapp.com/open/<conversation id>`.
+6. Append `<conversation id> <newest entry id>` to `inbox/.front-processed` for every conversation looked at (entry ids are `evt_…`, so they never collide with 1b's message ids). Skip a conversation whose newest entry id is already there.
+
+First run after this pass is added: sweep the whole Subscribed view once without the date filter, so the backlog surfaces. Then go back to the window.
+
 ### 2. Slack pass
 
 1. Resolve the user's own Slack user ID from `triage-config.md` (or `slack_read_user_profile` / the logged-in user on first run).
@@ -281,7 +298,7 @@ On any fail, revise once addressing the specific gaps the verifier named, then p
 ```markdown
 # Triage: YYYY-MM-DD HH:MM
 
-📜 *Window: <window_start> to <run_start>. Email: N new / D drafted. Front shared: N new / D drafted. Slack: N new / D drafted. Teams: N new / D drafted.*
+📜 *Window: <window_start> to <run_start>. Email: N new / D drafted. Front shared: N new / D drafted. Front tagged: N open. Slack: N new / D drafted. Teams: N new / D drafted.*
 
 ## Needs you (drafts ready)
 
@@ -290,6 +307,10 @@ On any fail, revise once addressing the specific gaps the verifier named, then p
 
 ### Front shared inboxes
 - **Inbox name / sender**: "Subject" (HH:MM). Assigned to you or names you. *Private draft created in Front.* [link]
+
+### Front: tagged in (Subscribed)
+- **Approvals:** **Asker**: Vendor, invoice or request (date asked). What they need. *Suggested comment:* "Approved, thanks @asker" [link]
+- **Questions:** **Asker**: "Subject" (date asked). The question in one line. [link]
 
 ### Slack
 - **Person** in #channel (HH:MM). What they need. *Native draft created in your Drafts & Sent.* [link]
