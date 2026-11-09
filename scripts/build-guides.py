@@ -24,6 +24,7 @@ block on every page against the space above the footer and fails the build
 (exit 2) naming the page and the block that runs over. Exit 3 means
 WeasyPrint isn't importable, so nothing was checked.
 """
+import datetime
 import os
 import pathlib
 import re
@@ -153,6 +154,15 @@ def build_grimoire(write=True):
         1,
     )
     body = (DOCS / "grimoire.body.html").read_text(encoding="utf-8")
+    # The masthead and What's new carry the installed version and the build
+    # month, filled here so they never go stale. make-release.sh rebuilds the
+    # guides right after stamping VERSION, so a release's PDF names itself.
+    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    body = body.replace("{{VERSION}}", version).replace("{{BUILD_MONTH}}", datetime.date.today().strftime("%B %Y"))
+    leftover = re.findall(r"\{\{[A-Z_]+\}\}", body)
+    if leftover:
+        print(f"Unfilled placeholders in grimoire.body.html: {sorted(set(leftover))}")
+        sys.exit(2)
     html = head + GRIMOIRE_CSS + "</style>\n</head>\n<body class=\"grimoire\">\n" + body + "\n</body>\n</html>\n"
     out = DOCS / "grimoire.html"
     out.write_text(html, encoding="utf-8")

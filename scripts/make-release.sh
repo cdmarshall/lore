@@ -58,6 +58,24 @@ fi
 
 echo "$VERSION_NEW" > VERSION
 
+# Rebuild the guides now that VERSION is stamped: the grimoire's masthead and
+# What's new read the version and build month at build time, so the released
+# PDF names this release. The rebuilt files join the release commit, and the
+# manifest below is computed after them so their hashes match.
+set +e
+"$GUIDE_PY" scripts/build-guides.py
+build_status=$?
+set -e
+if [ "$build_status" -eq 2 ]; then
+  git checkout -- VERSION docs/
+  echo "Guide rebuild failed its overflow check after stamping VERSION; nothing was released."
+  exit 1
+elif [ "$build_status" -ne 0 ]; then
+  git checkout -- docs/ 2>/dev/null || true
+  echo "Warning: couldn't rebuild the guides (exit $build_status); the released PDFs still name the previous version. Rebuild and commit them after (continuing in 5s; Ctrl-C to stop)."
+  sleep 5
+fi
+
 python3 - "$VERSION_NEW" "$NOTES" <<'PY'
 import hashlib, json, os, subprocess, sys, zipfile, datetime
 
@@ -90,7 +108,7 @@ print(f"Manifest: {len(manifest['files'])} committed files")
 print(f"Package:  dist/{zip_name}")
 PY
 
-git add VERSION release-manifest.json
+git add VERSION release-manifest.json docs/grimoire.html docs/lore-grimoire.pdf docs/lore-setup-guide.pdf
 git commit -m "Release v${VERSION_NEW}: ${NOTES}"
 git tag "v${VERSION_NEW}"
 
