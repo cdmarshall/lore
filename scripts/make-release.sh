@@ -34,6 +34,23 @@ if ! grep -q "v${VERSION_NEW%.*}" docs/grimoire.body.html; then
   echo "Warning: docs/grimoire.body.html doesn't mention v${VERSION_NEW%.*}. Update What's new before releasing (continuing in 5s; Ctrl-C to stop)."
   sleep 5
 fi
+# Overflow gate: guide pages are fixed-size boxes that clip silently, so a page
+# that runs long still renders as the same page count. build-guides.py --check
+# measures every block against the footer line. Exit 2 = a page overflows
+# (abort); exit 3 = WeasyPrint isn't importable here (warn and continue).
+GUIDE_PY="${GUIDE_PY:-python3}"
+set +e
+"$GUIDE_PY" scripts/build-guides.py --check
+check_status=$?
+set -e
+git checkout -- docs/grimoire.html 2>/dev/null || true
+if [ "$check_status" -eq 2 ]; then
+  echo "A guide page overflows. Trim it, rebuild with scripts/build-guides.py, commit, then release."
+  exit 1
+elif [ "$check_status" -ne 0 ]; then
+  echo "Warning: couldn't run the guide overflow check (exit $check_status). Set GUIDE_PY to a Python with WeasyPrint to enable it (continuing in 5s; Ctrl-C to stop)."
+  sleep 5
+fi
 if [ docs/grimoire.body.html -nt docs/lore-grimoire.pdf ]; then
   echo "Warning: docs/lore-grimoire.pdf looks older than its source. Run: python3 scripts/build-guides.py (continuing in 5s; Ctrl-C to stop)."
   sleep 5
