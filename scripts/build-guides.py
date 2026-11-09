@@ -38,8 +38,16 @@ def _ensure_weasyprint():
     libraries unless DYLD_FALLBACK_LIBRARY_PATH points at Homebrew's lib, and
     macOS strips DYLD_* variables whenever a protected binary (bash, the
     /usr/bin/python3 shim) sits in between. So rather than asking the caller to
-    set it, re-run this script once with it set.
+    set it, re-run this script once with it set. On a Mac that path is set
+    before the first import attempt, because a failed import prints
+    WeasyPrint's long troubleshooting banner even when the retry works.
     """
+    brew_lib = next((d for d in ("/opt/homebrew/lib", "/usr/local/lib") if os.path.isdir(d)), None)
+    if sys.platform == "darwin" and brew_lib and not os.environ.get("DYLD_FALLBACK_LIBRARY_PATH") \
+            and not os.environ.get("LORE_GUIDES_REEXEC"):
+        env = dict(os.environ, DYLD_FALLBACK_LIBRARY_PATH=brew_lib, LORE_GUIDES_REEXEC="1")
+        real_python = os.path.realpath(sys.executable)
+        os.execve(real_python, [real_python, os.path.abspath(__file__)] + sys.argv[1:], env)
     try:
         import weasyprint  # noqa: F401
         return True
