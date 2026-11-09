@@ -8,7 +8,7 @@
   ".gitmodules": "cebb71c6b9967359ca29cb33e1ae344c86026b0255db9b46519b054898daa2f5",
   "CLAUDE.md": "91d88aeb397cc4c8ce9b3cffdc6c58d77d9bffec1a69f3cad28db099ff783bdc",
   "README.md": "dfa95797fde1d9807cb63ae83e360b1577c0637a03277936c85062b77d3f8123",
-  "VERSION": "78b591400c56b7b67b8cb3b2b8a8e65e9093897f02ce0878e6b5405c68620fa7",
+  "VERSION": "7d072b48526b023950e4c48db01e8c273554a6401119f5691e7589ba9bc65d9d",
   "VOICE.md": "03f5cedf7519ddd24364cbfba742ddb2f5982287356964d45ce7dabf4465590f",
   "archive/action-item-triage-standalone/action-item-triage.template.html": "39ee11167d90e023ca6c18575840d08da81ed78db255ccdac216eb38d68c5183",
   "archive/action-item-triage-standalone/build-action-item-triage.js": "5bf3ffae9165256f5a4e5eaa9021f75d817464acae8cb700dece7d6899f05d61",
@@ -93,9 +93,9 @@
   "design-system/tokens/fonts.css": "710294b176c838751d1ada04d291683dcc26d266e9efdd3d86243607be57ec3e",
   "design-system/tokens/spacing.css": "190b1d23f641e80c8395060312021c5f9ed357eb4a745e242040b53c72379de3",
   "design-system/tokens/typography.css": "730d721ce36f6ceb37563ae6f380341c5e5ed6dc3e2140a43c280bde2582e484",
-  "docs/grimoire.body.html": "467f7d1fe75ce75813c2300324fab59e2bc5d08928bcf6f396d6fff3e7b8c552",
-  "docs/grimoire.html": "ba6e7d582ee6d352927373865aec33d0a2f09dc72055409b8b08d45c63fc90ff",
-  "docs/lore-grimoire.pdf": "91d68104cd6c66c181d66f887f80487d66ff11b0f43246d6536ed9af92f314fe",
+  "docs/grimoire.body.html": "31a41b0cd1f257958143acadf26bf876b28531f70c4e8d15191f9435c88611c8",
+  "docs/grimoire.html": "33ea196dc2734b00eda83a7f447611cfae454419f92593f57671e6a208ac17bf",
+  "docs/lore-grimoire.pdf": "3d358efacbe4b856cf0771c4723c150fe717887cba3eacc17e0c9e8ef99034fe",
   "docs/lore-setup-guide.pdf": "a65f6ddaf8df88356f877b21c96d4ae7c87bea1e6053c3679636d5e6386985c9",
   "docs/setup-guide.html": "e1127d031fc5cd6e0a22953c6b20e6a04ab23f662b0a44fcd93edaa0bc814368",
   "evals/README.md": "1c34ccfe3bbe402c237c7c8f2feaa8a71046795f652502e9201ecbc1e5c8eb9d",
@@ -173,10 +173,10 @@
   "workflows/roundtable-prep.md": "3965225f5f228e079dc7d432a28599b6d0162b9b009654530a210719a4c6dba5",
   "workflows/slides.md": "066e5f4ffc3f3de3ad582d272538870faffb969a36b8513dae45252badfdfe64",
   "workflows/talent-review.md": "f818d5837a28f550dbc79abe57f083e59216d8e527b9c4af8f3cdf907fc82061",
-  "workflows/triage.md": "3ebb081b0ca54a8cd442a5a7a4dcdcaa47c3e76561af7b47514b1064f7c26f81",
+  "workflows/triage.md": "0fc50b84acbeea09af658f6a9a3fe5b9e4304d8f38c6d689695b0fb32239f036",
   "workflows/unrolled.md": "f7a5bb9d632bb6ab3279c80c11a62bea8966b9391a4ce520bb74197e24e7b867",
   "workflows/update.md": "4f262a9bfc980354248dad1c4a3ea558c31a10e4b30b2e7d0b8740095c9eeb7a",
   "workflows/vault-lint.md": "60ff43ea5238db6319835191c11414ea878e89bc5f688379f32f652a0e3c0f8c"
  },
- "version": "1.4.0"
+ "version": "1.4.1"
 }
