@@ -191,13 +191,13 @@
   /* auto-fit grid, so N tiles divide the row evenly and a 3rd never dangles */
   .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
               gap: 10px; margin: 0 0 14px; }
-  .stat { background: var(--ink); color: #fff; padding: 10px 14px 8px; text-align: center; min-width: 0; box-shadow: var(--shadow-sprite-sm); }
+  .stat { background: var(--ink); color: var(--on-fill, #fff); padding: 10px 14px 8px; text-align: center; min-width: 0; box-shadow: var(--shadow-sprite-sm); }
   .stat.gold { background: var(--gold); }
   .stat.arcane { background: var(--arcane); }
-  .stat.info { background: #3a5878; }
-  .stat.success { background: #3f6b52; }
-  .stat.warn { background: #b06f2a; }
-  .stat.danger { background: #a4432f; }
+  .stat.info { background: var(--info, #3a5878); }
+  .stat.success { background: var(--success, #3f6b52); }
+  .stat.warn { background: var(--warn, #b06f2a); }
+  .stat.danger { background: var(--danger, #a4432f); }
   .stat-n { font-family: var(--font-display); font-weight: 400; font-size: 34px; line-height: 1; display: block; }
   .stat-l { font-family: var(--font-pixel); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; display: block; line-height: 1.25; overflow-wrap: break-word; }
 

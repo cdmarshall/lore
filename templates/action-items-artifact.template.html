@@ -106,7 +106,7 @@ input, textarea { border-radius: 0; }
 
 .header-btn {
   font-family: var(--font-pixel); font-size: 14px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase;
-  padding: 6px 13px; border: 2px solid var(--gold-deep); background: var(--gold); color: #fff;
+  padding: 6px 13px; border: 2px solid var(--gold-deep); background: var(--gold); color: var(--on-fill, #fff);
   cursor: pointer; box-shadow: var(--shadow-sprite-sm); align-self: center;
   transition: transform 0.12s steps(2);
 }
@@ -118,7 +118,7 @@ input, textarea { border-radius: 0; }
 .header-btn.paused { background: var(--warn); border-color: var(--warn); }
 
 .stats { display: flex; gap: 10px; flex-wrap: wrap; }
-.stat { background: var(--ink); color: #fff; padding: 6px 14px 5px; text-align: center; min-width: 74px; box-shadow: var(--shadow-sprite-sm); }
+.stat { background: var(--ink); color: var(--on-fill, #fff); padding: 6px 14px 5px; text-align: center; min-width: 74px; box-shadow: var(--shadow-sprite-sm); }
 .stat.danger   { background: var(--danger); }
 .stat.warning  { background: var(--warn); }
 .stat.agent    { background: var(--success); }
@@ -135,7 +135,7 @@ input, textarea { border-radius: 0; }
 .toast.warn  { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
 .toast.error { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
 .toast-text { flex: 1; line-height: 1.45; }
-.toast-action { font-family: var(--font-pixel); font-size: 14px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 12px; border: none; cursor: pointer; color: #fff; background: var(--info); box-shadow: var(--shadow-sprite-sm); }
+.toast-action { font-family: var(--font-pixel); font-size: 14px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 12px; border: none; cursor: pointer; color: var(--on-fill, #fff); background: var(--info); box-shadow: var(--shadow-sprite-sm); }
 .toast.warn .toast-action  { background: var(--warn); }
 .toast.error .toast-action { background: var(--danger); }
 .toast-close { background: none; border: none; cursor: pointer; font-size: 16px; line-height: 1; color: inherit; opacity: 0.6; padding: 0 4px; }
@@ -151,10 +151,10 @@ input, textarea { border-radius: 0; }
 }
 .pill:hover { border-color: var(--ink); color: var(--ink); }
 .pill.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.pill.lore-pill.active     { background: var(--arcane); border-color: var(--arcane); color: #fff; }
-.pill.agent-pill.active    { background: var(--success); border-color: var(--success); color: #fff; }
-.pill.stale-pill.active    { background: var(--danger); border-color: var(--danger); color: #fff; }
-.pill.delegate-pill.active { background: var(--info); border-color: var(--info); color: #fff; }
+.pill.lore-pill.active     { background: var(--arcane); border-color: var(--arcane); color: var(--on-fill, #fff); }
+.pill.agent-pill.active    { background: var(--success); border-color: var(--success); color: var(--on-fill, #fff); }
+.pill.stale-pill.active    { background: var(--danger); border-color: var(--danger); color: var(--on-fill, #fff); }
+.pill.delegate-pill.active { background: var(--info); border-color: var(--info); color: var(--on-fill, #fff); }
 .search-wrap input { font-family: var(--font-body); padding: 6px 10px; border: 2px solid var(--rule); font-size: 14px; outline: none; width: 200px; color: var(--ink); background: var(--card); }
 .search-wrap input:focus { border-color: var(--ink); }
 .search-wrap input::placeholder { color: var(--ink-faint); }
@@ -169,14 +169,14 @@ td { padding: 11px 14px; border-bottom: 1px solid var(--rule-soft); vertical-ali
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover td { background: var(--paper-band); }
 tbody tr:hover .archive-btn { opacity: 1; }
-tbody tr.flagged-row td { background: #fcfaf2; }
+tbody tr.flagged-row td { background: var(--flag-row-bg, #fcfaf2); }
 tbody tr.flagged-row:hover td { background: var(--gold-soft); }
 
 /* ── Badges ── */
 .badge { font-family: var(--font-pixel); display: inline-block; padding: 2px 7px; font-size: 14px; font-weight: 400; text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; border: 1px solid; }
 .b-overdue  { background: var(--danger-soft); color: var(--danger);    border-color: var(--danger); }
 .b-upcoming { background: var(--gold-soft);   color: var(--gold-deep); border-color: var(--gold); }
-.b-asap     { background: var(--danger);      color: #fff;             border-color: var(--danger); }
+.b-asap     { background: var(--danger);      color: var(--on-fill, #fff);             border-color: var(--danger); }
 .b-tbd      { background: var(--paper-band);  color: var(--ink-faint); border-color: var(--rule); }
 
 .due-display { cursor: pointer; padding: 2px 5px; margin: -2px -5px; display: inline-block; font-size: 15px; font-weight: 400; font-family: var(--font-pixel); color: var(--ink-soft); }
@@ -227,7 +227,7 @@ tbody tr.flagged-row:hover td { background: var(--gold-soft); }
 .notes-edit-wrap.open { display: block; }
 .notes-textarea { font-family: var(--font-body); width: 100%; padding: 5px 8px; border: 2px solid var(--gold); font-size: 12.5px; color: var(--ink); background: var(--card); outline: none; resize: vertical; min-height: 48px; line-height: 1.5; }
 .notes-actions { display: flex; gap: 6px; margin-top: 5px; }
-.notes-save { font-family: var(--font-pixel); font-size: 14px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 11px; border: 2px solid var(--gold-deep); background: var(--gold); color: #fff; cursor: pointer; }
+.notes-save { font-family: var(--font-pixel); font-size: 14px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 11px; border: 2px solid var(--gold-deep); background: var(--gold); color: var(--on-fill, #fff); cursor: pointer; }
 .notes-save:hover { background: var(--gold-deep); }
 .notes-cancel { font-family: var(--font-pixel); font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 11px; border: 1px solid var(--rule); background: var(--card); color: var(--ink-soft); cursor: pointer; }
 
@@ -235,11 +235,11 @@ tbody tr.flagged-row:hover td { background: var(--gold-soft); }
 .flags-toggle { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
 .flag-chip { font-family: var(--font-pixel); display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; font-size: 14px; font-weight: 400; letter-spacing: 0.06em; cursor: pointer; border: 1px solid; user-select: none; justify-content: center; white-space: nowrap; }
 .flag-chip .dot { width: 5px; height: 5px; background: currentColor; flex-shrink: 0; }
-.flag-chip.lore.on   { background: var(--arcane); color: #fff; border-color: var(--arcane); }
+.flag-chip.lore.on   { background: var(--arcane); color: var(--on-fill, #fff); border-color: var(--arcane); }
 .flag-chip.lore.off  { background: var(--card); color: var(--ink-faint); border-color: var(--rule); }
 .flag-chip.lore.on:hover  { background: var(--arcane-bright); border-color: var(--arcane-bright); }
 .flag-chip.lore.off:hover { border-color: var(--arcane); color: var(--arcane); background: var(--arcane-soft); }
-.flag-chip.spec.on   { background: var(--success); color: #fff; border-color: var(--success); }
+.flag-chip.spec.on   { background: var(--success); color: var(--on-fill, #fff); border-color: var(--success); }
 .flag-chip.spec.off  { background: var(--card); color: var(--ink-faint); border-color: var(--rule); }
 .flag-chip.spec.on:hover  { background: #4d7d62; border-color: #4d7d62; }
 .flag-chip.spec.off:hover { border-color: var(--success); color: var(--success); background: var(--success-soft); }
@@ -248,7 +248,7 @@ tbody tr.flagged-row:hover td { background: var(--gold-soft); }
 .cb { width: 15px; height: 15px; cursor: pointer; accent-color: var(--gold); display: block; margin-top: 2px; }
 .confirm-strip { display: none; margin-top: 6px; padding: 6px 11px; background: var(--parchment); border: 1px solid var(--parchment-shade); align-items: center; gap: 8px; font-size: 13px; color: var(--ink); flex-wrap: wrap; font-family: var(--font-body); }
 .confirm-strip.show { display: flex; }
-.btn-yes { font-family: var(--font-pixel); font-size: 14px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 12px; border: 2px solid var(--gold-deep); cursor: pointer; background: var(--gold); color: #fff; }
+.btn-yes { font-family: var(--font-pixel); font-size: 14px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 12px; border: 2px solid var(--gold-deep); cursor: pointer; background: var(--gold); color: var(--on-fill, #fff); }
 .btn-yes:hover { background: var(--gold-deep); }
 .btn-no { font-family: var(--font-pixel); font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 12px; border: 1px solid var(--rule); cursor: pointer; color: var(--ink-soft); background: var(--card); }
 .archive-btn { font-family: var(--font-pixel); opacity: 0; padding: 2px 9px; border: 1px solid var(--rule); cursor: pointer; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); background: var(--card); font-weight: 400; }
@@ -338,7 +338,7 @@ tbody tr:hover .delegate-btn { opacity: 1; }
 .triage-pop-wrap { position: relative; display: inline-block; }
 .triage-btn { font-family: var(--font-pixel); font-size: 14px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; padding: 7px 14px; border: 2px solid var(--rule); background: var(--card); color: var(--ink-soft); cursor: pointer; box-shadow: var(--shadow-sprite-sm); transition: transform 0.12s steps(2); }
 .triage-btn:active { transform: translate(2px, 2px); box-shadow: var(--shadow-press); }
-.triage-btn-donow { background: var(--gold); border-color: var(--gold-deep); color: #fff; }
+.triage-btn-donow { background: var(--gold); border-color: var(--gold-deep); color: var(--on-fill, #fff); }
 .triage-btn-donow:hover { background: var(--gold-deep); }
 .triage-btn-schedule { color: var(--ink); border-color: var(--ink); }
 .triage-btn-schedule:hover { background: var(--paper-band); }

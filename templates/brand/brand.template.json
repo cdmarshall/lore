@@ -5,7 +5,8 @@
   "css": "brand.css",
   "logo": {
     "file": "logo.svg",
-    "alt": "<Exact logo wording, e.g. Acme Inc.>"
+    "alt": "<Exact logo wording, e.g. Acme Inc.>",
+    "_comment": "Optional: add \"dark\": \"logo-reversed.svg\" (a reversed, light logo in brand/) to show it when the page is in dark mode. Pair it with the dark tokens in brand.css."
   },
   "titles": {
     "_comment": "Optional. Rename Lore's surfaces in the brand's plain voice. Lore stays credited: keep 'by Lore' in a subtitle.",
@@ -27,7 +28,14 @@
     "fontSize": 12,
     "variant": "solid",
     "radius": 4,
-    "tension": 0.35
+    "tension": 0.35,
+    "_dark_example": {
+      "_comment": "Optional. Rename this key to dark to give charts their own dark-mode colors and ink; any key left out keeps the light value.",
+      "colors": {
+        "primary": { "main": "#ffffff", "deep": "#ffffff", "soft": "#333333" }
+      },
+      "ink": "#f2f2f2", "inkSoft": "#cccccc", "inkFaint": "#999999", "paper": "#1e1e1e", "rule": "#444444"
+    }
   },
   "sources": {
     "_comment": "Where the brand came from, so a refresh knows where to look.",

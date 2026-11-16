@@ -25,6 +25,9 @@ What it does, driven by brand/brand.json (schema: templates/brand/brand.template
      with every url(...) that points at a file inside brand/ (fonts, images)
      inlined as a data URI so the output stays self-contained.
   2. Replaces the <!--lore:brand-logo--> marker with the logo <img>, inlined.
+     If brand.json names logo.dark, the brand style also swaps that reversed
+     logo in when the page is in dark mode (the pack's brand.css carries the
+     dark tokens themselves).
   3. Retitles surfaces: an element with data-lore-title="<surface>" gets
      titles.<surface>.title as its text; titles.<surface>.subtitle goes into
      the element with data-lore-subtitle="<surface>" if there is one, or a
@@ -124,7 +127,22 @@ def build_style(cfg):
     css = css_file.read_text(encoding="utf-8") if css_file.is_file() else ""
     name = cfg.get("name", "brand")
     return (f'<style id="lore-brand">\n{layer}\n'
-            f'/* ---- Brand pack: {name} (brand/brand.css) ---- */\n{inline_urls(css)}\n</style>\n')
+            f'/* ---- Brand pack: {name} (brand/brand.css) ---- */\n{inline_urls(css)}\n'
+            f'{dark_logo_css(cfg)}</style>\n')
+
+
+def dark_logo_css(cfg):
+    """brand.json logo.dark: the reversed logo, shown when the page is in dark mode."""
+    f = (cfg.get("logo") or {}).get("dark")
+    if not f:
+        return ""
+    p = BRAND_DIR / f
+    if not p.is_file():
+        sys.exit(f"apply-brand: dark logo file brand/{f} is missing")
+    u = data_uri(p)
+    return ('/* ---- Dark mode logo (brand.json logo.dark) ---- */\n'
+            '@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) img.brand-logo { content: url("%s"); } }\n'
+            ':root[data-theme="dark"] img.brand-logo { content: url("%s"); }\n' % (u, u))
 
 
 def build_logo(cfg):

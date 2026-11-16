@@ -20,6 +20,7 @@
   --brand-tint: #f7f7f7;
   --brand-tint-line: #e6e6e6;
   --brand-ink: #222222;
+  --brand-ink-strong: #111111;
   --brand-ink-soft: #4a4a4a;
   --brand-ink-faint: #767676;
   --brand-rule: #e0e0e0;
@@ -27,6 +28,7 @@
   --brand-primary: #000000;
   --brand-primary-deep: #000000;
   --brand-primary-soft: #f2f2f2;
+  --brand-on-primary: #ffffff;
   --brand-accent: #000000;
   --brand-accent-soft: #f2f2f2;
   --brand-font-display: 'Brand Display', system-ui, sans-serif;
@@ -37,5 +39,17 @@
   --brand-radius: 4px;
   --brand-logo-height: 28px;
 }
+
+/* Optional dark mode. Repeat the color tokens with dark values in both blocks
+   (the first follows the viewer's setting, the second a page pinned to dark);
+   a pack without them stays light. Keep every text pair at 4.5:1 or better,
+   and set --brand-on-primary to a color that reads on the dark --brand-primary.
+   Name a reversed logo in brand.json logo.dark.
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --brand-bg: #121212; --brand-surface: #1e1e1e; --brand-ink: #f2f2f2; ...
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] { same tokens }
+*/
 
 /* Brand-specific touches go below, sparingly. */

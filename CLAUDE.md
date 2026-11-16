@@ -111,7 +111,7 @@ Read the matching file and follow it.
 | "update Lore" / "get the latest version" / "pull the latest updates" | `workflows/update.md` |
 | "run migrations" / "finish the update" / "migrate my setup" | `workflows/migrations.md` |
 | "what's new" / "open the grimoire" / "how do I use Lore" | `docs/lore-grimoire.pdf` (source `docs/grimoire.body.html`): answer from it and point the keeper at the page. |
-| "set up my brand" / "use my company's branding" / "refresh my brand" / "turn off my brand" | `workflows/brand.md` |
+| "set up my brand" / "use my company's branding" / "refresh my brand" / "add dark mode to my brand" / "turn off my brand" | `workflows/brand.md` |
 | "make a deck" / "build a presentation" / "turn this into slides" | `workflows/slides.md` |
 | "check my connectors" / "what can you reach" / "I connected <tool>" / "I switched <role> to <tool>" | `workflows/connectors.md` |
 | "what am I waiting on" / "show my commitments" / "who owes me what" / "track this promise" | `workflows/commitments.md` |

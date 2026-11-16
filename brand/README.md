@@ -6,4 +6,4 @@ This folder holds **your** brand pack: your company's or org's colors, fonts and
 - Turn it off without deleting it: set `"enabled": false` in `brand.json`.
 - No pack here means Lore's own look.
 
-What goes here: `brand.json` (manifest), `brand.css` (tokens and fonts), the logo file, `fonts/`, and `sources/` (where the brand came from). Starters: `templates/brand/`. The script that applies it: `scripts/apply-brand.py`.
+What goes here: `brand.json` (manifest), `brand.css` (tokens and fonts, plus optional dark-mode tokens), the logo file and, for dark mode, its reversed version, `fonts/`, and `sources/` (where the brand came from). Starters: `templates/brand/`. The script that applies it: `scripts/apply-brand.py`.

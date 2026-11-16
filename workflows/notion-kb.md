@@ -19,7 +19,7 @@ Every workflow's **Obsidian-mode branch applies in Notion mode**, translated thr
 | Frontmatter field | Database property (schema below). Lowercase snake_case keys become Title Case properties: `job_title` → `Job title`, `last_1on1` → `Last 1:1` |
 | `role:` (relationship) | `Relationship` select. (The Obsidian key is `role`; the property says what it means.) |
 | Wikilink in frontmatter (`lead: "[[Jane Doe]]"`) | Relation property (`Lead` → the Jane Doe page) |
-| Wikilink in body (`[[Jane Doe]]`) | Page mention `<mention-page url="...">Jane Doe</mention-page>` |
+| Wikilink in body (`[[Jane Doe]]`) | Page mention `<mention url="...">Jane Doe</mention>` (the older `<mention-page>` tag is legacy: Notion auto-converts it and warns) |
 | Backlinks | Two-way relations show on both pages (`Lead` on the project, `Leads` on the person), plus Notion's own backlinks for every mention |
 | Tags (`#status/active`, `#person/peer`) | Typed properties carry them (`Status`, `Relationship`); `Tags` multi-select only for cross-cutting labels |
 | Dataview query (`dataview` MCP tool) | `notion-query-data-sources` (SQL or rows mode) against the data source |

@@ -70,6 +70,16 @@
     PAPER = BRAND.paper || PAPER; RULE = BRAND.rule || RULE;
     FONT = BRAND.font || FONT; FONT_SIZE = BRAND.fontSize || FONT_SIZE; VARIANT = BRAND.variant || VARIANT;
   }
+  // A pack's charts.dark palette applies when the page renders in dark mode
+  // (the viewer's setting, unless the page pins data-theme="light").
+  var DARK = BRAND && BRAND.dark;
+  var root = global.document && global.document.documentElement;
+  var theme = root && root.getAttribute('data-theme');
+  if (DARK && (theme === 'dark' || (theme !== 'light' && global.matchMedia && global.matchMedia('(prefers-color-scheme: dark)').matches))) {
+    Object.keys(DARK.colors || {}).forEach(function (k) { COLORS[k] = DARK.colors[k]; });
+    INK = DARK.ink || INK; INK_SOFT = DARK.inkSoft || INK_SOFT; INK_FAINT = DARK.inkFaint || INK_FAINT;
+    PAPER = DARK.paper || PAPER; RULE = DARK.rule || RULE;
+  }
 
   function colorOf(nameOrIndex) {
     if (typeof nameOrIndex === 'number') {

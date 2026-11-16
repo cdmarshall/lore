@@ -13,7 +13,8 @@
 
    Token contract (every one optional; fallbacks are neutral):
      Surfaces   --brand-bg  --brand-band  --brand-surface  --brand-tint  --brand-tint-line
-     Text       --brand-ink  --brand-ink-soft  --brand-ink-faint
+     Text       --brand-ink  --brand-ink-soft  --brand-ink-faint  --brand-ink-strong (headlines)
+                --brand-on-primary (text on primary and status fills)
      Lines      --brand-rule  --brand-rule-soft  --brand-rule-strong
      Primary    --brand-primary  --brand-primary-deep  --brand-primary-soft  --brand-primary-bright
      Accent     --brand-accent  --brand-accent-bright  --brand-accent-soft
@@ -23,6 +24,11 @@
                 --brand-display-weight  --brand-body-weight  --brand-label-tracking
      Shape      --brand-radius  --brand-shadow  --brand-shadow-sm
      Logo       --brand-logo-height
+   Dark mode (optional): a pack that also defines its --brand-* tokens under
+     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { ... } }
+     and :root[data-theme="dark"] { ... } switches every surface with the
+     viewer's setting; brand.json "logo.dark" names a reversed logo and
+     "charts.dark" a dark chart palette. Packs without them stay light.
    ========================================================================== */
 
 :root {
@@ -48,6 +54,8 @@
   --warn: var(--brand-warn, #a15c07);       --warn-soft: var(--brand-warn-soft, #fdf1e4);
   --success: var(--brand-success, #2e7d4f); --success-soft: var(--brand-success-soft, #eaf5ee);
   --info: var(--brand-info, #2f5a8a);       --info-soft: var(--brand-info-soft, #eaf0f7);
+  --on-fill: var(--brand-on-primary, #ffffff);
+  --flag-row-bg: var(--brand-tint, #fcfaf2);
   --shadow-sprite: var(--brand-shadow, 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05));
   --shadow-sprite-sm: var(--brand-shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
   --shadow-press: none;
